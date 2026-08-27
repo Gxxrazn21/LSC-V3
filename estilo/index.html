@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Seña LSC — Asistente y Academia de Lengua de Señas Colombiana</title>
+  
+  <!-- Google Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-main: #0B0F19;
+      --bg-card: rgba(19, 26, 43, 0.85);
+      --bg-card-hover: rgba(28, 38, 62, 0.95);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(59, 130, 246, 0.4);
+      --primary: #2563EB;
+      --primary-glow: #3B82F6;
+      --accent-cyan: #06B6D4;
+      --accent-green: #10B981;
+      --accent-amber: #F59E0B;
+      --accent-purple: #8B5CF6;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 25px rgba(37, 99, 235, 0.25);
+    }
+
+    [data-theme="light"] {
+      --bg-main: #F1F5F9;
+      --bg-card: rgba(255, 255, 255, 0.95);
+      --bg-card-hover: #FFFFFF;
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-accent: rgba(37, 99, 246, 0.3);
+      --primary: #1D4ED8;
+      --primary-glow: #2563EB;
+      --accent-cyan: #0891B2;
+      --accent-green: #059669;
+      --accent-amber: #D97706;
+      --accent-purple: #7C3AED;
+      --text-main: #0F172A;
+      --text-muted: #475569;
+      --text-dim: #64748B;
+      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+      --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+    [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); }
+
+    /* App Container */
+    .app-wrapper {
+      max-width: 1280px;
+      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Header & Navbar */
+    header {
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11, 15, 25, 0.8);
+    }
+    [data-theme="light"] header {
+      background: rgba(241, 245, 249, 0.85);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .brand-icon svg {
+      width: 26px;
+      height: 26px;
+      fill: #fff;
+    }
+
+    .brand-text h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #fff, #93C5FD);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    [data-theme="light"] .brand-text h1 {
+      background: linear-gradient(to right, #1E293B, #2563EB);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text span {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    /* Top Action Badges */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-green);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.3); }
+    }
+
+    .theme-toggle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .theme-toggle-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary-glow);
+    }
+
+    /* Navigation Bar (Tabs) */
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-card);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tab-btn svg {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      color: #FFFFFF;
+      background: var(--primary);
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+    }
+    .tab-btn.active svg {
+      transform: scale(1.1);
+    }
+
+    /* Main Content Area */
+    main {
+      flex: 1;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.35s ease forwards;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========================================================
+       TAB 1: TRADUCTOR EN VIVO (CAMERA + HUD + LIVE NLP)
+       ======================================================== */
+    .translator-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 960px) {
+      .translator-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .camera-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-card);
+      position: relative;
+    }
+
+    .camera-viewport {
+      width: 100%;
+      height: 440px;
+      background: #05070E;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #webcam-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #hud-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      transform: scaleX(-1);
+    }
+
+    /* HUD Overlays */
+    .hud-header {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .hud-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(11, 15, 25, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .hud-badge.stable {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .hud-badge.moving {
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+    }
+    .hud-badge.empty {
+      border-color: var(--text-dim);
+      color: var(--text-muted);
+    }
+
+    .camera-controls-bar {
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    .btn-primary:hover {
+      background: var(--primary-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--border-accent);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Translation Live Dashboard Panel */
+    .dashboard-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Main Predicted Sign Display */
+    .top-prediction-box {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(6, 182, 212, 0.1));
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .prediction-sign-name {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .prediction-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .confidence-meter {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .confidence-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--accent-cyan));
+      border-radius: 4px;
+      transition: width 0.15s ease;
+    }
+
+    /* Candidate List */
+    .candidates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .candidate-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+
+    .candidate-score {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Sentence Construction Box */
+    .sentence-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .glosses-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 44px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--border-color);
+    }
+
+    .gloss-chip {
+      padding: 6px 12px;
+      background: rgba(37, 99, 235, 0.25);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: var(--radius-sm);
+      color: #93C5FD;
+      font-size: 12px;
+      font-weight: 700;
+      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.6); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .translated-sentence {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-green);
+      line-height: 1.4;
+      min-height: 32px;
+    }
+
+    /* Telemetry Bar */
+    .telemetry-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .finger-telemetry {
+      text-align: center;
+      padding: 8px 4px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+
+    .finger-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .finger-val {
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .finger-val.up { color: var(--accent-green); }
+    .finger-val.down { color: var(--text-dim); }
+
+    /* ========================================================
+       TAB 2: ACADEMIA & PRACTICA INTERACTIVA DE LSC
+       ======================================================== */
+    .academy-header {
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .academy-title h2 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .academy-title p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .category-filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-chip:hover, .filter-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+    }
+
+    .signs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .sign-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sign-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-accent);
+      box-shadow: 0 12px 30px -10px rgba(37, 99, 235, 0.2);
+    }
+
+    .sign-badge {
+      align-self: flex-start;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      background: rgba(37, 99, 235, 0.15);
+      color: #93C5FD;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .sign-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .sign-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 16px;
+      flex: 1;
+    }
+
+    .sign-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Modal de Práctica con Cámara */
+    .practice-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 16, 0.88);
+      backdrop-filter: blur(16px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .practice-modal-overlay.active {
+      display: flex;
+    }
+
+    .practice-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 24px;
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      .practice-modal {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ========================================================
+       TAB 3: BIDIRECCIONAL (TEXTO / VOZ -> SEÑAS LSC)
+       ======================================================== */
+    .bidirectional-container {
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .input-speech-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .text-input-area {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      color: var(--text-main);
+      font-size: 16px;
+      resize: vertical;
+      min-height: 100px;
+      margin-bottom: 16px;
+      outline: none;
+      font-family: inherit;
+    }
+    .text-input-area:focus {
+      border-color: var(--primary-glow);
+    }
+
+    .lsc-sequence-viewer {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sequence-cards-track {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 16px;
+    }
+
+    .sequence-card {
+      flex: 0 0 220px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      text-align: center;
+    }
+
+    /* ========================================================
+       TAB 4: FRASES RAPIDAS SOS & CONVERSACION
+       ======================================================== */
+    .quick-phrases-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+    }
+
+    .phrase-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .phrase-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-accent);
+      transform: translateX(4px);
+    }
+
+    .phrase-info h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .phrase-info span {
+      font-size: 12px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .speaker-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(37, 99, 235, 0.15);
+      color: var(--primary-glow);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-wrapper">
+  <!-- Header -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2a2 2 0 0 1 2 2v8a2 2 0 0 1-4 0V4a2 2 0 0 1 2-2zM6 8a2 2 0 0 1 2 2v4a2 2 0 0 1-4 0v-4a2 2 0 0 1 2-2zm12 2a2 2 0 0 1 2 2v3a2 2 0 0 1-4 0v-3a2 2 0 0 1 2-2zm-6 10a7 7 0 0 0 7-7v-1h2v1a9 9 0 0 1-8 8.94V22h-2v-1.06A9 9 0 0 1 3 12v-1h2v1a7 7 0 0 0 7 7z"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Seña LSC</h1>
+        <span>Asistente & Academia IA</span>
+      </div>
+    </a>
+
+    <div class="header-actions">
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        <span id="backend-status">Motor 101D Conectado</span>
+      </div>
+
+      <button class="theme-toggle-btn" id="theme-btn" title="Cambiar Tema">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Navegación por Pestañas -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="tab-translator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Traductor en Vivo
+    </button>
+    <button class="tab-btn" data-tab="tab-academy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Aprender & Practicar
+    </button>
+    <button class="tab-btn" data-tab="tab-bidirectional">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Voz/Texto → LSC
+    </button>
+    <button class="tab-btn" data-tab="tab-phrases">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Frases Rápidas SOS
+    </button>
+  </nav>
+
+  <!-- Contenedor Principal -->
+  <main>
+    <!-- TAB 1: TRADUCTOR EN VIVO -->
+    <div id="tab-translator" class="tab-pane active">
+      <div class="translator-grid">
+        <!-- Columna Izquierda: Cámara y HUD -->
+        <div class="camera-card">
+          <div class="camera-viewport">
+            <video id="webcam-video" autoplay playsinline muted></video>
+            <canvas id="hud-canvas"></canvas>
+
+            <div class="hud-header">
+              <div class="hud-badge stable" id="hud-stability">
+                <span>●</span> SEÑA ESTABLE
+              </div>
+              <div class="hud-badge" id="hud-quadrant">
+                ZONA: ESPACIO LATERAL
+              </div>
+            </div>
+          </div>
+
+          <div class="camera-controls-bar">
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary" id="btn-toggle-camera">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span id="cam-state-text">Detener Cámara</span>
+              </button>
+              <button class="btn btn-secondary" id="btn-clear-buffer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Limpiar Buffer
+              </button>
+            </div>
+
+            <button class="btn btn-secondary" id="btn-speak-now">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              Pronunciar Ahora
+            </button>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Dashboard y Glosas -->
+        <div class="dashboard-panel">
+          <!-- Tarjeta de Seña Actual -->
+          <div class="panel-card">
+            <div class="panel-title">
+              <span>Seña Reconocida</span>
+              <span id="fps-counter" style="font-family: 'JetBrains Mono'; color: var(--accent-green);">30 FPS</span>
+            </div>
+
+            <div class="top-prediction-box">
+              <div class="prediction-sign-name" id="pred-sign">ESPERANDO...</div>
+              <div class="prediction-meta">
+                <span>Confianza: <strong id="pred-conf" style="color: var(--accent-cyan);">0%</strong></span>
+                <span>Cuadrante: <strong id="pred-cuad">-</strong></span>
+              </div>
+              <div class="confidence-meter">
+                <div class="confidence-bar" id="pred-bar"></div>
+              </div>
+            </div>
+
+            <!-- Telemetría de Dedos en Tiempo Real -->
+            <div style="margin-top: 16px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Estado Articular de Dedos</div>
+              <div class="telemetry-row">
+                <div class="finger-telemetry"><div class="finger-name">Pulgar</div><div class="finger-val down" id="f-0">0</div></div>
+                <div class="finger-telemetry"><div class="finger-name">Índice</div><div class="finger-val up" id="f-1">1</div></div>
+                <div class="finger-telemetry"><div class="finger-name">Medio</div><div class="finger-val down" id="f-2">0</div></div>
+                <div class="finger-telemetry"><div class="finger-name">Anular</div><div class="finger-val down" id="f-3">0</div></div>
+                <div class="finger-telemetry"><div class="finger-name">Meñique</div><div class="finger-val down" id="f-4">0</div></div>
+              </div>
+            </div>
+
+            <!-- Top Candidatos -->
+            <div class="candidates-list" id="candidates-container">
+              <!-- Inyectado dinámicamente -->
+            </div>
+          </div>
+
+          <!-- Constructor de Frases en Español -->
+          <div class="panel-card sentence-box">
+            <div class="panel-title">
+              <span>Glosas LSC en Progreso</span>
+              <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" id="btn-copy-sentence">Copiar</button>
+            </div>
+
+            <div class="glosses-container" id="glosses-list">
+              <span style="color: var(--text-dim); font-size: 12px;">Realiza señas frente a la cámara...</span>
+            </div>
+
+            <div class="panel-title" style="margin-top: 10px; margin-bottom: 6px;">Traducción al Español:</div>
+            <div class="translated-sentence" id="spanish-sentence">"..."</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: APRENDER & PRACTICAR LSC -->
+    <div id="tab-academy" class="tab-pane">
+      <div class="academy-header">
+        <div class="academy-title">
+          <h2>Academia Interactiva LSC</h2>
+          <p>Aprende señas guiadas por IA y practica con retroalimentación articular en tiempo real.</p>
+        </div>
+
+        <div class="category-filters" id="academy-filters">
+          <button class="filter-chip active" data-cat="Todos">Todos (52)</button>
+          <button class="filter-chip" data-cat="Números">Números (1-10)</button>
+          <button class="filter-chip" data-cat="Alfabeto">Alfabeto (A-Z)</button>
+          <button class="filter-chip" data-cat="Saludos">Saludos</button>
+          <button class="filter-chip" data-cat="Emergencia">Emergencia & SOS</button>
+        </div>
+      </div>
+
+      <div class="signs-grid" id="academy-cards-grid">
+        <!-- Inyectado dinámicamente desde /api/catalogo_educativo -->
+      </div>
+    </div>
+
+    <!-- TAB 3: VOZ / TEXTO -> LSC -->
+    <div id="tab-bidirectional" class="tab-pane">
+      <div class="bidirectional-container">
+        <div class="input-speech-card">
+          <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 6px;">Traductor de Español a Señas LSC</h3>
+          <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+            Escribe una frase o habla por el micrófono para ver la secuencia de señas correspondiente para personas sordas.
+          </p>
+
+          <textarea class="text-input-area" id="input-text-to-sign" placeholder="Ejemplo: Hola buenos días donde queda el baño..."></textarea>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <button class="btn btn-secondary" id="btn-mic-input">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+              <span id="mic-label">Hablar por Micrófono</span>
+            </button>
+
+            <button class="btn btn-primary" id="btn-convert-to-lsc">
+              Traducir a Señas
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-card lsc-sequence-viewer" id="sequence-viewer-card" style="display: none;">
+          <div class="panel-title">Secuencia de Señas LSC</div>
+          <div class="sequence-cards-track" id="sequence-track">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: FRASES RAPIDAS SOS -->
+    <div id="tab-phrases" class="tab-pane">
+      <div class="academy-header">
+        <div class="academy-title">
+          <h2>Frases Rápidas y Asistencia SOS</h2>
+          <p>Toca cualquier tarjeta para pronunciar en voz alta instantáneamente o reproducir su seña.</p>
+        </div>
+      </div>
+
+      <div class="quick-phrases-grid">
+        <div class="phrase-card" onclick="speakText('¿Dónde queda el baño, por favor?')">
+          <div class="phrase-info">
+            <h4>¿Dónde queda el baño?</h4>
+            <span>[DONDE] [BAÑO]</span>
+          </div>
+          <div class="speaker-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        </div>
+
+        <div class="phrase-card" onclick="speakText('Necesito ayuda por favor')">
+          <div class="phrase-info">
+            <h4>Necesito ayuda por favor</h4>
+            <span>[YO] [AYUDAR]</span>
+          </div>
+          <div class="speaker-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        </div>
+
+        <div class="phrase-card" onclick="speakText('¡Hola, muy buenos días!')">
+          <div class="phrase-info">
+            <h4>¡Hola, muy buenos días!</h4>
+            <span>[HOLA] [BUENAS] [DIAS]</span>
+          </div>
+          <div class="speaker-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        </div>
+
+        <div class="phrase-card" onclick="speakText('Buenas tardes, mucho gusto')">
+          <div class="phrase-info">
+            <h4>Buenas tardes, mucho gusto</h4>
+            <span>[BUENAS] [TARDES] [GUSTAR]</span>
+          </div>
+          <div class="speaker-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        </div>
+
+        <div class="phrase-card" onclick="speakText('No entiendo, ¿puedes escribir o repetir por favor?')">
+          <div class="phrase-info">
+            <h4>No entiendo, ¿puedes repetir?</h4>
+            <span>[NO] [ENTENDER] [REPETIR]</span>
+          </div>
+          <div class="speaker-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        </div>
+
+        <div class="phrase-card" onclick="speakText('Muchas gracias por tu apoyo')">
+          <div class="phrase-info">
+            <h4>Muchas gracias por tu apoyo</h4>
+            <span>[GRACIAS] [APOYAR]</span>
+          </div>
+          <div class="speaker-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL DE PRACTICA GUIADA CON EVALUACION EN VIVO -->
+<div class="practice-modal-overlay" id="practice-modal">
+  <div class="practice-modal">
+    <button class="modal-close-btn" id="btn-close-modal">✕</button>
+
+    <!-- Columna Izquierda: Cámara de Evaluación -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      <h3 id="modal-target-title" style="font-size: 22px; font-weight: 800;">Practicando: Número 1</h3>
+      
+      <div style="width: 100%; height: 320px; background: #05070E; border-radius: var(--radius-md); overflow: hidden; position: relative;">
+        <video id="practice-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+        <canvas id="practice-canvas" style="position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1);"></canvas>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 13px; color: var(--text-muted);">Precisión de tu postura:</span>
+        <strong id="practice-match-pct" style="color: var(--accent-cyan); font-size: 16px; font-family: 'JetBrains Mono';">0%</strong>
+      </div>
+      <div class="confidence-meter" style="height: 10px;">
+        <div class="confidence-bar" id="practice-bar"></div>
+      </div>
+    </div>
+
+    <!-- Columna Derecha: Instrucciones y Feedback Articular -->
+    <div style="display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+      <div>
+        <div class="sign-badge" id="modal-badge-cat">NÚMEROS</div>
+        <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Guía de Postura</h4>
+        <p id="modal-instructions" style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;">
+          Mantén el dedo índice erguido hacia arriba y los otros 4 dedos cerrados en puño.
+        </p>
+
+        <div style="padding: 12px; background: rgba(37, 99, 235, 0.1); border: 1px solid var(--border-accent); border-radius: var(--radius-md);">
+          <div style="font-size: 11px; font-weight: 700; color: var(--primary-glow); text-transform: uppercase;">Consejo del Asistente</div>
+          <div id="modal-tip" style="font-size: 13px; color: var(--text-main); margin-top: 4px;">
+            Asegúrate de no abrir el dedo pulgar.
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback dinámico en vivo -->
+      <div id="practice-feedback-alert" style="padding: 14px; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); text-align: center;">
+        <div id="practice-feedback-text" style="font-size: 14px; font-weight: 600; color: var(--text-muted);">
+          Coloca tu mano frente a la cámara para evaluar...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ==========================================
+  // ESTADO GLOBAL Y CONFIGURACION
+  // ==========================================
+  let ws = null;
+  let isCameraRunning = false;
+  let videoStream = null;
+  let catalogoEducativo = [];
+  let currentTargetSign = "1";
+  let isEvaluatingPractice = false;
+  let practiceInterval = null;
+
+  const videoEl = document.getElementById("webcam-video");
+  const canvasEl = document.getElementById("hud-canvas");
+  const ctx = canvasEl.getContext("2d");
+
+  // ==========================================
+  // INICIALIZACION Y NAVEGACION DE TABS
+  // ==========================================
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+      
+      btn.classList.add("active");
+      const targetTab = document.getElementById(btn.dataset.tab);
+      if (targetTab) targetTab.classList.add("active");
+
+      // Auto-iniciar cámara en Tab 1
+      if (btn.dataset.tab === "tab-translator" && !isCameraRunning) {
+        startCamera();
+      }
+    });
+  });
+
+  // Tema Claro / Oscuro
+  const themeBtn = document.getElementById("theme-btn");
+  themeBtn.addEventListener("click", () => {
+    const isLight = document.body.getAttribute("data-theme") === "light";
+    document.body.setAttribute("data-theme", isLight ? "dark" : "light");
+  });
+
+  // ==========================================
+  // CONEXION WEBSOCKET CON BACKEND 101D
+  // ==========================================
+  function connectWebSocket() {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws/reconocimiento`;
+    
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      document.getElementById("backend-status").textContent = "Motor 101D Conectado";
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      updateTranslatorHUD(data);
+    };
+
+    ws.onclose = () => {
+      document.getElementById("backend-status").textContent = "Reconectando Motor...";
+      setTimeout(connectWebSocket, 2000);
+    };
+  }
+
+  // ==========================================
+  // CAMARA EN VIVO Y CAPTURA DE FRAMES
+  // ==========================================
+  async function startCamera() {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: "user" }
+      });
+      videoEl.srcObject = videoStream;
+      isCameraRunning = true;
+      document.getElementById("cam-state-text").textContent = "Detener Cámara";
+
+      videoEl.onloadedmetadata = () => {
+        canvasEl.width = videoEl.videoWidth;
+        canvasEl.height = videoEl.videoHeight;
+        requestAnimationFrame(processVideoFrame);
+      };
+    } catch (err) {
+      console.error("Error al acceder a la cámara:", err);
+      alert("No se pudo acceder a la cámara. Por favor autoriza los permisos de video en tu navegador.");
+    }
+  }
+
+  function stopCamera() {
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+    }
+    isCameraRunning = false;
+    document.getElementById("cam-state-text").textContent = "Iniciar Cámara";
+  }
+
+  document.getElementById("btn-toggle-camera").addEventListener("click", () => {
+    if (isCameraRunning) stopCamera();
+    else startCamera();
+  });
+
+  // Loop de procesamiento de frames
+  let lastFrameTime = performance.now();
+  let frameCount = 0;
+  let fps = 30;
+
+  const offscreenCanvas = document.createElement("canvas");
+  offscreenCanvas.width = 320;
+  offscreenCanvas.height = 240;
+  const offscreenCtx = offscreenCanvas.getContext("2d");
+
+  function processVideoFrame(now) {
+    if (!isCameraRunning) return;
+
+    // Calcular FPS
+    frameCount++;
+    if (now - lastFrameTime >= 1000) {
+      fps = Math.round((frameCount * 1000) / (now - lastFrameTime));
+      document.getElementById("fps-counter").textContent = `${fps} FPS`;
+      frameCount = 0;
+      lastFrameTime = now;
+    }
+
+    // Enviar frame al WebSocket cada 100ms
+    if (ws && ws.readyState === WebSocket.OPEN && frameCount % 3 === 0) {
+      offscreenCtx.drawImage(videoEl, 0, 0, 320, 240);
+      const b64 = offscreenCanvas.toDataURL("image/jpeg", 0.65);
+      ws.send(JSON.stringify({ imagen_base64: b64 }));
+    }
+
+    requestAnimationFrame(processVideoFrame);
+  }
+
+  // ==========================================
+  // ACTUALIZACION DEL HUD Y RECONOCIMIENTO
+  // ==========================================
+  function updateTranslatorHUD(data) {
+    const stabilityBadge = document.getElementById("hud-stability");
+    const quadrantBadge = document.getElementById("hud-quadrant");
+
+    if (!data.hay_manos) {
+      stabilityBadge.className = "hud-badge empty";
+      stabilityBadge.innerHTML = "<span>○</span> SIN MANO";
+      quadrantBadge.textContent = "ZONA: ESPERANDO";
+      document.getElementById("pred-sign").textContent = "ESPERANDO...";
+      document.getElementById("pred-conf").textContent = "0%";
+      document.getElementById("pred-bar").style.width = "0%";
+      return;
+    }
+
+    // Estado Cinético
+    if (data.es_estable) {
+      stabilityBadge.className = "hud-badge stable";
+      stabilityBadge.innerHTML = "<span>●</span> SEÑA ESTABLE";
+    } else {
+      stabilityBadge.className = "hud-badge moving";
+      stabilityBadge.innerHTML = "<span>◐</span> MOVIENDO...";
+    }
+
+    // Cuadrante
+    quadrantBadge.textContent = `ZONA: ${data.cuadrante || "CENTRAL"}`;
+
+    // Telemetría de Dedos
+    if (data.dedos && data.dedos.length >= 5) {
+      for (let i = 0; i < 5; i++) {
+        const el = document.getElementById(`f-${i}`);
+        const isUp = data.dedos[i] > 0.55;
+        el.className = `finger-val ${isUp ? "up" : "down"}`;
+        el.textContent = isUp ? "1" : "0";
+      }
+    }
+
+    // Seña detectada
+    if (data.sena_detectada) {
+      document.getElementById("pred-sign").textContent = data.sena_detectada;
+      const pct = Math.min(100, Math.round(data.confianza * 100));
+      document.getElementById("pred-conf").textContent = `${pct}%`;
+      document.getElementById("pred-bar").style.width = `${pct}%`;
+      document.getElementById("pred-cuad").textContent = data.cuadrante;
+    }
+
+    // Candidatos
+    const candContainer = document.getElementById("candidates-container");
+    candContainer.innerHTML = "";
+    if (data.top_candidatos && data.top_candidatos.length > 0) {
+      data.top_candidatos.forEach(c => {
+        const item = document.createElement("div");
+        item.className = "candidate-item";
+        item.innerHTML = `
+          <span><strong>${c.sena}</strong> <small style="color: var(--text-dim);">(${c.cuadrante})</small></span>
+          <span class="candidate-score">${Math.round(c.similitud * 100)}%</span>
+        `;
+        candContainer.appendChild(item);
+      });
+    }
+
+    // Glosas Acumuladas
+    const glossesContainer = document.getElementById("glosses-list");
+    if (data.glosas_acumuladas && data.glosas_acumuladas.length > 0) {
+      glossesContainer.innerHTML = data.glosas_acumuladas.map(g => `<span class="gloss-chip">${g}</span>`).join("");
+    }
+
+    // Frase en Español generada
+    if (data.frase_generada) {
+      document.getElementById("spanish-sentence").textContent = `"${data.frase_generada}"`;
+      speakText(data.frase_generada);
+    }
+  }
+
+  // ==========================================
+  // SINTESIS DE VOZ Y ACCIONES
+  // ==========================================
+  function speakText(text) {
+    if (!text || text.trim() === "") return;
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "es-CO";
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+    // Llamar también al backend por si tiene altavoz local
+    fetch("/api/pronunciar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texto: text })
+    }).catch(() => {});
+  }
+
+  document.getElementById("btn-speak-now").addEventListener("click", () => {
+    const text = document.getElementById("spanish-sentence").textContent.replace(/["']/g, "");
+    if (text && text !== "...") speakText(text);
+  });
+
+  document.getElementById("btn-clear-buffer").addEventListener("click", () => {
+    document.getElementById("glosses-list").innerHTML = '<span style="color: var(--text-dim); font-size: 12px;">Buffer limpiado. Realiza una seña...</span>';
+    document.getElementById("spanish-sentence").textContent = '"..."';
+  });
+
+  document.getElementById("btn-copy-sentence").addEventListener("click", () => {
+    const text = document.getElementById("spanish-sentence").textContent.replace(/["']/g, "");
+    if (text) {
+      navigator.clipboard.writeText(text);
+      alert("¡Frase copiada al portapapeles!");
+    }
+  });
+
+  // ==========================================
+  // CARGAR CATALOGO EDUCATIVO (TAB 2)
+  // ==========================================
+  async function loadEducationalCatalog() {
+    try {
+      const res = await fetch("/api/catalogo_educativo");
+      const data = await res.json();
+      catalogoEducativo = data.senas;
+      renderAcademyCards("Todos");
+    } catch (err) {
+      console.error("Error al cargar catálogo:", err);
+    }
+  }
+
+  function renderAcademyCards(filterCategory) {
+    const grid = document.getElementById("academy-cards-grid");
+    grid.innerHTML = "";
+
+    const filtradas = filterCategory === "Todos" 
+      ? catalogoEducativo 
+      : catalogoEducativo.filter(s => s.categoria === filterCategory);
+
+    filtradas.forEach(s => {
+      const card = document.createElement("div");
+      card.className = "sign-card";
+      card.innerHTML = `
+        <div>
+          <div class="sign-badge">${s.categoria} · ${s.cuadrante}</div>
+          <div class="sign-title">${s.nombre}</div>
+          <div class="sign-desc">${s.descripcion}</div>
+        </div>
+        <div class="sign-card-actions">
+          <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="openPracticeModal('${s.id}')">
+            Practicar Seña
+          </button>
+          <button class="btn btn-secondary" onclick="speakText('${s.nombre}')" title="Escuchar">
+            🔊
+          </button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // Filtros de categoría
+  document.querySelectorAll(".filter-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      renderAcademyCards(chip.dataset.cat);
+    });
+  });
+
+  // ==========================================
+  // MODAL DE PRACTICA GUIADA
+  // ==========================================
+  const practiceModal = document.getElementById("practice-modal");
+  const practiceVideo = document.getElementById("practice-video");
+  let practiceStream = null;
+
+  async function openPracticeModal(signId) {
+    const signMeta = catalogoEducativo.find(s => s.id === signId);
+    if (!signMeta) return;
+
+    currentTargetSign = signId;
+    document.getElementById("modal-target-title").textContent = `Practicando: ${signMeta.nombre}`;
+    document.getElementById("modal-badge-cat").textContent = `${signMeta.categoria} · ${signMeta.cuadrante}`;
+    document.getElementById("modal-instructions").textContent = signMeta.descripcion;
+    document.getElementById("modal-tip").textContent = signMeta.consejo;
+    document.getElementById("practice-bar").style.width = "0%";
+    document.getElementById("practice-match-pct").textContent = "0%";
+
+    practiceModal.classList.add("active");
+
+    try {
+      practiceStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 240, facingMode: "user" }
+      });
+      practiceVideo.srcObject = practiceStream;
+      startPracticeEvaluation();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function closePracticeModal() {
+    practiceModal.classList.remove("active");
+    if (practiceStream) {
+      practiceStream.getTracks().forEach(t => t.stop());
+    }
+    if (practiceInterval) clearInterval(practiceInterval);
+  }
+
+  document.getElementById("btn-close-modal").addEventListener("click", closePracticeModal);
+
+  function startPracticeEvaluation() {
+    const pCanvas = document.createElement("canvas");
+    pCanvas.width = 320;
+    pCanvas.height = 240;
+    const pCtx = pCanvas.getContext("2d");
+
+    practiceInterval = setInterval(async () => {
+      if (!practiceModal.classList.contains("active")) return;
+      pCtx.drawImage(practiceVideo, 0, 0, 320, 240);
+      const b64 = pCanvas.toDataURL("image/jpeg", 0.6);
+
+      try {
+        const res = await fetch("/api/evaluar_sena", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sena_objetivo: currentTargetSign,
+            imagen_base64: b64
+          })
+        });
+        const evalData = await res.json();
+        updatePracticeEvaluationUI(evalData);
+      } catch (err) {}
+    }, 250);
+  }
+
+  function updatePracticeEvaluationUI(data) {
+    const pct = Math.min(100, Math.round((data.confianza_objetivo || 0) * 100));
+    document.getElementById("practice-bar").style.width = `${pct}%`;
+    document.getElementById("practice-match-pct").textContent = `${pct}%`;
+
+    const feedbackBox = document.getElementById("practice-feedback-alert");
+    const feedbackText = document.getElementById("practice-feedback-text");
+
+    if (data.acierto) {
+      feedbackBox.style.background = "rgba(16, 185, 129, 0.2)";
+      feedbackBox.style.borderColor = "var(--accent-green)";
+      feedbackText.style.color = "var(--accent-green)";
+      feedbackText.innerHTML = `🎉 <strong>¡EXCELENTE! Seña correcta</strong> (${pct}% coincidencia)`;
+    } else {
+      feedbackBox.style.background = "rgba(255, 255, 255, 0.04)";
+      feedbackBox.style.borderColor = "var(--border-color)";
+      feedbackText.style.color = "var(--text-muted)";
+      feedbackText.textContent = data.consejo || "Ajusta la postura de tus dedos...";
+    }
+  }
+
+  // ==========================================
+  // TAB 3: TRADUCTOR ESPAÑOL -> LSC
+  // ==========================================
+  document.getElementById("btn-convert-to-lsc").addEventListener("click", async () => {
+    const texto = document.getElementById("input-text-to-sign").value;
+    if (!texto.trim()) return;
+
+    try {
+      const res = await fetch("/api/texto_a_lsc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto: texto })
+      });
+      const data = await res.json();
+
+      const viewerCard = document.getElementById("sequence-viewer-card");
+      const track = document.getElementById("sequence-track");
+      track.innerHTML = "";
+
+      if (data.tarjetas && data.tarjetas.length > 0) {
+        viewerCard.style.display = "block";
+        data.tarjetas.forEach(t => {
+          const card = document.createElement("div");
+          card.className = "sequence-card";
+          card.innerHTML = `
+            <div class="sign-badge">${t.categoria}</div>
+            <div style="font-size: 24px; font-weight: 800; color: var(--text-main);">${t.id}</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">${t.descripcion}</div>
+          `;
+          track.appendChild(card);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  // Reconocimiento de Voz en Navegador
+  const micBtn = document.getElementById("btn-mic-input");
+  if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRec();
+    recognition.lang = "es-CO";
+    recognition.continuous = false;
+
+    micBtn.addEventListener("click", () => {
+      recognition.start();
+      document.getElementById("mic-label").textContent = "Escuchando...";
+    });
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById("input-text-to-sign").value = transcript;
+      document.getElementById("mic-label").textContent = "Hablar por Micrófono";
+      document.getElementById("btn-convert-to-lsc").click();
+    };
+
+    recognition.onerror = () => {
+      document.getElementById("mic-label").textContent = "Hablar por Micrófono";
+    };
+  }
+
+  // ==========================================
+  // INICIO AL CARGAR LA PAGINA
+  // ==========================================
+  window.addEventListener("DOMContentLoaded", () => {
+    connectWebSocket();
+    startCamera();
+    loadEducationalCatalog();
+  });
+</script>
+
+</body>
+</html>
