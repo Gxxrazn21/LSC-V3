@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seña Android — LSC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 300;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("d64a47bc-d513-41d4-9fd7-4f6bbaeacfd2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 300;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("e5dfc667-d3d5-4a5c-81b4-c2daee6cf86f") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 300;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("50eb2c3f-81b1-4009-a75d-07f3e4b0c56c") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 300;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5e186ee6-2e6b-49fe-ba1d-a1a3c73111fd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 300;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("2c68332b-e2cc-4413-a460-1d9f324da362") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 300;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("26cb2776-3972-4496-a790-2613901315f9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("d64a47bc-d513-41d4-9fd7-4f6bbaeacfd2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("e5dfc667-d3d5-4a5c-81b4-c2daee6cf86f") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("50eb2c3f-81b1-4009-a75d-07f3e4b0c56c") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5e186ee6-2e6b-49fe-ba1d-a1a3c73111fd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("2c68332b-e2cc-4413-a460-1d9f324da362") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 400;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("26cb2776-3972-4496-a790-2613901315f9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("d64a47bc-d513-41d4-9fd7-4f6bbaeacfd2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("e5dfc667-d3d5-4a5c-81b4-c2daee6cf86f") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("50eb2c3f-81b1-4009-a75d-07f3e4b0c56c") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5e186ee6-2e6b-49fe-ba1d-a1a3c73111fd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("2c68332b-e2cc-4413-a460-1d9f324da362") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 500;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("26cb2776-3972-4496-a790-2613901315f9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("d64a47bc-d513-41d4-9fd7-4f6bbaeacfd2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("e5dfc667-d3d5-4a5c-81b4-c2daee6cf86f") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("50eb2c3f-81b1-4009-a75d-07f3e4b0c56c") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5e186ee6-2e6b-49fe-ba1d-a1a3c73111fd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("2c68332b-e2cc-4413-a460-1d9f324da362") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("26cb2776-3972-4496-a790-2613901315f9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("d64a47bc-d513-41d4-9fd7-4f6bbaeacfd2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("e5dfc667-d3d5-4a5c-81b4-c2daee6cf86f") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("50eb2c3f-81b1-4009-a75d-07f3e4b0c56c") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("5e186ee6-2e6b-49fe-ba1d-a1a3c73111fd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("2c68332b-e2cc-4413-a460-1d9f324da362") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Roboto Flex';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("26cb2776-3972-4496-a790-2613901315f9") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+  html, body { margin: 0; padding: 0; font-family: 'Roboto Flex', Roboto, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { background: #D9D4C8; min-height: 100vh; }
+  * { box-sizing: border-box; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="58fc3380-a73b-4dab-b624-6208ea553b64" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="c486b079-1136-4cb0-a0d2-a206e838bd6c" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="66c093bc-b760-491d-86d4-8934c7d5f188" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="8ba6a9e7-cc24-4ca5-88ea-d9d52479f5c5"></script>
+<script type="text/babel" src="9c2f3478-ca4f-4447-884a-c38704610949"></script>
+<script type="text/babel" src="29906fb0-fab5-4697-b63f-acdbe83dde88"></script>
+<script type="text/babel" src="6151a4c3-56b6-4b3a-9386-f18f50eec1cc"></script>
+<script type="text/babel" src="60536a62-c9a0-471f-af7f-5c199b47f4d9"></script>
+
+<script type="text/babel" data-presets="react">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "default",
+  "fontScale": "normal",
+  "captions": true,
+  "offline": true,
+  "vibration": true,
+  "startScreen": "home"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [themeKey, setThemeKey] = React.useState(TWEAK_DEFAULTS.theme);
+  const [fontScale, setFontScale] = React.useState(TWEAK_DEFAULTS.fontScale);
+  const [captions, setCaptions] = React.useState(TWEAK_DEFAULTS.captions);
+  const [offline, setOffline] = React.useState(TWEAK_DEFAULTS.offline);
+  const [vibration, setVibration] = React.useState(TWEAK_DEFAULTS.vibration);
+  const [screen, setScreen] = React.useState(
+    localStorage.getItem('sena_android_screen') || TWEAK_DEFAULTS.startScreen
+  );
+  const [showTweaks, setShowTweaks] = React.useState(false);
+  const [tweaksEnabled, setTweaksEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') { setTweaksEnabled(true); setShowTweaks(true); }
+      if (e.data?.type === '__deactivate_edit_mode') { setTweaksEnabled(false); setShowTweaks(false); }
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const theme = SENA_M3_THEMES[themeKey] || SENA_M3_THEMES.default;
+  const fs = { normal: 1, large: 1.15, xlarge: 1.3 }[fontScale] || 1;
+
+  const goTo = (s) => {
+    setScreen(s);
+    localStorage.setItem('sena_android_screen', s);
+  };
+  const persist = (key, val) => {
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+  };
+
+  const navTabFor = (s) =>
+    ['home','sign-to-text','text-to-sign','conversation'].includes(s) ? 'home'
+    : s === 'dict' ? 'dict'
+    : s === 'learn' ? 'learn'
+    : s === 'history' ? 'history'
+    : s === 'settings' ? 'settings' : 'home';
+
+  const renderScreen = () => {
+    switch (screen) {
+      case 'home':          return <MdHomeScreen theme={theme} goTo={goTo} isOffline={offline}/>;
+      case 'sign-to-text':  return <MdSignToTextScreen theme={theme} goTo={goTo}/>;
+      case 'text-to-sign':  return <MdTextToSignScreen theme={theme} goTo={goTo}/>;
+      case 'conversation':  return <MdConversationScreen theme={theme} goTo={goTo}/>;
+      case 'dict':          return <MdDictionaryScreen theme={theme} goTo={goTo}/>;
+      case 'learn':         return <MdLearnScreen theme={theme} goTo={goTo}/>;
+      case 'history':       return <MdHistoryScreen theme={theme} goTo={goTo}/>;
+      case 'settings':      return <MdSettingsScreen
+                                      theme={theme} themeKey={themeKey}
+                                      setThemeKey={(v) => { setThemeKey(v); persist('theme', v); }}
+                                      fontScale={fontScale}
+                                      setFontScale={(v) => { setFontScale(v); persist('fontScale', v); }}
+                                      captions={captions}
+                                      setCaptions={(v) => { setCaptions(v); persist('captions', v); }}
+                                      offline={offline}
+                                      setOffline={(v) => { setOffline(v); persist('offline', v); }}
+                                      vibration={vibration}
+                                      setVibration={(v) => { setVibration(v); persist('vibration', v); }}
+                                      goTo={goTo}/>;
+      default:              return <MdHomeScreen theme={theme} goTo={goTo}/>;
+    }
+  };
+
+  const isImmersive = ['sign-to-text'].includes(screen);
+  const showNav = !['sign-to-text','text-to-sign','conversation'].includes(screen);
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '40px 20px 60px',
+      background: 'radial-gradient(ellipse at top, #EAE3D4 0%, #D4CDBD 70%, #C4BBA5 100%)',
+      fontSize: `${fs * 100}%`,
+    }}>
+      <MdStyles/>
+
+      {/* Título */}
+      <div style={{ marginBottom: 28, textAlign: 'center' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 12,
+          padding: '8px 16px', borderRadius: 16,
+          background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(0,0,0,0.06)',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 12,
+            background: 'linear-gradient(135deg, #1A56DB, #4E86DF)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <MdIcon name="hand" size={19} color="#fff" stroke={2.6}/>
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: '#1C1B1F', letterSpacing: -0.1, lineHeight: 1 }}>Seña</div>
+            <div style={{ fontSize: 10, fontWeight: 500, color: '#49454F', letterSpacing: 1.5, marginTop: 2 }}>
+              ANDROID · MATERIAL 3
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        borderRadius: 26, overflow: 'hidden',
+        boxShadow: '0 40px 80px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08)',
+      }}>
+        <AndroidDevice dark={themeKey === 'dark'}>
+          <div style={{
+            height: '100%', display: 'flex', flexDirection: 'column',
+            position: 'relative', background: theme.bg,
+          }}>
+            {renderScreen()}
+            {showNav && <MdNavBar theme={theme} active={navTabFor(screen)} onNav={goTo}/>}
+          </div>
+        </AndroidDevice>
+      </div>
+
+      {/* Mapa de pantallas */}
+      <div style={{
+        marginTop: 28, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center',
+        maxWidth: 620,
+      }}>
+        {[
+          ['home', 'Inicio'],
+          ['sign-to-text', 'Seña → Texto'],
+          ['text-to-sign', 'Texto → Seña'],
+          ['conversation', 'Conversación'],
+          ['dict', 'Diccionario'],
+          ['learn', 'Aprender'],
+          ['history', 'Historial'],
+          ['settings', 'Ajustes'],
+        ].map(([k, label], i) => (
+          <button key={k} onClick={() => goTo(k)} style={{
+            padding: '8px 14px', borderRadius: 10,
+            background: screen === k ? '#1C1B1F' : 'rgba(255,255,255,0.7)',
+            color: screen === k ? '#fff' : '#1C1B1F',
+            border: '1px solid rgba(0,0,0,0.08)',
+            fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            backdropFilter: 'blur(8px)', letterSpacing: 0.1,
+          }}>
+            <span style={{ opacity: 0.5, marginRight: 6 }}>{i + 1}</span>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Link iOS */}
+      <div style={{ marginTop: 12, fontSize: 12, color: '#49454F' }}>
+        ¿Buscas la versión iOS? <a href="Seña LSC.html" style={{ color: '#1A56DB', fontWeight: 600, textDecoration: 'none' }}>Abrir Seña iOS</a>
+      </div>
+
+      {tweaksEnabled && showTweaks && (
+        <div style={{
+          position: 'fixed', bottom: 20, right: 20, zIndex: 100,
+          width: 290, background: '#fff', borderRadius: 20,
+          boxShadow: '0 20px 50px rgba(0,0,0,0.25)', border: '1px solid rgba(0,0,0,0.08)',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderBottom: '1px solid rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1B1F' }}>Tweaks</div>
+            <button onClick={() => setShowTweaks(false)} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+            }}><MdIcon name="x" size={16} color="#49454F"/></button>
+          </div>
+          <div style={{ padding: 16, display: 'grid', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#49454F', letterSpacing: 0.6, marginBottom: 6 }}>TEMA</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['default', 'daltonic', 'dark'].map(k => (
+                  <button key={k} onClick={() => { setThemeKey(k); persist('theme', k); }} style={{
+                    flex: 1, padding: '10px', borderRadius: 12,
+                    background: themeKey === k ? '#1A56DB' : '#ECE6DD',
+                    color: themeKey === k ? '#fff' : '#1C1B1F',
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 11, fontWeight: 600,
+                  }}>{SENA_M3_THEMES[k].name}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#49454F', letterSpacing: 0.6, marginBottom: 6 }}>TAMAÑO DE TEXTO</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[['normal','Normal'],['large','Grande'],['xlarge','XL']].map(([k, label]) => (
+                  <button key={k} onClick={() => { setFontScale(k); persist('fontScale', k); }} style={{
+                    flex: 1, padding: '10px', borderRadius: 12,
+                    background: fontScale === k ? '#1A56DB' : '#ECE6DD',
+                    color: fontScale === k ? '#fff' : '#1C1B1F',
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 11, fontWeight: 600,
+                  }}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 500, color: '#1C1B1F' }}>
+              Modo sin conexión
+              <input type="checkbox" checked={offline} onChange={e => { setOffline(e.target.checked); persist('offline', e.target.checked); }}/>
+            </label>
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 500, color: '#1C1B1F' }}>
+              Vibración
+              <input type="checkbox" checked={vibration} onChange={e => { setVibration(e.target.checked); persist('vibration', e.target.checked); }}/>
+            </label>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const waitForComponents = () => {
+  if (window.AndroidDevice && window.MdHomeScreen && window.MdSettingsScreen) {
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  } else {
+    setTimeout(waitForComponents, 50);
+  }
+};
+waitForComponents();
+</script>
+
+
+</body></html>
