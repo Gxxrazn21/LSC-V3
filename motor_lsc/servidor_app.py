@@ -249,6 +249,7 @@ def pronunciar_texto(req: SolicitudPronunciacion):
 @app.websocket("/ws/reconocimiento")
 async def websocket_reconocimiento(websocket: WebSocket):
     await websocket.accept()
+    ventana = VentanaConsenso(tamano_ventana=10, min_consenso_pct=0.70, umbral_score_promedio=0.78, frames_histeresis=3)
     try:
         while True:
             mensaje_raw = await websocket.receive_text()
@@ -268,6 +269,7 @@ async def websocket_reconocimiento(websocket: WebSocket):
                     top_candidatos = []
                     dedos_exts = [0.0] * 5
                     es_estable = False
+                    consenso_pct = 0.0
 
                     if res["hay_manos"]:
                         mano = res["manos"][0]
@@ -288,18 +290,31 @@ async def websocket_reconocimiento(websocket: WebSocket):
                                 cuadrante_query=cuadrante_str,
                                 top_k=3,
                             )
-                            if candidatos and candidatos[0][1] >= base_vectores.umbral_min_similitud:
-                                margen_valido = True
-                                if len(candidatos) > 1:
-                                    margen_valido = (candidatos[0][1] - candidatos[1][1]) >= 0.02
-                                if margen_valido:
-                                    sena_detectada = candidatos[0][0]
-                                    score_max = candidatos[0][1]
-
                             top_candidatos = [
                                 {"sena": c[0], "similitud": round(c[1], 3), "cuadrante": c[2]}
                                 for c in candidatos
                             ]
+
+                            # Búsqueda estricta anti-adivinanza
+                            res_estricto = base_vectores.buscar_estricto(
+                                vector_query=mano["vector_normalizado"],
+                                cuadrante_query=cuadrante_str,
+                                umbral_minimo=base_vectores.umbral_min_similitud,
+                                margen_minimo=0.04,
+                            )
+
+                            s_frame = res_estricto[0] if res_estricto else None
+                            sc_frame = res_estricto[1] if res_estricto else 0.0
+
+                            s_cons, sc_cons, pct = ventana.alimentar(s_frame, sc_frame)
+                            consenso_pct = pct
+                            if s_cons:
+                                sena_detectada = s_cons
+                                score_max = sc_cons
+                        else:
+                            ventana.alimentar(None, 0.0)
+                    else:
+                        ventana.alimentar(None, 0.0)
 
                     glosas_buffer, frase_lista = ensamblador.registrar_prediccion(
                         sena_detectada, score_max, mano_estable=es_estable
@@ -312,6 +327,7 @@ async def websocket_reconocimiento(websocket: WebSocket):
                         "cuadrante": cuadrante_str,
                         "sena_detectada": sena_detectada,
                         "confianza": round(score_max, 3),
+                        "consenso_pct": round(consenso_pct, 2),
                         "top_candidatos": top_candidatos,
                         "glosas_acumuladas": glosas_buffer,
                         "frase_generada": frase_lista,

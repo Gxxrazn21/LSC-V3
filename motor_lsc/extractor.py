@@ -1,115 +1,297 @@
 """
 =============================================================
-EXTRACTOR ARTICULATORIO Y CANONICO DE LANDMARKS PARA LSC
+EXTRACTOR ARTICULATORIO, CANONICO Y TEMPORALMENTE ESTABILIZADO (LSC)
 Lengua de Señas Colombiana (LSC)
 =============================================================
-Extrae un descriptor invariante de 101 dimensiones:
-1. Coordenadas 3D Canónicas Ortonormales (63 dims):
-   - Origen en muñeca (0).
-   - Eje Y a lo largo de muñeca -> nudillo medio (9).
-   - Eje Z perpendicular al plano de la palma (5 x 17).
-   - Eje X ortogonal.
-   - 100% Invariante a escala, traslación y rotación 3D de muñeca.
-2. Estados continuos de extensión de los 5 dedos (5 dims: Pulgar, Índice, Medio, Anular, Meñique).
-3. Coseno de ángulos de flexión articular en MCP, PIP, DIP (15 dims).
-4. Distancias interdigitales entre puntas de los dedos (10 dims).
-5. Distancias de puntas al centro de la palma (5 dims).
-6. Vector normal de orientación de la palma (3 dims).
+Pipeline cinemático y anti-ruido:
+1. Preprocesamiento óptico anti-ruido (Gaussian Denoise + CLAHE en Luminancia LAB).
+2. Estabilización temporal adaptativa con OneEuroFilter 3D (elimina jitter de cámara).
+3. Coordenadas 3D canónicas ortonormales en la base de la palma (63 dims).
+4. Estados continuos de extensión digital calculados en el espacio canónico (5 dims).
+5. Cosenos de ángulos de flexión articular MCP/PIP/DIP (15 dims).
+6. Distancias interdigitales entre las 5 puntas (10 dims).
+7. Distancias de puntas al centro de la palma (5 dims).
+8. Métricas de contacto y proximidad del pulgar (4 dims: pulgar a índice, medio, anular, base).
+9. Vector normal de orientación espacial de la palma (3 dims).
+Descriptor total: 105 dimensiones perfectamente balanceadas.
 """
 
+import math
+import time
 from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import cv2
 
 
+# ─────────────────────────────────────────────────────────────
+# 1. FILTRO TEMPORAL ADAPTATIVO ONE-EURO (ZERO-LAG / ANTI-JITTER)
+# ─────────────────────────────────────────────────────────────
+
+class OneEuroFilter3D:
+    """
+    Filtro paso-bajo adaptativo de primer orden para señales 3D (landmarks).
+    - A bajas velocidades (mano quieta): filtra agresivamente para eliminar temblores/ruido.
+    - A altas velocidades (movimiento rápido): aumenta la frecuencia de corte para eliminar retraso (lag=0).
+    """
+    def __init__(
+        self,
+        min_cutoff: float = 0.8,
+        beta: float = 0.03,
+        d_cutoff: float = 1.0,
+    ):
+        self.min_cutoff = float(min_cutoff)
+        self.beta = float(beta)
+        self.d_cutoff = float(d_cutoff)
+        self.x_prev: Optional[np.ndarray] = None
+        self.dx_prev: Optional[np.ndarray] = None
+        self.t_prev: Optional[float] = None
+
+    def _smoothing_factor(self, t_e: float, cutoff: np.ndarray) -> np.ndarray:
+        r = 2.0 * math.pi * cutoff * t_e
+        return r / (r + 1.0)
+
+    def filter(self, x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+        if t is None:
+            t = time.time()
+
+        if self.t_prev is None or self.x_prev is None:
+            self.x_prev = np.copy(x)
+            self.dx_prev = np.zeros_like(x)
+            self.t_prev = t
+            return np.copy(x)
+
+        t_e = max(t - self.t_prev, 1e-4)
+
+        # 1. Estimar velocidad (derivada filtrada)
+        a_d = self._smoothing_factor(t_e, np.full_like(x, self.d_cutoff))
+        dx = (x - self.x_prev) / t_e
+        dx_hat = a_d * dx + (1.0 - a_d) * self.dx_prev
+
+        # 2. Frecuencia de corte adaptativa basada en velocidad instantánea
+        cutoff = self.min_cutoff + self.beta * np.abs(dx_hat)
+        a = self._smoothing_factor(t_e, cutoff)
+        
+        # 3. Filtrado de la señal
+        x_hat = a * x + (1.0 - a) * self.x_prev
+
+        self.x_prev = np.copy(x_hat)
+        self.dx_prev = np.copy(dx_hat)
+        self.t_prev = t
+        return x_hat
+
+    def reset(self):
+        self.x_prev = None
+        self.dx_prev = None
+        self.t_prev = None
+
+
+# ─────────────────────────────────────────────────────────────
+# 2. PREPROCESAMIENTO OPTICO ANTI-RUIDO
+# ─────────────────────────────────────────────────────────────
+
+def preprocesar_imagen_anti_ruido(
+    frame_bgr: np.ndarray,
+    aplicar_clahe: bool = True,
+    suavizar_ruido: bool = True,
+) -> np.ndarray:
+    """
+    Mejora la calidad del fotograma suprimiendo ruido de sensor/iluminación tenue
+    y realzando los bordes y articulaciones de las manos.
+    Pipeline: Bilateral Filter (preserva bordes) → CLAHE adaptativo en LAB.
+    """
+    out = frame_bgr
+    if suavizar_ruido:
+        # Bilateral Filter: preserva bordes de los dedos mientras suaviza ruido de sensor
+        out = cv2.bilateralFilter(out, d=5, sigmaColor=45, sigmaSpace=45)
+
+    if aplicar_clahe:
+        # Realce de contraste adaptativo local en luminancia LAB
+        lab = cv2.cvtColor(out, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        cl = clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        out = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+
+    return out
+
+
+# ─────────────────────────────────────────────────────────────
+# 3. EXTRACTOR ARTICULATORIO DE ALTA PRECISION (MEDIAPIPE HOLISTIC)
+# ─────────────────────────────────────────────────────────────
+
 class ExtractorLandmarks:
     def __init__(
         self,
         max_num_hands: int = 2,
-        min_detection_confidence: float = 0.65,
+        min_detection_confidence: float = 0.60,
         min_tracking_confidence: float = 0.55,
-        umbral_velocidad_estabilidad: float = 0.040,
+        umbral_velocidad_estabilidad: float = 0.035,
+        usar_filtro_temporal: bool = True,
+        usar_denoise_imagen: bool = True,
     ):
         """
-        Inicializa MediaPipe Hands y MediaPipe Pose con configuración de alta precisión.
+        Inicializa MediaPipe Holistic para detección unificada de manos + cuerpo.
+        Holistic realiza una sola inferencia que comparte contexto entre pose, manos y cara,
+        lo que produce landmarks de mano más estables y consistentes que Hands aislado.
         """
         import mediapipe as mp
+        self.mp_holistic = mp.solutions.holistic
         self.mp_hands = mp.solutions.hands
-        self.mp_pose = mp.solutions.pose
         self.mp_draw = mp.solutions.drawing_utils
 
-        self.hands = self.mp_hands.Hands(
+        # Holistic: inferencia unificada pose + manos con contexto cruzado
+        self.holistic = self.mp_holistic.Holistic(
+            static_image_mode=False,
+            model_complexity=1,
+            smooth_landmarks=True,
+            enable_segmentation=False,
+            min_detection_confidence=min_detection_confidence,
+            min_tracking_confidence=min_tracking_confidence,
+        )
+
+        # Fallback: MediaPipe Hands para detección cuando Holistic no detecta manos
+        self.hands_fallback = self.mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=max_num_hands,
             min_detection_confidence=min_detection_confidence,
             min_tracking_confidence=min_tracking_confidence,
         )
 
-        self.pose = self.mp_pose.Pose(
-            static_image_mode=False,
-            model_complexity=1,
-            enable_segmentation=False,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5,
-        )
-
         self.umbral_velocidad_estabilidad = umbral_velocidad_estabilidad
+        self.usar_filtro_temporal = usar_filtro_temporal
+        self.usar_denoise_imagen = usar_denoise_imagen
+
+        # Filtros OneEuro dedicados por mano y pose
+        self.filtros_manos: Dict[str, OneEuroFilter3D] = {
+            "Right": OneEuroFilter3D(min_cutoff=0.9, beta=0.04),
+            "Left": OneEuroFilter3D(min_cutoff=0.9, beta=0.04),
+        }
+        self.filtro_pose = OneEuroFilter3D(min_cutoff=0.6, beta=0.02)
+        
         self.prev_coords_manos: Dict[str, np.ndarray] = {}
 
-    def procesar_frame(self, frame_bgr: np.ndarray) -> Dict[str, Any]:
+    def _extraer_mano_holistic(
+        self, hand_lms, label: str, alto: int, ancho: int, timestamp: float
+    ) -> Optional[Dict[str, Any]]:
+        """Extrae datos de una mano detectada por Holistic o Hands fallback."""
+        if hand_lms is None:
+            return None
+
+        coords_raw = np.zeros((21, 3), dtype=np.float32)
+        for i, lm in enumerate(hand_lms.landmark):
+            coords_raw[i] = [lm.x, lm.y, lm.z]
+
+        # Aplicar filtro temporal OneEuro
+        if self.usar_filtro_temporal:
+            if label not in self.filtros_manos:
+                self.filtros_manos[label] = OneEuroFilter3D(min_cutoff=0.9, beta=0.04)
+            coords = self.filtros_manos[label].filter(coords_raw, timestamp)
+        else:
+            coords = coords_raw
+
+        # Métricas cinéticas
+        velocidad_desplazamiento = 0.0
+        es_estable = True
+        if label in self.prev_coords_manos:
+            delta = np.linalg.norm(coords - self.prev_coords_manos[label], axis=1)
+            velocidad_desplazamiento = float(np.mean(delta))
+            es_estable = (velocidad_desplazamiento <= self.umbral_velocidad_estabilidad)
+
+        self.prev_coords_manos[label] = coords.copy()
+
+        # Extracción del vector articular canónico optimizado (105D)
+        vector_articular, ext_estados = self.extraer_descriptor_articular(coords)
+        muneca = tuple(coords[0])
+
+        return {
+            "tipo": label,
+            "landmarks_raw": coords,
+            "vector_normalizado": vector_articular,
+            "finger_extensions": ext_estados,
+            "muneca": muneca,
+            "velocidad": velocidad_desplazamiento,
+            "es_estable": es_estable,
+        }
+
+    def procesar_frame(
+        self,
+        frame_bgr: np.ndarray,
+        timestamp: Optional[float] = None,
+    ) -> Dict[str, Any]:
         """
-        Procesa una imagen BGR y extrae el descriptor articular de 101 dimensiones.
+        Procesa una imagen BGR con MediaPipe Holistic (inferencia unificada).
+        Fallback a MediaPipe Hands si Holistic no detecta manos.
         """
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        if timestamp is None:
+            timestamp = time.time()
+
         alto, ancho, _ = frame_bgr.shape
 
-        # Inferencia MediaPipe
-        res_hands = self.hands.process(frame_rgb)
-        res_pose = self.pose.process(frame_rgb)
-
-        pose_anchors = {}
-        if res_pose.pose_landmarks:
-            lm = res_pose.pose_landmarks.landmark
-            pose_anchors["nariz"] = (lm[0].x, lm[0].y, lm[0].z)
-            pose_anchors["hombro_izq"] = (lm[11].x, lm[11].y, lm[11].z)
-            pose_anchors["hombro_der"] = (lm[12].x, lm[12].y, lm[12].z)
-
-        manos_info = []
-        if res_hands.multi_hand_landmarks:
-            for idx, hand_lms in enumerate(res_hands.multi_hand_landmarks):
-                label = "Right"
-                if res_hands.multi_handedness and len(res_hands.multi_handedness) > idx:
-                    label = res_hands.multi_handedness[idx].classification[0].label
-
-                coords = np.zeros((21, 3), dtype=np.float32)
-                for i, lm in enumerate(hand_lms.landmark):
-                    coords[i] = [lm.x, lm.y, lm.z]
-
-                # Métricas cinéticas
-                velocidad_desplazamiento = 0.0
-                es_estable = True
-                if label in self.prev_coords_manos:
-                    delta = np.linalg.norm(coords - self.prev_coords_manos[label], axis=1)
-                    velocidad_desplazamiento = float(np.mean(delta))
-                    es_estable = (velocidad_desplazamiento <= self.umbral_velocidad_estabilidad)
-
-                self.prev_coords_manos[label] = coords.copy()
-
-                # Extracción del vector articular canónico
-                vector_articular, ext_estados = self.extraer_descriptor_articular(coords)
-                muneca = tuple(coords[0])
-
-                manos_info.append({
-                    "tipo": label,
-                    "landmarks_raw": coords,
-                    "vector_normalizado": vector_articular,
-                    "finger_extensions": ext_estados,
-                    "muneca": muneca,
-                    "velocidad": velocidad_desplazamiento,
-                    "es_estable": es_estable,
-                })
+        # 1. Preprocesamiento óptico anti-ruido (Bilateral + CLAHE)
+        if self.usar_denoise_imagen:
+            frame_limpio = preprocesar_imagen_anti_ruido(frame_bgr, aplicar_clahe=True)
         else:
-            self.prev_coords_manos.clear()
+            frame_limpio = frame_bgr
+
+        frame_rgb = cv2.cvtColor(frame_limpio, cv2.COLOR_BGR2RGB)
+
+        # 2. Inferencia principal: MediaPipe Holistic (pose + manos en un solo pase)
+        res_holistic = self.holistic.process(frame_rgb)
+
+        # 3. Filtrado de puntos Pose clave
+        pose_anchors = {}
+        if res_holistic.pose_landmarks:
+            lm = res_holistic.pose_landmarks.landmark
+            raw_pose_mat = np.array([
+                [lm[0].x, lm[0].y, lm[0].z],    # Nariz
+                [lm[11].x, lm[11].y, lm[11].z],  # Hombro Izq
+                [lm[12].x, lm[12].y, lm[12].z],  # Hombro Der
+            ], dtype=np.float32)
+
+            if self.usar_filtro_temporal:
+                pose_mat = self.filtro_pose.filter(raw_pose_mat, timestamp)
+            else:
+                pose_mat = raw_pose_mat
+
+            pose_anchors["nariz"] = tuple(pose_mat[0])
+            pose_anchors["hombro_izq"] = tuple(pose_mat[1])
+            pose_anchors["hombro_der"] = tuple(pose_mat[2])
+        else:
+            self.filtro_pose.reset()
+
+        # 4. Procesamiento de manos desde Holistic
+        manos_info = []
+        manos_detectadas = set()
+
+        # Holistic devuelve right_hand_landmarks y left_hand_landmarks
+        # Nota: en Holistic, "Right" y "Left" están desde la perspectiva del usuario (espejado)
+        for label, hand_lms in [("Right", res_holistic.right_hand_landmarks),
+                                 ("Left", res_holistic.left_hand_landmarks)]:
+            info = self._extraer_mano_holistic(hand_lms, label, alto, ancho, timestamp)
+            if info is not None:
+                manos_info.append(info)
+                manos_detectadas.add(label)
+
+        # 5. Fallback a MediaPipe Hands si Holistic no detectó manos
+        if not manos_info:
+            res_hands = self.hands_fallback.process(frame_rgb)
+            if res_hands.multi_hand_landmarks:
+                for idx, hand_lms in enumerate(res_hands.multi_hand_landmarks):
+                    label = "Right"
+                    if res_hands.multi_handedness and len(res_hands.multi_handedness) > idx:
+                        label = res_hands.multi_handedness[idx].classification[0].label
+                    info = self._extraer_mano_holistic(hand_lms, label, alto, ancho, timestamp)
+                    if info is not None:
+                        manos_info.append(info)
+                        manos_detectadas.add(label)
+
+        # Resetear filtros para manos que desaparecieron del frame
+        for lbl in list(self.filtros_manos.keys()):
+            if lbl not in manos_detectadas:
+                self.filtros_manos[lbl].reset()
+                if lbl in self.prev_coords_manos:
+                    del self.prev_coords_manos[lbl]
 
         return {
             "hay_manos": len(manos_info) > 0,
@@ -122,11 +304,11 @@ class ExtractorLandmarks:
     @classmethod
     def extraer_descriptor_articular(cls, coords: np.ndarray) -> Tuple[np.ndarray, List[float]]:
         """
-        Calcula el descriptor canónico 3D ortonormal y articular de 101 dimensiones.
+        Calcula el descriptor canónico 3D ortonormal y articular de 105 dimensiones.
         
         coords: shape (21, 3)
         Retorna:
-            (vector_101d, [ext_pulgar, ext_indice, ext_medio, ext_anular, ext_menique])
+            (vector_105d, [ext_pulgar, ext_indice, ext_medio, ext_anular, ext_menique])
         """
         p0 = coords[0]     # Muñeca
         p5 = coords[5]     # Nudillo Índice
@@ -134,7 +316,7 @@ class ExtractorLandmarks:
         p17 = coords[17]   # Nudillo Meñique
 
         # 1. Base Ortonormal Canónica de la Palma
-        escala_palma = np.linalg.norm(p9 - p0)
+        escala_palma = float(np.linalg.norm(p9 - p0))
         if escala_palma < 1e-4:
             escala_palma = 1.0
 
@@ -156,24 +338,35 @@ class ExtractorLandmarks:
             p_canon[i, 1] = np.dot(rel[i], uy) / escala_palma
             p_canon[i, 2] = np.dot(rel[i], uz) / escala_palma
 
-        # 2. Estados de Extensión de los 5 Dedos (5 dims)
+        # 2. Estados Cinemáticos de Extensión de los 5 Dedos (5 dims)
+        # Alcance 3D directo vs longitud de segmentos anatómicos (100% Invariante 3D)
+        tips = [4, 8, 12, 16, 20]
         ext_dedos = []
-        # Pulgar (Punta 4 vs Nudillo 2 relativo a muñeca 0)
-        d_p4_p2 = np.linalg.norm(coords[4] - coords[2])
-        d_p2_p0 = np.linalg.norm(coords[2] - p0)
-        ext_pulgar = float(np.clip((d_p4_p2 / (d_p2_p0 + 1e-4) - 0.45) / 0.40, 0.0, 1.0))
+
+        # Pulgar (Punta 4, IP 3, MCP 2, CMC 1)
+        len_thumb_bones = float(np.linalg.norm(coords[4] - coords[3]) + np.linalg.norm(coords[3] - coords[2]) + 1e-5)
+        d_thumb_mcp = float(np.linalg.norm(coords[4] - coords[2]))
+        ratio_thumb = d_thumb_mcp / len_thumb_bones
+        d_4_17 = float(np.linalg.norm(coords[4] - coords[17]))
+        d_5_17 = float(np.linalg.norm(coords[5] - coords[17]) + 1e-5)
+        ratio_apertura = d_4_17 / d_5_17
+        ext_pulgar = float(np.clip((ratio_thumb - 0.60) / 0.35 * 0.5 + (ratio_apertura - 0.70) / 0.40 * 0.5, 0.0, 1.0))
         ext_dedos.append(ext_pulgar)
 
-        # 4 Dedos (Índice 8/6, Medio 12/10, Anular 16/14, Meñique 20/18)
-        for tip, pip in [(8, 6), (12, 10), (16, 14), (20, 18)]:
-            d_tip_p0 = np.linalg.norm(coords[tip] - p0)
-            d_pip_p0 = np.linalg.norm(coords[pip] - p0)
-            # Rango continuo [0.0 = totalmente cerrado/puño, 1.0 = totalmente extendido]
-            ratio = d_tip_p0 / (d_pip_p0 + 1e-4)
-            ext_val = float(np.clip((ratio - 0.95) / 0.25, 0.0, 1.0))
+        # 4 Dedos (Índice 8, Medio 12, Anular 16, Meñique 20)
+        dedos_indices = [(8, 7, 6, 5), (12, 11, 10, 9), (16, 15, 14, 13), (20, 19, 18, 17)]
+        for tip, dip, pip, mcp in dedos_indices:
+            len_bones = float(
+                np.linalg.norm(coords[tip] - coords[dip]) + 
+                np.linalg.norm(coords[dip] - coords[pip]) + 
+                np.linalg.norm(coords[pip] - coords[mcp]) + 1e-5
+            )
+            d_tip_mcp = float(np.linalg.norm(coords[tip] - coords[mcp]))
+            ratio_recto = d_tip_mcp / len_bones
+            ext_val = float(np.clip((ratio_recto - 0.42) / 0.38, 0.0, 1.0))
             ext_dedos.append(ext_val)
 
-        # 3. Coseno de Ángulos Articulares (15 dims)
+        # 3. Coseno de Ángulos Articulares MCP, PIP, DIP (15 dims)
         articulaciones = [
             (0, 1, 2), (1, 2, 3), (2, 3, 4),      # Pulgar
             (0, 5, 6), (5, 6, 7), (6, 7, 8),      # Índice
@@ -194,7 +387,6 @@ class ExtractorLandmarks:
             angulos.append(cos_ang)
 
         # 4. Distancias Interdigitales entre Puntas (10 dims)
-        tips = [4, 8, 12, 16, 20]
         distancias_tips = []
         for i in range(5):
             for j in range(i + 1, 5):
@@ -205,17 +397,26 @@ class ExtractorLandmarks:
         centro_palma = 0.5 * (p_canon[0] + p_canon[9])
         dist_centro = [float(np.linalg.norm(p_canon[t] - centro_palma)) for t in tips]
 
-        # 6. Vector Normal de la Palma (3 dims)
+        # 6. Métricas de Contacto y Proximidad del Pulgar (4 dims)
+        # Desambigua configuraciones de puño cerrado (A, S, T, M, N, E) y anillas (F, 9, O)
+        d_p4_p8 = float(np.linalg.norm(p_canon[4] - p_canon[8]))   # Pulgar a Índice
+        d_p4_p6 = float(np.linalg.norm(p_canon[4] - p_canon[6]))   # Pulgar a PIP Índice (T / S)
+        d_p4_p10 = float(np.linalg.norm(p_canon[4] - p_canon[10])) # Pulgar a PIP Medio (N)
+        d_p4_p14 = float(np.linalg.norm(p_canon[4] - p_canon[14])) # Pulgar a PIP Anular (M)
+        contacto_pulgar = [d_p4_p8, d_p4_p6, d_p4_p10, d_p4_p14]
+
+        # 7. Vector Normal de Orientación de la Palma (3 dims)
         palm_norm = [float(uz[0]), float(uz[1]), float(uz[2])]
 
-        # Concatenar vector final (63 + 5 + 15 + 10 + 5 + 3 = 101 dims)
+        # Concatenar vector final perfectamente balanceado (63 + 5 + 15 + 10 + 5 + 4 + 3 = 105 dims)
         descriptor_total = np.concatenate([
-            p_canon.flatten(),
-            np.array(ext_dedos, dtype=np.float32) * 2.0,      # Ponderación reforzada
-            np.array(angulos, dtype=np.float32),
-            np.array(distancias_tips, dtype=np.float32) * 1.5,
-            np.array(dist_centro, dtype=np.float32),
-            np.array(palm_norm, dtype=np.float32) * 0.8,
+            p_canon.flatten() * 0.55,                          # Coordenadas canónicas escaladas
+            np.array(ext_dedos, dtype=np.float32) * 3.2,       # Extensión de dedos reforzada
+            np.array(angulos, dtype=np.float32) * 1.2,         # Ángulos articulares
+            np.array(distancias_tips, dtype=np.float32) * 2.0, # Separación entre puntas
+            np.array(dist_centro, dtype=np.float32) * 1.2,     # Centro palma
+            np.array(contacto_pulgar, dtype=np.float32) * 1.8, # Matriz de contacto pulgar
+            np.array(palm_norm, dtype=np.float32) * 1.4,       # Normal de orientación
         ]).astype(np.float32)
 
         return descriptor_total, ext_dedos
@@ -234,7 +435,7 @@ class ExtractorLandmarks:
         color_cuadrante: Tuple[int, int, int] = (0, 255, 0),
     ) -> np.ndarray:
         """
-        Dibuja los esqueletos y puntos de control en el frame para visualización.
+        Dibuja los esqueletos estabilizados y puntos de control en el frame.
         """
         out = frame_bgr.copy()
         alto, ancho, _ = out.shape
@@ -244,11 +445,26 @@ class ExtractorLandmarks:
             es_estable = mano.get("es_estable", True)
             color_puntos = (0, 255, 128) if es_estable else (0, 180, 255)
 
+            # Conexiones de los dedos
+            conexiones = [
+                (0, 1), (1, 2), (2, 3), (3, 4),        # Pulgar
+                (0, 5), (5, 6), (6, 7), (7, 8),        # Índice
+                (0, 9), (9, 10), (10, 11), (11, 12),   # Medio
+                (0, 13), (13, 14), (14, 15), (15, 16), # Anular
+                (0, 17), (17, 18), (18, 19), (19, 20), # Meñique
+                (5, 9), (9, 13), (13, 17),             # Palma
+            ]
+
+            for a, b in conexiones:
+                p_a = (int(coords[a, 0] * ancho), int(coords[a, 1] * alto))
+                p_b = (int(coords[b, 0] * ancho), int(coords[b, 1] * alto))
+                cv2.line(out, p_a, p_b, (40, 45, 55), 2, cv2.LINE_AA)
+
             # Dibujar puntos articulares
             for i in range(21):
                 px = int(coords[i, 0] * ancho)
                 py = int(coords[i, 1] * alto)
-                cv2.circle(out, (px, py), 4, color_puntos, -1)
+                cv2.circle(out, (px, py), 4, color_puntos, -1, cv2.LINE_AA)
 
             # Resaltar puntas de dedos con anillo de estado
             tips = [4, 8, 12, 16, 20]
@@ -256,18 +472,19 @@ class ExtractorLandmarks:
             for idx_t, t in enumerate(tips):
                 tx = int(coords[t, 0] * ancho)
                 ty = int(coords[t, 1] * alto)
-                color_tip = (0, 255, 0) if exts[idx_t] > 0.6 else (0, 0, 255)
-                cv2.circle(out, (tx, ty), 6, color_tip, 2)
+                color_tip = (0, 255, 0) if exts[idx_t] > 0.55 else (0, 0, 255)
+                cv2.circle(out, (tx, ty), 6, color_tip, 2, cv2.LINE_AA)
 
             # Ancla de muñeca
             wx = int(mano["muneca"][0] * ancho)
             wy = int(mano["muneca"][1] * alto)
-            cv2.circle(out, (wx, wy), 9, color_cuadrante, 2)
+            cv2.circle(out, (wx, wy), 9, color_cuadrante, 2, cv2.LINE_AA)
 
         return out
 
     def liberar(self):
-        if hasattr(self, "hands"):
-            self.hands.close()
-        if hasattr(self, "pose"):
-            self.pose.close()
+        if hasattr(self, "holistic"):
+            self.holistic.close()
+        if hasattr(self, "hands_fallback"):
+            self.hands_fallback.close()
+

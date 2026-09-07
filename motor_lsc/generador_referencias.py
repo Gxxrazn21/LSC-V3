@@ -3,13 +3,16 @@
 GENERADOR DE BASE DE DATOS VECTORIAL ARTICULAR LSC
 Lengua de Señas Colombiana (LSC)
 =============================================================
-Compila los datasets locales con descriptores articulares 3D de 101 dimensiones:
+Compila los datasets locales con descriptores articulares 3D de 105 dimensiones:
 - LSC70ANH: Alfabeto dactilológico (A-Z) y Números (1-10, MIL, MILLON)
 - LSC70W: Palabras del vocabulario LSC (HOLA, YO, NOMBRE, LICOR, GUSTAR, etc.)
 - LSC70AN: Variaciones de alfabeto y números
 - LSC54: Series temporales 3D (APOYAR, AYUDAR, BAÑO, BIEN, BIENVENIDO)
 
-Genera 'modelos_guardados/base_senas_lsc.npz' y 'clases_lsc.json'.
+Incluye:
+- Normalización limpia de caracteres UTF-8 (BAÑO, NN/Ñ).
+- Poda estadística de outliers por centroide de clase (similitud >= 0.80).
+- Generación de 'modelos_guardados/base_senas_lsc.npz' y 'clases_lsc.json'.
 """
 
 import os
@@ -45,6 +48,7 @@ MAPA_CUADRANTES_SEÑAS: Dict[str, str] = {
     "APOYAR": CuadranteEspacial.ESPACIO_CENTRAL.value,
     "AYUDAR": CuadranteEspacial.ESPACIO_CENTRAL.value,
     "BAÑO": CuadranteEspacial.ESPACIO_CENTRAL.value,
+    "BANO": CuadranteEspacial.ESPACIO_CENTRAL.value,
     "BIEN": CuadranteEspacial.ESPACIO_CENTRAL.value,
     "BIENVENIDO": CuadranteEspacial.ESPACIO_CENTRAL.value,
     "BUENAS": CuadranteEspacial.ESPACIO_CENTRAL.value,
@@ -55,10 +59,22 @@ MAPA_CUADRANTES_SEÑAS: Dict[str, str] = {
 }
 
 
+def normalizar_etiqueta(nombre_crudo: str) -> str:
+    """Corrige errores de encoding y estandariza nombres de clases."""
+    s = nombre_crudo.strip().upper()
+    if "BA" in s and "O" in s and len(s) <= 5:
+        return "BAÑO"
+    if s == "NN":
+        return "NN"
+    if s == "Ñ":
+        return "NN"
+    return s
+
+
 def compilar_desde_lsc54(
     json_path: str,
     base_vectores: BaseVectoresLSC,
-    max_reps_por_sena: int = 8,
+    max_reps_por_sena: int = 10,
 ) -> int:
     """
     Extrae descriptores articulares 3D de LSC54 (sample.json).
@@ -68,7 +84,7 @@ def compilar_desde_lsc54(
         return 0
 
     print(f"  [LSC54] Procesando: {json_path} ...")
-    with open(json_path, "r", encoding="utf-8") as f:
+    with open(json_path, "r", encoding="utf-8", errors="replace") as f:
         data = json.load(f)
 
     total_agregadas = 0
@@ -76,7 +92,7 @@ def compilar_desde_lsc54(
     for signer, categorias in data.items():
         for cat_nombre, senas in categorias.items():
             for sena_nombre, vids in senas.items():
-                sena_clean = sena_nombre.upper().strip()
+                sena_clean = normalizar_etiqueta(sena_nombre)
                 count_sena = 0
                 cuad_sena = MAPA_CUADRANTES_SEÑAS.get(sena_clean, CuadranteEspacial.ESPACIO_CENTRAL.value)
 
@@ -108,15 +124,22 @@ def compilar_desde_lsc54(
                             secuencia_vectores.append(vec_articular)
 
                         if len(secuencia_vectores) > 4:
-                            idx_medio = len(secuencia_vectores) // 2
-                            vec_representativo = secuencia_vectores[idx_medio]
+                            # Tomar 3 frames representativos (25%, 50%, 75%)
+                            n_frames = len(secuencia_vectores)
+                            indices_repr = [
+                                n_frames // 4,
+                                n_frames // 2,
+                                3 * n_frames // 4,
+                            ]
                             
-                            base_vectores.agregar_referencia_estatica(
-                                vector=vec_representativo,
-                                etiqueta=sena_clean,
-                                cuadrante=cuad_sena,
-                                categoria=f"LSC54_{cat_nombre}",
-                            )
+                            for idx_repr in indices_repr:
+                                idx_repr = min(idx_repr, n_frames - 1)
+                                base_vectores.agregar_referencia_estatica(
+                                    vector=secuencia_vectores[idx_repr],
+                                    etiqueta=sena_clean,
+                                    cuadrante=cuad_sena,
+                                    categoria=f"LSC54_{cat_nombre}",
+                                )
 
                             base_vectores.agregar_referencia_dinamica(
                                 secuencia=np.array(secuencia_vectores),
@@ -126,7 +149,7 @@ def compilar_desde_lsc54(
                             )
 
                             count_sena += 1
-                            total_agregadas += 1
+                            total_agregadas += 3
 
     print(f"  [LSC54] Se agregaron {total_agregadas} muestras articulares de referencia.")
     return total_agregadas
@@ -137,7 +160,7 @@ def compilar_carpeta_lsc70(
     base_vectores: BaseVectoresLSC,
     extractor: ExtractorLandmarks,
     max_personas: int = 20,
-    muestras_por_persona: int = 5,
+    muestras_por_persona: int = 6,
     categoria_nombre: str = "LSC70",
 ) -> int:
     """
@@ -157,7 +180,7 @@ def compilar_carpeta_lsc70(
         for c_entry in os.scandir(p_dir):
             if not c_entry.is_dir():
                 continue
-            nombre_clase = c_entry.name.upper().strip()
+            nombre_clase = normalizar_etiqueta(c_entry.name)
             cuad_clase = MAPA_CUADRANTES_SEÑAS.get(nombre_clase, CuadranteEspacial.ESPACIO_LATERAL.value)
 
             imgs = [f.path for f in os.scandir(c_entry.path) if f.name.lower().endswith((".jpg", ".png"))]
@@ -188,16 +211,17 @@ def generar_base_completa(
     salida_npz: str = "modelos_guardados/base_senas_lsc.npz",
     salida_json: str = "modelos_guardados/clases_lsc.json",
     max_personas: int = 20,
+    podar_outliers: bool = True,
 ) -> BaseVectoresLSC:
     """
     Construye el catálogo completo compilando LSC54, LSC70W, LSC70ANH y LSC70AN.
     """
     print("=" * 60)
-    print("  COMPILANDO BASE DE DATOS ARTICULAR LSC (101 DIMENSIONES)")
+    print("  COMPILANDO BASE DE DATOS ARTICULAR LSC (105 DIMENSIONES ANTI-RUIDO)")
     print("=" * 60)
 
     base = BaseVectoresLSC()
-    extractor = ExtractorLandmarks()
+    extractor = ExtractorLandmarks(usar_filtro_temporal=False, usar_denoise_imagen=True)
 
     # 1. LSC54 (Series 3D)
     ruta_lsc54 = os.path.join(dir_datasets, "LSC54", "sample.json")
@@ -205,16 +229,20 @@ def generar_base_completa(
 
     # 2. LSC70W (Palabras: HOLA, YO, NOMBRE, LICOR, GUSTAR, etc.)
     ruta_lsc70w = os.path.join(dir_datasets, "LSC70", "LSC70W")
-    compilar_carpeta_lsc70(ruta_lsc70w, base, extractor, max_personas=max_personas, muestras_por_persona=5, categoria_nombre="LSC70W")
+    compilar_carpeta_lsc70(ruta_lsc70w, base, extractor, max_personas=max_personas, muestras_por_persona=8, categoria_nombre="LSC70W")
 
     # 3. LSC70ANH (Alfabeto A-Z y Números 1-10, MIL, MILLON)
     ruta_lsc70anh = os.path.join(dir_datasets, "LSC70", "LSC70ANH")
-    compilar_carpeta_lsc70(ruta_lsc70anh, base, extractor, max_personas=max_personas, muestras_por_persona=4, categoria_nombre="LSC70ANH")
+    compilar_carpeta_lsc70(ruta_lsc70anh, base, extractor, max_personas=max_personas, muestras_por_persona=6, categoria_nombre="LSC70ANH")
 
     # 4. LSC70AN (Variaciones adicionales)
     ruta_lsc70an = os.path.join(dir_datasets, "LSC70", "LSC70AN")
     if os.path.exists(ruta_lsc70an):
-        compilar_carpeta_lsc70(ruta_lsc70an, base, extractor, max_personas=10, muestras_por_persona=3, categoria_nombre="LSC70AN")
+        compilar_carpeta_lsc70(ruta_lsc70an, base, extractor, max_personas=10, muestras_por_persona=4, categoria_nombre="LSC70AN")
+
+    # 5. Poda estadística de outliers
+    if podar_outliers:
+        base.podar_outliers_por_centroide(umbral_similitud_centroide=0.80)
 
     # Guardar en disco
     base.guardar(salida_npz, salida_json)
@@ -222,7 +250,7 @@ def generar_base_completa(
 
     print("\n" + "=" * 60)
     print(f"  [EXITO] Base de datos guardada en: {salida_npz}")
-    print(f"  Total vectores de referencia: {base.total_senas}")
+    print(f"  Total vectores de referencia limpios: {base.total_senas}")
     print(f"  Total clases únicas: {len(base.clases_unicas)}")
     print(f"  Clases: {base.clases_unicas}")
     print("=" * 60)
@@ -232,3 +260,4 @@ def generar_base_completa(
 
 if __name__ == "__main__":
     generar_base_completa()
+

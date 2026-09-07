@@ -100,6 +100,93 @@ PLANTILLAS_EXACTAS: Dict[Tuple[str, ...], str] = {
 }
 
 
+# ─────────────────────────────────────────────────────────────
+# 3. VENTANA DE CONSENSO TEMPORAL (ANTI-JITTER / ANTI-ADIVINANZA)
+# ─────────────────────────────────────────────────────────────
+
+from collections import deque, Counter
+
+class VentanaConsenso:
+    """
+    Suavizado temporal por mayoría de votos en ventana deslizante.
+    
+    Solo acepta una seña cuando:
+      1. Al menos `min_consenso_pct`% de los últimos `tamano_ventana` frames
+         coinciden en la MISMA seña.
+      2. El score promedio de esa seña en la ventana supera `umbral_score_promedio`.
+      3. Si ya hay una seña aceptada, se necesitan `frames_histeresis` frames 
+         consecutivos con otra seña diferente para cambiar (anti-jitter).
+    """
+    def __init__(
+        self,
+        tamano_ventana: int = 10,
+        min_consenso_pct: float = 0.70,
+        umbral_score_promedio: float = 0.78,
+        frames_histeresis: int = 3,
+    ):
+        self.tamano_ventana = tamano_ventana
+        self.min_consenso_pct = min_consenso_pct
+        self.umbral_score_promedio = umbral_score_promedio
+        self.frames_histeresis = frames_histeresis
+        
+        self.buffer: deque = deque(maxlen=tamano_ventana)
+        self.sena_aceptada_actual: Optional[str] = None
+        self.contador_otra_sena: int = 0
+        self.ultima_otra_sena: Optional[str] = None
+
+    def alimentar(
+        self,
+        sena: Optional[str],
+        score: float,
+    ) -> Tuple[Optional[str], float, float]:
+        """
+        Registra una predicción de frame y devuelve la seña consensuada.
+        
+        Returns:
+            (seña_consensuada, score_promedio, porcentaje_consenso)
+        """
+        self.buffer.append((sena, score))
+        votos = [(s, sc) for s, sc in self.buffer if s is not None]
+        
+        if not votos:
+            self.sena_aceptada_actual = None
+            self.contador_otra_sena = 0
+            return (None, 0.0, 0.0)
+
+        conteo = Counter(s for s, _ in votos)
+        sena_top, n_votos = conteo.most_common(1)[0]
+        pct_consenso = n_votos / self.tamano_ventana
+
+        scores_top = [sc for s, sc in votos if s == sena_top]
+        score_promedio = sum(scores_top) / len(scores_top)
+
+        if pct_consenso < self.min_consenso_pct or score_promedio < self.umbral_score_promedio:
+            return (None, score_promedio, pct_consenso)
+
+        # Histéresis
+        if self.sena_aceptada_actual is not None and sena_top != self.sena_aceptada_actual:
+            if sena_top == self.ultima_otra_sena:
+                self.contador_otra_sena += 1
+            else:
+                self.ultima_otra_sena = sena_top
+                self.contador_otra_sena = 1
+
+            if self.contador_otra_sena < self.frames_histeresis:
+                return (self.sena_aceptada_actual, score_promedio, pct_consenso)
+
+        self.sena_aceptada_actual = sena_top
+        self.contador_otra_sena = 0
+        self.ultima_otra_sena = None
+
+        return (sena_top, score_promedio, pct_consenso)
+
+    def limpiar(self):
+        self.buffer.clear()
+        self.sena_aceptada_actual = None
+        self.contador_otra_sena = 0
+        self.ultima_otra_sena = None
+
+
 class EnsambladorFrases:
     def __init__(
         self,
