@@ -29,9 +29,10 @@ from pydantic import BaseModel
 from .base_vectores import BaseVectoresLSC
 from .extractor import ExtractorLandmarks
 from .cuadrantes import clasificar_cuadrante, COLORES_CUADRANTE
-from .ensamblador_frases import EnsambladorFrases
+from .ensamblador_frases import EnsambladorFrases, VentanaConsenso
 from .tts_local import MotorVozLocal
 from .catalogo_senas import DICCIONARIO_EDUCATIVO_LSC, obtener_catalogo_completo
+from .exportador_poses_3d import ExportadorPoses3D
 
 
 app = FastAPI(
@@ -54,12 +55,15 @@ base_vectores = BaseVectoresLSC(umbral_min_similitud=0.72)
 extractor = ExtractorLandmarks()
 motor_tts = MotorVozLocal(rate=160)
 ensamblador = EnsambladorFrases(callback_frase_lista=lambda frase: motor_tts.hablar(frase))
+exportador_3d: ExportadorPoses3D = None  # Se inicializa después de cargar la base
 
 # Cargar base si existe
 if os.path.exists(BASE_DB_PATH):
     try:
         base_vectores.cargar(BASE_DB_PATH)
         print(f"[Servidor LSC] Base de datos cargada: {base_vectores.total_senas} vectores de referencia.")
+        exportador_3d = ExportadorPoses3D(base_vectores)
+        print(f"[Servidor LSC] Exportador 3D inicializado: {len(exportador_3d.obtener_senas_disponibles())} señas con poses 3D.")
     except Exception as e:
         print(f"[Servidor LSC] Error al cargar base de vectores: {e}")
 
@@ -161,6 +165,54 @@ def traducir_texto_a_lsc(req: SolicitudTextoALsc):
         "texto_original": req.texto,
         "secuencia_glosas": secuencia_lsc,
         "tarjetas": detalles,
+    }
+
+
+@app.post("/api/texto_a_lsc_3d")
+def traducir_texto_a_lsc_3d(req: SolicitudTextoALsc):
+    """
+    Convierte texto en español a una secuencia de poses 3D articulares
+    para renderizar en un avatar Three.js.
+    Cada seña incluye 21 landmarks 3D, extensión de dedos, normal de palma,
+    cuadrante espacial y metadatos de animación.
+    """
+    global exportador_3d
+    if exportador_3d is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Exportador 3D no inicializado. La base de datos vectorial no está cargada."},
+        )
+
+    # 1. Reutilizar la lógica de texto_a_lsc para obtener glosas
+    resultado_glosas = traducir_texto_a_lsc(req)
+    secuencia_glosas = resultado_glosas["secuencia_glosas"]
+
+    if not secuencia_glosas:
+        return {
+            "texto_original": req.texto,
+            "secuencia_glosas": [],
+            "animacion": {"total_senas": 0, "duracion_total_ms": 0, "secuencia": []},
+        }
+
+    # 2. Generar secuencia de animación 3D
+    animacion = exportador_3d.generar_secuencia_animacion(secuencia_glosas)
+
+    return {
+        "texto_original": req.texto,
+        "secuencia_glosas": secuencia_glosas,
+        "animacion": animacion,
+    }
+
+
+@app.get("/api/exportador_3d/estado")
+def estado_exportador_3d():
+    """Estado del exportador de poses 3D."""
+    global exportador_3d
+    if exportador_3d is None:
+        return {"inicializado": False}
+    return {
+        "inicializado": True,
+        **exportador_3d.obtener_estadisticas(),
     }
 
 
@@ -348,6 +400,16 @@ def index():
         with open(ruta_html, "r", encoding="utf-8") as f:
             return HTMLResponse(f.read())
     return HTMLResponse("<h1>Seña LSC - Servidor Activo</h1><p>Visita /docs para la API interactiva.</p>")
+
+
+@app.get("/avatar", response_class=HTMLResponse)
+def avatar_3d():
+    """Sirve la interfaz del avatar 3D animado para texto → señas LSC."""
+    ruta_html = os.path.join("estilo", "avatar_lsc.html")
+    if os.path.exists(ruta_html):
+        with open(ruta_html, "r", encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>Avatar LSC - Página no encontrada</h1><p>Genera estilo/avatar_lsc.html primero.</p>")
 
 
 # Montar archivos estáticos si existen

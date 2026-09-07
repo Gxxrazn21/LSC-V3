@@ -18,6 +18,7 @@ from .extractor import ExtractorLandmarks, OneEuroFilter3D, preprocesar_imagen_a
 from .base_vectores import BaseVectoresLSC
 from .ensamblador_frases import EnsambladorFrases, VentanaConsenso
 from .tts_local import MotorVozLocal
+from .exportador_poses_3d import ExportadorPoses3D
 
 __all__ = [
     "CuadranteEspacial",
@@ -29,5 +30,6 @@ __all__ = [
     "EnsambladorFrases",
     "VentanaConsenso",
     "MotorVozLocal",
+    "ExportadorPoses3D",
 ]
 
