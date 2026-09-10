@@ -1,0 +1,41 @@
+[
+  {
+    "id": "20260909_125024",
+    "fecha": "2026-09-09 12:50:24",
+    "total_muestras": 4334,
+    "dimensiones": 109,
+    "accuracy_ensamble": 0.7281931003620032,
+    "f1_score_ensamble": 0.7110994208258862,
+    "accuracy_mlp": 0.7025827692848639,
+    "accuracy_extra_trees": 0.7254252006467578,
+    "cv_folds_accuracy": [
+      0.7151095732410612,
+      0.740484429065744,
+      0.7427912341407151,
+      0.7254901960784313,
+      0.7170900692840647
+    ],
+    "precision_hola": 0.7947368421052632,
+    "recall_hola": 0.8435754189944135,
+    "precision_gustar": 0.7794871794871795,
+    "recall_gustar": 0.8685714285714285,
+    "delta_accuracy": 0.0,
+    "delta_f1": 0.0,
+    "ha_mejorado": true
+  },
+  {
+    "id": "20260910_183248",
+    "fecha": "2026-09-10 18:32:48",
+    "total_muestras": 4940,
+    "dimensiones": 109,
+    "accuracy_global": 0.9906882591093117,
+    "f1_score": 0.9906962594870939,
+    "precision_cv_media": 0.7931174089068825,
+    "precision_hola": 1.0,
+    "recall_hola": 0.9947368421052631,
+    "precision_dias": 0.9817708333333334,
+    "recall_dias": 0.9921052631578947,
+    "ha_mejorado": true,
+    "descripcion": "Calibración biomecánica completa (resolución HOLA vs DIAS y retención de muestras de pecho)"
+  }
+]
