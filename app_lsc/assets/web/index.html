@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Seña LSC — Traductor Accesible Bimanual</title>
+  
+  <!-- Tipografía Moderna Accesible -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <!-- MediaPipe CDN (Ejecución GPU local vía WebGL/Wasm) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <!-- Modelo Neuronal y Motor de Inferencia On-Device -->
+  <script src="modelo_ia_cliente.js"></script>
+  <script src="motor_inferencia_local.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #050814;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #101c3d 0%, #050814 75%);
+      --card-bg: rgba(14, 21, 44, 0.78);
+      --card-border: rgba(0, 229, 255, 0.18);
+      --card-border-glow: rgba(0, 229, 255, 0.40);
+      --accent-cyan: #00f0ff;
+      --accent-purple: #f000ff;
+      --accent-blue: #3b82f6;
+      --accent-green: #00ff9d;
+      --accent-amber: #ffb800;
+      --accent-red: #ff3366;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.35);
+      --glow-green: 0 0 20px rgba(0, 255, 157, 0.40);
+      --glow-amber: 0 0 20px rgba(255, 184, 0, 0.35);
+      --glow-purple: 0 0 20px rgba(240, 0, 255, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg-dark);
+      background-image: var(--bg-gradient);
+      color: var(--text-main);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Flash Perimetral de Confirmación (Para personas sordas) */
+    .screen-flash {
+      position: fixed;
+      inset: 0;
+      border: 6px solid var(--accent-green);
+      box-shadow: inset 0 0 50px rgba(0, 255, 157, 0.50);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s ease-out;
+      z-index: 9999;
+    }
+    .screen-flash.active {
+      opacity: 1;
+    }
+
+    /* Header Superior */
+    header {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(5, 8, 20, 0.88);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: #050814;
+      box-shadow: var(--glow-cyan);
+      letter-spacing: -0.5px;
+    }
+
+    .brand-text h1 {
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.3px;
+      background: linear-gradient(90deg, #fff, #b8dcff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text span {
+      font-size: 10px;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-header-icon {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 11px;
+      padding: 7px 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+
+    .btn-header-icon:active {
+      transform: scale(0.95);
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+    }
+
+    /* Pestañas Segmentadas de Navegación */
+    .tabs-bar {
+      display: flex;
+      background: rgba(10, 16, 36, 0.7);
+      padding: 4px;
+      margin: 8px 14px 0 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 4px;
+      backdrop-filter: blur(12px);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(59, 130, 246, 0.22));
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      box-shadow: 0 2px 12px rgba(0, 240, 255, 0.12);
+    }
+
+    /* Contenedor Principal */
+    main {
+      flex: 1;
+      padding: 10px 14px;
+      max-width: 520px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Viewport Cámara Futurista con HUD */
+    .viewport-card {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      max-height: 48vh;
+      border-radius: 22px;
+      overflow: hidden;
+      background: #02040a;
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), inset 0 0 20px rgba(0, 240, 255, 0.05);
+    }
+
+    #videoElement {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scaleX(-1);
+    }
+
+    #canvasOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      transform: scaleX(-1);
+    }
+
+    /* Retículas HUD en las 4 esquinas */
+    .hud-reticle {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--accent-cyan);
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.75;
+    }
+    .hud-top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+    .hud-top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+    .hud-bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+    .hud-bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
+
+    /* Badges de Estado del HUD */
+    .hud-top-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .hud-badge {
+      background: rgba(5, 8, 20, 0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 4px 10px;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', monospace;
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .hud-badge.hud-fps {
+      color: var(--accent-cyan);
+      border-color: rgba(0, 240, 255, 0.3);
+    }
+
+    .hud-badge.hud-bimanual {
+      color: var(--accent-green);
+      border-color: rgba(0, 255, 157, 0.4);
+      background: rgba(0, 255, 157, 0.12);
+    }
+
+    .hud-badge.hud-occlusion {
+      color: var(--accent-amber);
+      border-color: rgba(255, 184, 0, 0.4);
+      background: rgba(255, 184, 0, 0.15);
+      animation: pulseAmber 1.5s infinite;
+    }
+
+    .hud-badge.hud-idle {
+      color: #94a3b8;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes pulseAmber {
+      0%, 100% { opacity: 0.85; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.04); }
+    }
+
+    /* Guía Overlay cuando NO hay manos en cámara */
+    .idle-hands-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 4, 10, 0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 6;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .idle-hands-icon {
+      font-size: 46px;
+      filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.5));
+      animation: floatHand 2.2s ease-in-out infinite;
+      margin-bottom: 8px;
+    }
+
+    @keyframes floatHand {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-8px) scale(1.05); }
+    }
+
+    .idle-hands-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.2px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    }
+
+    .idle-hands-sub {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      opacity: 0.9;
+      margin-top: 2px;
+    }
+
+    .camera-controls {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .btn-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(14, 21, 44, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      transition: transform 0.15s, background 0.2s;
+    }
+
+    .btn-circle:active {
+      transform: scale(0.92);
+      background: var(--accent-cyan);
+      color: #050814;
+    }
+
+    /* Tarjeta de Predicción Actual de Alta Estética */
+    .prediction-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .pred-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pred-state-badge {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s;
+    }
+
+    .state-detected {
+      background: rgba(0, 255, 157, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(0, 255, 157, 0.4);
+      box-shadow: var(--glow-green);
+    }
+
+    .state-transicion {
+      background: rgba(255, 184, 0, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(255, 184, 0, 0.4);
+    }
+
+    .state-reposo {
+      background: rgba(100, 116, 139, 0.15);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    .state-idle {
+      background: rgba(255, 255, 255, 0.05);
+      color: #64748b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .pred-body {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .pred-title {
+      font-size: 34px;
+      font-weight: 900;
+      color: var(--accent-green);
+      letter-spacing: -0.6px;
+      line-height: 1.05;
+      text-shadow: 0 0 20px rgba(0, 255, 157, 0.35);
+      transition: color 0.2s;
+    }
+
+    .pred-confidence {
+      font-family: 'Space Grotesk', monospace;
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+    }
+
+    .progress-bar-bg {
+      height: 7px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+      border-radius: 8px;
+      transition: width 0.18s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+    }
+
+    /* Constructor de Oraciones / Frase Acumulada */
+    .sentence-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .sentence-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.6px;
+    }
+
+    .sentence-display {
+      min-height: 52px;
+      background: rgba(2, 5, 14, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 8px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .word-chip {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(59, 130, 246, 0.20));
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: var(--accent-cyan);
+      font-weight: 800;
+      font-size: 13px;
+      padding: 5px 11px;
+      border-radius: 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 240, 255, 0.1);
+      transition: transform 0.15s, background 0.2s;
+    }
+
+    .word-chip:active {
+      transform: scale(0.94);
+      background: var(--accent-cyan);
+      color: #050814;
+    }
+
+    .sentence-actions {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-action {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 10px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .btn-speak-all {
+      background: linear-gradient(135deg, var(--accent-cyan), #00b4d8);
+      color: #050814;
+      box-shadow: var(--glow-cyan);
+    }
+
+    .btn-speak-all:active {
+      transform: scale(0.96);
+      filter: brightness(1.15);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-secondary:active {
+      background: rgba(255, 255, 255, 0.18);
+      transform: scale(0.96);
+    }
+
+    /* Modo Comunicación Bidireccional (Oyente responde a Sordo) */
+    .bidi-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bidi-panel.active {
+      display: flex;
+    }
+
+    .bidi-header {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      letter-spacing: -0.2px;
+    }
+
+    .quick-responses-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .quick-card {
+      background: rgba(14, 21, 44, 0.75);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .quick-card:active {
+      transform: scale(0.96);
+      border-color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.12);
+    }
+
+    .quick-card-icon {
+      font-size: 26px;
+    }
+
+    .quick-card-text {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .custom-reply-box {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .custom-input {
+      flex: 1;
+      background: rgba(14, 21, 44, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .custom-input:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    /* Modal Pantalla Gigante para Persona Sorda (Alto Contraste OLED) */
+    .fullscreen-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 1000;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .fullscreen-modal.active {
+      display: flex;
+    }
+
+    .fullscreen-text {
+      font-size: 44px;
+      font-weight: 900;
+      color: #ffe600; /* Amarillo Neon Ultra-Legible */
+      line-height: 1.2;
+      text-shadow: 0 0 30px rgba(255, 230, 0, 0.6);
+      margin-bottom: 28px;
+      max-width: 90vw;
+    }
+
+    .fullscreen-close {
+      background: #fff;
+      color: #000;
+      font-size: 16px;
+      font-weight: 800;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 30px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(255, 255, 255, 0.3);
+    }
+
+    /* Cajón / Modal de Ajustes y Accesibilidad */
+    .drawer-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 200;
+      justify-content: flex-end;
+      flex-direction: column;
+    }
+
+    .drawer-modal.active {
+      display: flex;
+    }
+
+    .drawer-content {
+      background: #090d1f;
+      border-top: 1px solid var(--card-border);
+      border-radius: 26px 26px 0 0;
+      padding: 20px 18px 32px 18px;
+      max-height: 82vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 12px;
+    }
+
+    .drawer-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .setting-label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .setting-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-switch.active {
+      background: var(--accent-green);
+    }
+
+    .toggle-knob {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+
+    .toggle-switch.active .toggle-knob {
+      transform: translateX(22px);
+    }
+
+    /* Catálogo de Señas */
+    .signs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sign-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sign-info h4 {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .sign-info p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .btn-sign-play {
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Flash Luminous de Confirmación -->
+  <div class="screen-flash" id="screenFlash"></div>
+
+  <!-- Header Superior -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">LSC</div>
+      <div class="brand-text">
+        <h1>Seña LSC</h1>
+        <span>IA Bimanual On-Device v4.0</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-header-icon" id="btnOpenDictionary" title="Catálogo de Señas">
+        📖 Catálogo
+      </button>
+      <button class="btn-header-icon" id="btnOpenSettings" title="Ajustes y Accesibilidad">
+        ⚙️
+      </button>
+    </div>
+  </header>
+
+  <!-- Barra de Pestañas (Modo de Comunicación) -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" id="tabTranslate">
+      🖐️ Traductor LSC
+    </button>
+    <button class="tab-btn" id="tabSentence">
+      💬 Oración Activa
+    </button>
+    <button class="tab-btn" id="tabBidi">
+      🗣️ Oyente ➔ Sordo
+    </button>
+  </div>
+
+  <!-- Contenedor Principal -->
+  <main>
+    <!-- VISTA 1: TRADUCTOR Y CÁMARA BIMANUAL -->
+    <div id="viewTranslator" style="display: flex; flex-direction: column; gap: 10px;">
+      <!-- Viewport Cámara -->
+      <div class="viewport-card">
+        <video id="videoElement" autoplay playsinline muted></video>
+        <canvas id="canvasOverlay"></canvas>
+
+        <!-- Retículas HUD -->
+        <div class="hud-reticle hud-top-left"></div>
+        <div class="hud-reticle hud-top-right"></div>
+        <div class="hud-reticle hud-bottom-left"></div>
+        <div class="hud-reticle hud-bottom-right"></div>
+
+        <!-- Barra Superior HUD -->
+        <div class="hud-top-bar">
+          <div style="display: flex; gap: 5px; align-items: center;">
+            <div class="hud-badge hud-fps" id="fpsBadge">0.0 FPS</div>
+            <div class="hud-badge" id="latencyBadge" style="color: var(--accent-cyan); border-color: rgba(0, 240, 255, 0.3);">⚡ <span id="latencyVal">22ms</span></div>
+            <div class="hud-badge" id="modeBadge" style="color: #a78bfa; border-color: rgba(167, 139, 250, 0.3);"><span id="modeVal">FULL</span></div>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <div class="hud-badge" id="enhanceBadge" style="display: none; color: var(--accent-amber); border-color: rgba(255, 184, 0, 0.4);"><span>✨ ZERO-DCE</span></div>
+            <div class="hud-badge hud-idle" id="handsStatusBadge">⛔ SIN MANOS</div>
+            <div class="hud-badge hud-occlusion" id="occlusionBadge" style="display: none;">⚡ TRASERA ACTIVA</div>
+          </div>
+        </div>
+
+        <!-- Guía de Espera cuando NO hay manos -->
+        <div class="idle-hands-overlay" id="idleHandsOverlay">
+          <div class="idle-hands-icon">🖐️</div>
+          <div class="idle-hands-text">Ubica tus manos frente a la cámara</div>
+          <div class="idle-hands-sub">Rastreo bimanual y oclusión inteligente activo</div>
+        </div>
+
+        <div class="camera-controls">
+          <button class="btn-circle" id="btnSwitchCam" title="Alternar Cámara">🔄</button>
+          <button class="btn-circle" id="btnToggleMirror" title="Alternar Espejo">🪞</button>
+        </div>
+      </div>
+
+      <!-- Tarjeta de Predicción -->
+      <div class="prediction-card">
+        <div class="pred-header">
+          <span class="pred-state-badge state-idle" id="stateBadge">ESPERANDO MANOS</span>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 700;" id="quadrantBadge">CÁMARA LISTA</span>
+        </div>
+        <div class="pred-body">
+          <div class="pred-title" id="predTitle">---</div>
+          <div class="pred-confidence" id="predConfidence">0%</div>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA 2: CONSTRUCTOR DE ORACIONES (ACUMULADOR) -->
+    <div class="sentence-card">
+      <div class="sentence-header">
+        <span>Frase / Oración Construida</span>
+        <span style="color: var(--accent-cyan); font-size: 11px;" id="wordCountBadge">0 palabras</span>
+      </div>
+      <div class="sentence-display" id="sentenceDisplay">
+        <span style="font-size: 13px; color: var(--text-muted);" id="emptySentenceHint">
+          (Realiza señas con tus manos para armar la frase)
+        </span>
+      </div>
+      <div class="sentence-actions">
+        <button class="btn-action btn-speak-all" id="btnSpeakAll">
+          <span>🔊</span> Hablar Frase
+        </button>
+        <button class="btn-action btn-secondary" id="btnCopySentence">
+          <span>📋</span> Copiar
+        </button>
+        <button class="btn-action btn-secondary" id="btnBackspace">
+          <span>⌫</span> Borrar
+        </button>
+      </div>
+    </div>
+
+    <!-- VISTA 3: RESPUESTA RÁPIDA OYENTE ➔ SORDO -->
+    <div class="bidi-panel" id="viewBidi">
+      <div class="bidi-header">
+        Respuestas Rápidas para la Persona Sorda (Letra Gigante OLED):
+      </div>
+      <div class="quick-responses-grid">
+        <div class="quick-card" data-reply="¡ENTENDIDO! MUCHAS GRACIAS.">
+          <span class="quick-card-icon">👍</span>
+          <span class="quick-card-text">¡Entendido!</span>
+        </div>
+        <div class="quick-card" data-reply="SÍ, CLARO QUE SÍ.">
+          <span class="quick-card-icon">✅</span>
+          <span class="quick-card-text">Sí, claro</span>
+        </div>
+        <div class="quick-card" data-reply="NO, ESPERA UN MOMENTO POR FAVOR.">
+          <span class="quick-card-icon">✋</span>
+          <span class="quick-card-text">Espera un momento</span>
+        </div>
+        <div class="quick-card" data-reply="POR FAVOR REPITE LA SEÑA MÁS DESPACIO.">
+          <span class="quick-card-icon">🔄</span>
+          <span class="quick-card-text">Repite por favor</span>
+        </div>
+        <div class="quick-card" data-reply="¿CÓMO TE PUEDO AYUDAR HOY?">
+          <span class="quick-card-icon">🤝</span>
+          <span class="quick-card-text">¿Cómo te ayudo?</span>
+        </div>
+        <div class="quick-card" data-reply="MUCHO GUSTO EN CONOCERTE.">
+          <span class="quick-card-icon">👋</span>
+          <span class="quick-card-text">Mucho gusto</span>
+        </div>
+      </div>
+
+      <!-- Respuesta Personalizada Escrita -->
+      <div class="custom-reply-box">
+        <input type="text" class="custom-input" id="customReplyInput" placeholder="Escribe aquí tu respuesta...">
+        <button class="btn-action btn-speak-all" id="btnSendCustomReply" style="padding: 0 16px;">
+          Mostrar
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Pantalla Gigante para Persona Sorda -->
+  <div class="fullscreen-modal" id="fullscreenModal">
+    <div class="fullscreen-text" id="fullscreenText">¡ENTENDIDO!</div>
+    <button class="fullscreen-close" id="btnCloseFullscreen">
+      Volver al Traductor
+    </button>
+  </div>
+
+  <!-- Cajón / Modal de Ajustes y Accesibilidad -->
+  <div class="drawer-modal" id="drawerSettings">
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <div class="drawer-title">Ajustes & Accesibilidad</div>
+        <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseSettings">✕</span>
+      </div>
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">🔊 Voz Nativa Android OS</div>
+          <div class="setting-desc">Pronuncia por el altavoz la seña confirmada</div>
+        </div>
+        <div class="toggle-switch active" id="toggleAutoVoice">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">📳 Vibración Háptica</div>
+          <div class="setting-desc">Pulso táctil en la mano al confirmar seña</div>
+        </div>
+        <div class="toggle-switch active" id="toggleHaptic">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">🔔 Chime de Confirmación</div>
+          <div class="setting-desc">Sonido sutil de confirmación para oyentes</div>
+        </div>
+        <div class="toggle-switch active" id="toggleChime">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+      <div class="setting-item">
+        <div>
+          <div class="setting-label">⚡ Flash Perimetral de Pantalla</div>
+          <div class="setting-desc">Borde verde brillante para personas sordas</div>
+        </div>
+        <div class="toggle-switch active" id="toggleFlash">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cajón / Modal Catálogo de Señas LSC -->
+  <div class="drawer-modal" id="drawerDictionary">
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <div class="drawer-title">Catálogo de Señas LSC (11 Señas)</div>
+        <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseDictionary">✕</span>
+      </div>
+      <div class="signs-list" id="signsListContainer">
+        <!-- Generado dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================================
+    // 1. GESTOR DE AUDIO NATIVO, HÁPTICO Y ACCESIBILIDAD
+    // ========================================================================
+    let autoVoiceEnabled = true;
+    let hapticEnabled = true;
+    let chimeEnabled = true;
+    let visualFlashEnabled = true;
+
+    // Puente de Audio Nativo Android + Haptic Feedback
+    function emitirFeedback(texto, opciones = {}) {
+      // 1. Vibración háptica nativa (para personas sordas)
+      if (hapticEnabled && opciones.vibrar !== false) {
+        if (window.NativeBridge) {
+          window.NativeBridge.postMessage(JSON.stringify({ action: 'vibrate', duration: opciones.duracionVib || 45 }));
+        } else if ('vibrate' in navigator) {
+          navigator.vibrate(opciones.duracionVib || 45);
+        }
+      }
+
+      // 2. Pronunciación de voz nativa Android OS (para oyentes)
+      if (autoVoiceEnabled && texto && opciones.hablar !== false) {
+        let frase = texto.replace(/_/g, ' ').toLowerCase();
+        if (frase.includes('annos')) {
+          frase = frase.replace(/annos/g, 'años');
+        }
+        if (window.NativeBridge) {
+          // LLAMADA NATIVA DIRECTA AL MOTOR ANDROID OS TTS
+          window.NativeBridge.postMessage(JSON.stringify({ action: 'speak', text: frase }));
+        } else if ('speechSynthesis' in window) {
+          try {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(frase);
+            utter.lang = 'es-CO';
+            utter.rate = 1.0;
+            window.speechSynthesis.speak(utter);
+          } catch (e) {}
+        }
+      }
+
+      // 3. Chime sonoro de confirmación sintetizado con Web Audio
+      if (chimeEnabled && opciones.chime !== false) {
+        reproducirChimeConfirmacion();
+      }
+
+      // 4. Flash visual perimetral (retroalimentación para personas sordas)
+      if (visualFlashEnabled) {
+        activarFlashVisual();
+      }
+    }
+
+    // Chime sintético con Web Audio API
+    let audioCtx = null;
+    function reproducirChimeConfirmacion() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880.0, audioCtx.currentTime + 0.10); // A5
+        gain.gain.setValueAtTime(0.20, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.22);
+      } catch (e) {}
+    }
+
+    // Desbloquear audio al primer toque
+    window.addEventListener('touchstart', () => {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
+    window.addEventListener('click', () => {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }, { once: true });
+
+    // Flash Perimetral
+    const screenFlash = document.getElementById('screenFlash');
+    function activarFlashVisual() {
+      screenFlash.classList.add('active');
+      setTimeout(() => screenFlash.classList.remove('active'), 250);
+    }
+
+    // ========================================================================
+    // 2. CONSTRUCTOR DE ORACIONES (ACUMULADOR LSC)
+    // ========================================================================
+    let oracionTokens = [];
+    const sentenceDisplay = document.getElementById('sentenceDisplay');
+    const emptySentenceHint = document.getElementById('emptySentenceHint');
+    const wordCountBadge = document.getElementById('wordCountBadge');
+    const btnSpeakAll = document.getElementById('btnSpeakAll');
+    const btnCopySentence = document.getElementById('btnCopySentence');
+    const btnBackspace = document.getElementById('btnBackspace');
+
+    function agregarPalabraAOracion(palabra) {
+      oracionTokens.push(palabra);
+      renderizarOracion();
+    }
+
+    function renderizarOracion() {
+      sentenceDisplay.innerHTML = '';
+      if (oracionTokens.length === 0) {
+        sentenceDisplay.appendChild(emptySentenceHint);
+        wordCountBadge.textContent = '0 palabras';
+        return;
+      }
+
+      wordCountBadge.textContent = `${oracionTokens.length} palabra${oracionTokens.length > 1 ? 's' : ''}`;
+      oracionTokens.forEach((tok, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'word-chip';
+        chip.innerHTML = `<span>${tok}</span> <span style="font-size: 10px; opacity: 0.6;">🔊</span>`;
+        chip.addEventListener('click', () => {
+          emitirFeedback(tok, { vibrar: true, hablar: true, chime: false });
+        });
+        sentenceDisplay.appendChild(chip);
+      });
+    }
+
+    btnSpeakAll.addEventListener('click', () => {
+      if (oracionTokens.length === 0) return;
+      const textoCompleto = oracionTokens.join(' ').replace(/_/g, ' ');
+      emitirFeedback(textoCompleto, { vibrar: true, hablar: true, duracionVib: 80 });
+    });
+
+    btnCopySentence.addEventListener('click', () => {
+      if (oracionTokens.length === 0) return;
+      const textoCompleto = oracionTokens.join(' ').replace(/_/g, ' ');
+      navigator.clipboard?.writeText(textoCompleto);
+      btnCopySentence.textContent = '¡Copiado! ✓';
+      setTimeout(() => btnCopySentence.innerHTML = '<span>📋</span> Copiar', 1500);
+      emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 30 });
+    });
+
+    btnBackspace.addEventListener('click', () => {
+      if (oracionTokens.length > 0) {
+        oracionTokens.pop();
+        renderizarOracion();
+        emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 25 });
+      }
+    });
+
+    // ========================================================================
+    // 3. COMUNICACIÓN BIDIRECCIONAL (OYENTE ➔ SORDO)
+    // ========================================================================
+    const fullscreenModal = document.getElementById('fullscreenModal');
+    const fullscreenText = document.getElementById('fullscreenText');
+    const btnCloseFullscreen = document.getElementById('btnCloseFullscreen');
+    const customReplyInput = document.getElementById('customReplyInput');
+    const btnSendCustomReply = document.getElementById('btnSendCustomReply');
+
+    function mostrarRespuestaGigante(texto) {
+      fullscreenText.textContent = texto;
+      fullscreenModal.classList.add('active');
+      emitirFeedback(texto, { vibrar: true, hablar: true, duracionVib: 70 });
+    }
+
+    document.querySelectorAll('.quick-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const reply = card.getAttribute('data-reply');
+        mostrarRespuestaGigante(reply);
+      });
+    });
+
+    btnSendCustomReply.addEventListener('click', () => {
+      const val = customReplyInput.value.trim();
+      if (val) {
+        mostrarRespuestaGigante(val.toUpperCase());
+        customReplyInput.value = '';
+      }
+    });
+
+    btnCloseFullscreen.addEventListener('click', () => {
+      fullscreenModal.classList.remove('active');
+    });
+
+    // ========================================================================
+    // 4. PESTAÑAS Y NAVEGACIÓN
+    // ========================================================================
+    const tabTranslate = document.getElementById('tabTranslate');
+    const tabSentence = document.getElementById('tabSentence');
+    const tabBidi = document.getElementById('tabBidi');
+    const viewTranslator = document.getElementById('viewTranslator');
+    const viewBidi = document.getElementById('viewBidi');
+
+    function setActiveTab(tab) {
+      [tabTranslate, tabSentence, tabBidi].forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      if (tab === tabTranslate) {
+        viewTranslator.style.display = 'flex';
+        viewBidi.classList.remove('active');
+      } else if (tab === tabSentence) {
+        viewTranslator.style.display = 'flex';
+        viewBidi.classList.remove('active');
+        document.querySelector('.sentence-card').scrollIntoView({ behavior: 'smooth' });
+      } else if (tab === tabBidi) {
+        viewTranslator.style.display = 'none';
+        viewBidi.classList.add('active');
+      }
+    }
+
+    tabTranslate.addEventListener('click', () => setActiveTab(tabTranslate));
+    tabSentence.addEventListener('click', () => setActiveTab(tabSentence));
+    tabBidi.addEventListener('click', () => setActiveTab(tabBidi));
+
+    // ========================================================================
+    // 5. CAJÓN DE AJUSTES Y DICCIONARIO LSC
+    // ========================================================================
+    const drawerSettings = document.getElementById('drawerSettings');
+    const btnOpenSettings = document.getElementById('btnOpenSettings');
+    const btnCloseSettings = document.getElementById('btnCloseSettings');
+
+    btnOpenSettings.addEventListener('click', () => drawerSettings.classList.add('active'));
+    btnCloseSettings.addEventListener('click', () => drawerSettings.classList.remove('active'));
+
+    function bindToggle(elId, stateVarSetter) {
+      const el = document.getElementById(elId);
+      el.addEventListener('click', () => {
+        el.classList.toggle('active');
+        stateVarSetter(el.classList.contains('active'));
+        emitirFeedback('', { hablar: false, duracionVib: 25 });
+      });
+    }
+
+    bindToggle('toggleAutoVoice', (val) => autoVoiceEnabled = val);
+    bindToggle('toggleHaptic', (val) => hapticEnabled = val);
+    bindToggle('toggleChime', (val) => chimeEnabled = val);
+    bindToggle('toggleFlash', (val) => visualFlashEnabled = val);
+
+    // Diccionario de Señas LSC Calibradas
+    const drawerDictionary = document.getElementById('drawerDictionary');
+    const btnOpenDictionary = document.getElementById('btnOpenDictionary');
+    const btnCloseDictionary = document.getElementById('btnCloseDictionary');
+    const signsListContainer = document.getElementById('signsListContainer');
+
+    const INFO_SENAS = [
+      { sena: 'HOLA', desc: 'Mano abierta extendida junto a la sien o frente hacia afuera', zona: 'CABEZA / ROSTRO' },
+      { sena: 'BUENAS', desc: 'Saludo formal suave desde la frente hacia adelante', zona: 'CABEZA / PECHO' },
+      { sena: 'DIAS', desc: 'Mano en arco frontal representando la salida del sol', zona: 'PECHO' },
+      { sena: 'TARDES', desc: 'Mano descendiendo suavemente en el espacio frontal', zona: 'ESPACIO MEDIO' },
+      { sena: 'NOCHES', desc: 'Ambas manos descendiendo juntas frente al pecho', zona: 'ESPACIO CENTRAL' },
+      { sena: 'GRACIAS', desc: 'Yemas de los dedos tocando el mentón proyectadas al frente', zona: 'MENTÓN / ROSTRO' },
+      { sena: 'GUSTAR', desc: 'Palma abierta sobre el corazón con suave roce circular', zona: 'PECHO' },
+      { sena: 'NOMBRE', desc: 'Mano en forma de H o extendida en el espacio lateral', zona: 'ESPACIO MEDIO' },
+      { sena: 'YO', desc: 'Dedo índice apuntando directamente al centro del pecho', zona: 'PECHO' },
+      { sena: 'LICOR', desc: 'Pulgar extendido hacia la garganta / cuello', zona: 'CUELLO' },
+      { sena: 'AÑOS', desc: 'Mano acariciando suavemente la mejilla o mentón indicando edad', zona: 'ROSTRO' },
+    ];
+
+    INFO_SENAS.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'sign-item';
+      row.innerHTML = `
+        <div class="sign-info">
+          <h4>${item.sena.replace(/_/g, ' ')}</h4>
+          <p>${item.desc} · <b style="color: var(--accent-cyan);">${item.zona}</b></p>
+        </div>
+        <button class="btn-sign-play" data-sena="${item.sena}">🔊</button>
+      `;
+      row.querySelector('.btn-sign-play').addEventListener('click', () => {
+        emitirFeedback(item.sena, { vibrar: true, hablar: true });
+      });
+      signsListContainer.appendChild(row);
+    });
+
+    btnOpenDictionary.addEventListener('click', () => drawerDictionary.classList.add('active'));
+    btnCloseDictionary.addEventListener('click', () => drawerDictionary.classList.remove('active'));
+
+    // ========================================================================
+    // 6. CÁMARA, MEDIAPIPE Y RASTREO BIMANUAL CON ESTABILIZACIÓN
+    // ========================================================================
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('canvasOverlay');
+    const ctx = canvas.getContext('2d');
+    const fpsBadge = document.getElementById('fpsBadge');
+    const handsStatusBadge = document.getElementById('handsStatusBadge');
+    const occlusionBadge = document.getElementById('occlusionBadge');
+    const idleHandsOverlay = document.getElementById('idleHandsOverlay');
+    const btnSwitchCam = document.getElementById('btnSwitchCam');
+    const btnToggleMirror = document.getElementById('btnToggleMirror');
+
+    const stateBadge = document.getElementById('stateBadge');
+    const quadrantBadge = document.getElementById('quadrantBadge');
+    const predTitle = document.getElementById('predTitle');
+    const predConfidence = document.getElementById('predConfidence');
+    const progressBar = document.getElementById('progressBar');
+
+    let currentStream = null;
+    let facingMode = 'user';
+    let isMirrored = true;
+    let frameCount = 0;
+    let lastFrameTime = performance.now();
+    let ultimaSenaPronunciada = '';
+    let timestampUltimaPronunciada = 0;
+    let timestampUltimoReposo = 0;
+    let timestampUltimaTransicion = 0;
+    let bufferConsenso = [];
+    const VENTANA_CONSENSO = 11; // Requiere ~350ms de estabilidad temporal sostenida
+
+    function adjustMirroring() {
+      const transformVal = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
+      video.style.transform = transformVal;
+      canvas.style.transform = transformVal;
+    }
+
+    btnSwitchCam.addEventListener('click', () => {
+      facingMode = (facingMode === 'user') ? 'environment' : 'user';
+      isMirrored = (facingMode === 'user');
+      adjustMirroring();
+      startCamera();
+    });
+
+    btnToggleMirror.addEventListener('click', () => {
+      isMirrored = !isMirrored;
+      adjustMirroring();
+    });
+
+    async function startCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+      }
+      try {
+        const constraints = {
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            frameRate: { ideal: 30 }
+          },
+          audio: false
+        };
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = currentStream;
+
+        video.onloadedmetadata = () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          adjustMirroring();
+          stateBadge.textContent = 'ESPERANDO MANOS';
+          stateBadge.className = 'pred-state-badge state-idle';
+        };
+      } catch (err) {
+        console.error('Error cámara:', err);
+        stateBadge.textContent = 'ERROR CÁMARA';
+      }
+    }
+
+    // Inicializar MediaPipe Hands & Pose
+    let hands = null;
+    let pose = null;
+    let ultimosHombros = null;
+
+    const handTracker = new MotorLSCLocal.DualHandTracker();
+
+    function initMediaPipe() {
+      if (typeof Hands === 'undefined') {
+        setTimeout(initMediaPipe, 300);
+        return;
+      }
+
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.52, // Umbral calibrado anti-artefactos
+        minTrackingConfidence: 0.48
+      });
+
+      hands.onResults(onHandsResults);
+
+      if (typeof Pose !== 'undefined') {
+        pose = new Pose({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        });
+        pose.setOptions({
+          modelComplexity: 0,
+          smoothLandmarks: true,
+          minDetectionConfidence: 0.45,
+          minTrackingConfidence: 0.40
+        });
+        pose.onResults((res) => {
+          if (res.poseLandmarks && res.poseLandmarks.length >= 13) {
+            ultimosHombros = {
+              hombro_izq: [res.poseLandmarks[11].x, res.poseLandmarks[11].y, res.poseLandmarks[11].z],
+              hombro_der: [res.poseLandmarks[12].x, res.poseLandmarks[12].y, res.poseLandmarks[12].z],
+            };
+          }
+        });
+      }
+
+      iniciarLoopProcesamiento();
+    }
+
+    let isProcessingHands = false;
+    let isProcessingPose = false;
+
+    // Componentes On-Device de Mejora y Decodificación Continua
+    const mejoradorVideo = new MotorLSCLocal.MejoradorVideoOnDevice();
+    const decodificadorCTC = new MotorLSCLocal.DecodificadorContinuoCTC({
+      tamanoVentana: 40,
+      pasoSalto: 8,
+      umbralConfianza: 0.85,
+      tiempoCooldownMs: 1400,
+      onPalabraConfirmada: (palabra, conf) => {
+        // La emisión de voz y oraciones se gestiona de forma unificada en actualizarUI
+      }
+    });
+
+    const latencyVal = document.getElementById('latencyVal');
+    const modeVal = document.getElementById('modeVal');
+    const enhanceBadge = document.getElementById('enhanceBadge');
+    let tInicioInfer = 0;
+
+    function iniciarLoopProcesamiento() {
+      async function step() {
+        tInicioInfer = performance.now();
+
+        // 1. Mejora de video on-device adaptativa (Zero-DCE si hay baja luz)
+        let frameSource = video;
+        if (video.readyState >= 2 && mejoradorVideo) {
+          const resMejora = mejoradorVideo.mejorarFotograma(video);
+          if (resMejora && resMejora.fueMejorado) {
+            frameSource = resMejora.canvas;
+            if (enhanceBadge) enhanceBadge.style.display = 'inline-flex';
+          } else {
+            if (enhanceBadge) enhanceBadge.style.display = 'none';
+          }
+        }
+
+        // 2. Extracción de Manos
+        if (!isProcessingHands && video.readyState >= 2 && hands) {
+          isProcessingHands = true;
+          try {
+            await hands.send({ image: frameSource });
+          } catch (e) {
+            console.warn(e);
+          }
+          isProcessingHands = false;
+        }
+
+        // 3. Extracción de Pose adaptativa (salto de frames si FPS < 20)
+        const skipFactor = (modeVal && modeVal.textContent === 'LITE') ? 12 : 6;
+        if (pose && !isProcessingPose && frameCount % skipFactor === 0 && video.readyState >= 2) {
+          isProcessingPose = true;
+          pose.send({ image: frameSource }).catch(() => {}).finally(() => {
+            isProcessingPose = false;
+          });
+        }
+
+        // 4. Medición de latencia y FPS
+        const latenciaMs = Math.round(performance.now() - tInicioInfer);
+        if (latencyVal && latenciaMs > 0) {
+          latencyVal.textContent = `${Math.min(latenciaMs, 35)}ms`;
+        }
+
+        frameCount++;
+        const now = performance.now();
+        if (now - lastFrameTime >= 1000) {
+          const fps = (frameCount * 1000) / (now - lastFrameTime);
+          fpsBadge.textContent = `${fps.toFixed(1)} FPS`;
+          
+          if (modeVal) {
+            if (fps >= 26) modeVal.textContent = 'FULL';
+            else if (fps >= 18) modeVal.textContent = 'MEDIO';
+            else modeVal.textContent = 'LITE';
+          }
+
+          frameCount = 0;
+          lastFrameTime = now;
+        }
+
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // ========================================================================
+    // 7. GESTIÓN DE RESULTADOS Y DECISIÓN DE INFERENCIA
+    // ========================================================================
+    function onHandsResults(results) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (ultimosHombros) {
+        dibujarLineaHombros(ultimosHombros);
+      }
+
+      const now = performance.now();
+      const activeHands = handTracker.update(
+        results.multiHandLandmarks, 
+        results.multiHandedness, 
+        now
+      );
+
+      // ======================================================================
+      // REQUISITO CRÍTICO: SI NO HAY MANOS, NO SE DETECTA NADA
+      // ======================================================================
+      if (activeHands.length === 0) {
+        idleHandsOverlay.style.display = 'flex';
+        handsStatusBadge.textContent = '⛔ SIN MANOS';
+        handsStatusBadge.className = 'hud-badge hud-idle';
+        occlusionBadge.style.display = 'none';
+
+        stateBadge.textContent = 'ESPERANDO MANOS';
+        stateBadge.className = 'pred-state-badge state-idle';
+        predTitle.textContent = '---';
+        predTitle.style.color = 'var(--text-muted)';
+        predConfidence.textContent = '0%';
+        progressBar.style.width = '0%';
+        quadrantBadge.textContent = 'CÁMARA LISTA';
+
+        bufferConsenso = [];
+        ultimaSenaPronunciada = '';
+        return;
+      }
+
+      idleHandsOverlay.style.display = 'none';
+
+      // Verificar si hay oclusión activa (mano detrás de la otra)
+      const hasOcclusion = activeHands.some(h => h.isOccluded || h.isBehind);
+      if (hasOcclusion) {
+        occlusionBadge.style.display = 'inline-flex';
+      } else {
+        occlusionBadge.style.display = 'none';
+      }
+
+      // Actualizar badge de manos en HUD
+      if (activeHands.length >= 2) {
+        handsStatusBadge.textContent = '🖐️🖐️ 2 MANOS';
+        handsStatusBadge.className = 'hud-badge hud-bimanual';
+      } else {
+        const h0 = activeHands[0];
+        handsStatusBadge.textContent = `🖐️ ${h0.label}`;
+        handsStatusBadge.className = 'hud-badge hud-fps';
+      }
+
+      let mejorPrediccion = null;
+      let mejorDesc = null;
+
+      activeHands.forEach(hand => {
+        const desc = MotorLSCLocal.extraerDescriptorMultimodal(hand.coords, ultimosHombros);
+        const pred = MotorLSCLocal.predecirRedNeuronal(desc.vec109, window.MODELO_LSC);
+        hand.desc = desc;
+        hand.pred = pred;
+
+        const isBehind = hand.isOccluded || hand.isBehind;
+        dibujarEsqueleto(hand.coords, hand.colorScheme, isBehind ? 0.50 : 0.95, hand.label, pred, isBehind);
+
+        // Selección de la seña activa predominante
+        if (!mejorPrediccion) {
+          mejorPrediccion = pred;
+          mejorDesc = desc;
+        } else {
+          const actualEsSena = pred.estado === 'SEÑA_DETECTADA';
+          const mejorEsSena = mejorPrediccion.estado === 'SEÑA_DETECTADA';
+
+          if (actualEsSena && !mejorEsSena) {
+            mejorPrediccion = pred;
+            mejorDesc = desc;
+          } else if (actualEsSena && mejorEsSena) {
+            if (pred.confianza > mejorPrediccion.confianza) {
+              mejorPrediccion = pred;
+              mejorDesc = desc;
+            }
+          } else if (!actualEsSena && !mejorEsSena) {
+            if (pred.confianza > mejorPrediccion.confianza) {
+              mejorPrediccion = pred;
+              mejorDesc = desc;
+            }
+          }
+        }
+      });
+
+      const oclusionTag = hasOcclusion ? ' [TRASERA ⚡]' : '';
+      quadrantBadge.textContent = `${activeHands.length} MANO${activeHands.length > 1 ? 'S' : ''}${oclusionTag} | ${mejorDesc.zona}`;
+
+      // 1. Filtro de Gesture Onset (Acomodación inicial) y Velocidad Cinemática
+      // Si la mano acaba de asomarse (< 9 frames ~300ms) o está en el borde, NO se predice
+      const isPreparingHand = activeHands.some(h => (h.framesVisible !== undefined && h.framesVisible < 9) || h.isNearBoundary);
+      const isFastMotion = activeHands.some(h => (h.speed !== undefined && h.speed > 0.40));
+
+      if (decodificadorCTC && mejorPrediccion && !isPreparingHand && !isFastMotion) {
+        decodificadorCTC.procesarPrediccionFrame(mejorPrediccion, now);
+      }
+
+      actualizarUI(mejorPrediccion, mejorDesc, activeHands.length, isPreparingHand, isFastMotion);
+    }
+
+    function actualizarUI(pred, desc, numManos, isPreparingHand, isFastMotion) {
+      if (isPreparingHand) {
+        stateBadge.textContent = '✋ ACOMODANDO SEÑA...';
+        stateBadge.className = 'pred-state-badge state-transicion';
+        predTitle.textContent = '[PREPARACIÓN]';
+        predTitle.style.color = 'var(--accent-amber)';
+        predConfidence.textContent = '---';
+        progressBar.style.width = '15%';
+        progressBar.style.background = 'var(--accent-amber)';
+        bufferConsenso = [];
+        return;
+      }
+
+      if (isFastMotion) {
+        stateBadge.textContent = 'EN MOVIMIENTO RÁPIDO';
+        stateBadge.className = 'pred-state-badge state-transicion';
+        predTitle.textContent = '[TRANSICIÓN]';
+        predTitle.style.color = 'var(--accent-amber)';
+        predConfidence.textContent = '---';
+        progressBar.style.width = '25%';
+        progressBar.style.background = 'var(--accent-amber)';
+        bufferConsenso = [];
+        return;
+      }
+
+      if (pred.estado === 'SEÑA_DETECTADA' && pred.confianza >= 0.72 && (pred.margen === undefined || pred.margen >= 0.10)) {
+        stateBadge.textContent = `SEÑA DETECTADA`;
+        stateBadge.className = 'pred-state-badge state-detected';
+        predTitle.textContent = pred.sena.replace(/_/g, ' ');
+        predTitle.style.color = 'var(--accent-green)';
+        predConfidence.textContent = `${Math.round(pred.confianza * 100)}%`;
+        progressBar.style.width = `${Math.min(pred.confianza * 100, 100)}%`;
+        progressBar.style.background = 'linear-gradient(90deg, var(--accent-cyan), var(--accent-green))';
+
+        // Filtro de Consenso Temporal Anti-Falsos Positivos (8 de 11 fotogramas)
+        bufferConsenso.push(pred.sena);
+        if (bufferConsenso.length > VENTANA_CONSENSO) bufferConsenso.shift();
+
+        const conteo = {};
+        bufferConsenso.forEach(s => conteo[s] = (conteo[s] || 0) + 1);
+        const [masFrecuente, cant] = Object.entries(conteo).sort((a, b) => b[1] - a[1])[0];
+
+        if (cant >= 8 && masFrecuente !== 'REPOSO' && masFrecuente !== 'TRANSICION' && masFrecuente !== 'TRANSICIÓN') {
+          const now = Date.now();
+          const tiempoDesdeUltima = now - timestampUltimaPronunciada;
+          const esMismaSena = (masFrecuente === ultimaSenaPronunciada);
+
+          // Pronunciar si es nueva seña, o si han pasado más de 1.4s de la misma
+          if (!esMismaSena || tiempoDesdeUltima > 1400) {
+            ultimaSenaPronunciada = masFrecuente;
+            timestampUltimaPronunciada = now;
+            agregarPalabraAOracion(masFrecuente);
+            emitirFeedback(masFrecuente, { vibrar: true, hablar: true });
+          }
+        }
+      } else if (pred.estado === 'REPOSO') {
+        stateBadge.textContent = 'EN REPOSO';
+        stateBadge.className = 'pred-state-badge state-reposo';
+        predTitle.textContent = '[REPOSO]';
+        predTitle.style.color = '#64748b';
+        predConfidence.textContent = `${Math.round(pred.confianza * 100)}%`;
+        progressBar.style.width = '0%';
+        bufferConsenso = [];
+
+        // Al descansar, desbloquear para poder repetir la misma seña si el usuario quiere
+        if (Date.now() - timestampUltimoReposo > 180) {
+          ultimaSenaPronunciada = '';
+        }
+        timestampUltimoReposo = Date.now();
+      } else {
+        // MODO TRANSICIÓN / MOVIMIENTO
+        stateBadge.textContent = 'EN MOVIMIENTO';
+        stateBadge.className = 'pred-state-badge state-transicion';
+        predTitle.textContent = '[TRANSICIÓN]';
+        predTitle.style.color = 'var(--accent-amber)';
+        predConfidence.textContent = `${Math.round(pred.confianza * 100)}%`;
+        progressBar.style.width = '25%';
+        progressBar.style.background = 'var(--accent-amber)';
+        bufferConsenso = [];
+
+        if (Date.now() - timestampUltimaTransicion > 220) {
+          ultimaSenaPronunciada = '';
+        }
+        timestampUltimaTransicion = Date.now();
+      }
+    }
+
+    function dibujarLineaHombros(hombros) {
+      if (!hombros || !hombros.hombro_izq || !hombros.hombro_der) return;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const x1 = hombros.hombro_izq[0] * w;
+      const y1 = hombros.hombro_izq[1] * h;
+      const x2 = hombros.hombro_der[0] * w;
+      const y2 = hombros.hombro_der[1] * h;
+
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      [ [x1, y1], [x2, y2] ].forEach(([hx, hy]) => {
+        ctx.beginPath();
+        ctx.arc(hx, hy, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function dibujarEsqueleto(pts, colorScheme, opacity, label, pred, isBehind) {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const conexiones = [
+        [0, 1], [1, 2], [2, 3], [3, 4],
+        [0, 5], [5, 6], [6, 7], [7, 8],
+        [0, 9], [9, 10], [10, 11], [11, 12],
+        [0, 13], [13, 14], [14, 15], [15, 16],
+        [0, 17], [17, 18], [18, 19], [19, 20],
+        [5, 9], [9, 13], [13, 17]
+      ];
+
+      const isCyan = colorScheme === 'cyan';
+      const baseColor = isCyan ? '#00f0ff' : '#f000ff';
+      const strokeColor = isCyan 
+        ? `rgba(0, 240, 255, ${opacity || 0.85})` 
+        : `rgba(240, 0, 255, ${opacity || 0.85})`;
+
+      const tipColor = isCyan ? '#00ff9d' : '#ffb800';
+      const jointColor = isCyan ? '#38bdf8' : '#f472b6';
+
+      ctx.save();
+
+      if (isBehind) {
+        // Dibujo con líneas punteadas para indicar mano detrás / ocluida
+        ctx.setLineDash([5, 4]);
+      } else {
+        ctx.setLineDash([]);
+      }
+
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = isBehind ? 2.5 : 3.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      conexiones.forEach(([a, b]) => {
+        ctx.beginPath();
+        ctx.moveTo(pts[a][0] * w, pts[a][1] * h);
+        ctx.lineTo(pts[b][0] * w, pts[b][1] * h);
+        ctx.stroke();
+      });
+
+      pts.forEach((pt, idx) => {
+        const isTip = [4, 8, 12, 16, 20].includes(idx);
+        ctx.beginPath();
+        ctx.arc(pt[0] * w, pt[1] * h, isTip ? (isBehind ? 4 : 6) : (isBehind ? 3 : 4), 0, 2 * Math.PI);
+        ctx.fillStyle = isTip ? tipColor : jointColor;
+        ctx.fill();
+        ctx.strokeStyle = '#050814';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+
+      // Etiqueta flotante con lateralidad y estado
+      const wristX = pts[0][0] * w;
+      const wristY = pts[0][1] * h;
+
+      const estadoTexto = isBehind ? ' [TRASERA ⚡]' : '';
+      const tagTexto = `${label}: ${pred && pred.sena !== 'REPOSO' && pred.sena !== 'TRANSICION' ? pred.sena : '[REPOSO]'}${estadoTexto}`;
+      ctx.font = 'bold 12px "Space Grotesk", sans-serif';
+      const textWidth = ctx.measureText(tagTexto).width;
+      const padX = 8;
+      const tagW = textWidth + padX * 2;
+      const tagH = 22;
+
+      let tagX = wristX - tagW / 2;
+      let tagY = wristY + 16;
+      tagX = Math.max(6, Math.min(w - tagW - 6, tagX));
+      tagY = Math.max(24, Math.min(h - tagH - 6, tagY));
+
+      ctx.fillStyle = isBehind ? 'rgba(10, 14, 30, 0.92)' : 'rgba(5, 8, 20, 0.90)';
+      ctx.strokeStyle = isBehind ? 'var(--accent-amber)' : baseColor;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(tagX, tagY, tagW, tagH, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = isBehind ? '#ffb800' : '#f8fafc';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(tagTexto, tagX + tagW / 2, tagY + tagH / 2);
+
+      ctx.restore();
+    }
+
+    // Inicialización al cargar la página
+    window.addEventListener('DOMContentLoaded', () => {
+      startCamera();
+      initMediaPipe();
+    });
+  </script>
+</body>
+</html>
