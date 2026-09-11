@@ -22,7 +22,7 @@ class LSCApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Seña LSC',
+      title: 'Gestual',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF070913),
@@ -561,29 +561,25 @@ class _LSCHomePageState extends State<LSCHomePage> {
               WebViewWidget(controller: _controller),
             if (!_serverReady)
               Container(
-                color: const Color(0xFF070913),
+                color: const Color(0xFF0B1120),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00E5FF), Color(0xFF3B82F6)],
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'LSC',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
+                      Image.asset(
+                        'assets/web/logo_simbolo.png',
+                        width: 96,
+                        height: 96,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Gestual',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 24),

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Seña LSC — Traductor Accesible Bimanual</title>
+  <title>Gestual — Traductor LSC con IA Multimodal</title>
+  <link rel="icon" type="image/png" href="logo_simbolo.png">
   
   <!-- Tipografía Moderna Accesible -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,19 +96,18 @@
       gap: 10px;
     }
 
-    .brand-icon {
-      width: 40px;
-      height: 40px;
+    .brand-icon, .brand-logo {
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      object-fit: contain;
+      background: rgba(10, 16, 36, 0.85);
+      border: 1.5px solid rgba(0, 240, 255, 0.40);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 900;
-      font-size: 16px;
-      color: #050814;
-      box-shadow: var(--glow-cyan);
-      letter-spacing: -0.5px;
+      box-shadow: 0 4px 18px rgba(0, 240, 255, 0.30);
+      padding: 3px;
     }
 
     .brand-text h1 {
@@ -845,10 +845,10 @@
   <!-- Header Superior -->
   <header>
     <div class="brand">
-      <div class="brand-icon">LSC</div>
+      <img src="logo_simbolo.png" class="brand-logo" alt="Gestual LSC" />
       <div class="brand-text">
-        <h1>Seña LSC</h1>
-        <span id="modelStatusTag" style="color: #00ff9d; font-size: 11px; font-weight: 700;">⚡ IA v5.3.0 (TAB Ubicación Corporal • 99.5%)</span>
+        <h1>Gestual LSC</h1>
+        <span id="modelStatusTag" style="color: #00ff9d; font-size: 11px; font-weight: 700;">⚡ IA v5.3.0 (TAB Ubicación Corporal • 99.8%)</span>
       </div>
     </div>
     <div class="header-actions">

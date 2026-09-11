@@ -1,21 +1,21 @@
 {
-  "name": "LSC Test Studio — Validación IA",
-  "short_name": "LSC Studio",
-  "description": "Estudio de pruebas móviles y validación de Lengua de Señas Colombiana con IA Multimodal 109D",
-  "start_url": "/",
+  "name": "Gestual — Lengua de Señas Colombiana",
+  "short_name": "Gestual",
+  "description": "Reconocimiento y práctica de Lengua de Señas Colombiana en tiempo real con IA Multimodal",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#080d1a",
   "theme_color": "#080d1a",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/estilo/icon-192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/estilo/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
