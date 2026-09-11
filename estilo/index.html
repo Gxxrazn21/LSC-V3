@@ -897,6 +897,7 @@
             <div class="hud-badge" id="modeBadge" style="color: #a78bfa; border-color: rgba(167, 139, 250, 0.3);"><span id="modeVal">FULL</span></div>
           </div>
           <div style="display: flex; gap: 6px; align-items: center;">
+            <div class="hud-badge" id="btnToggleHandsNum" style="cursor: pointer; color: var(--accent-cyan); border-color: rgba(0, 240, 255, 0.4);" title="Tocar para alternar entre 1 mano y 2 manos">🖐️ 1 MANO</div>
             <div class="hud-badge" id="enhanceBadge" style="display: none; color: var(--accent-amber); border-color: rgba(255, 184, 0, 0.4);"><span>✨ ZERO-DCE</span></div>
             <div class="hud-badge hud-idle" id="handsStatusBadge">⛔ SIN MANOS</div>
             <div class="hud-badge hud-occlusion" id="occlusionBadge" style="display: none;">⚡ TRASERA ACTIVA</div>
@@ -1341,6 +1342,26 @@
     btnOpenDictionary.addEventListener('click', () => drawerDictionary.classList.add('active'));
     btnCloseDictionary.addEventListener('click', () => drawerDictionary.classList.remove('active'));
 
+    // Alternador de Modo de Manos (1 Mano / 2 Manos)
+    const btnToggleHandsNum = document.getElementById('btnToggleHandsNum');
+    if (btnToggleHandsNum) {
+      btnToggleHandsNum.addEventListener('click', () => {
+        maxManosConfiguradas = (maxManosConfiguradas === 1) ? 2 : 1;
+        if (hands) {
+          hands.setOptions({
+            maxNumHands: maxManosConfiguradas,
+            minDetectionConfidence: 0.62,
+            minTrackingConfidence: 0.58
+          });
+        }
+        if (handTracker) handTracker.reset();
+        btnToggleHandsNum.textContent = maxManosConfiguradas === 1 ? '🖐️ 1 MANO' : '🖐️🖐️ 2 MANOS';
+        btnToggleHandsNum.style.color = maxManosConfiguradas === 1 ? 'var(--accent-cyan)' : 'var(--accent-purple)';
+        btnToggleHandsNum.style.borderColor = maxManosConfiguradas === 1 ? 'rgba(0, 240, 255, 0.4)' : 'rgba(240, 0, 255, 0.4)';
+        emitirFeedback('', { hablar: false, duracionVib: 25 });
+      });
+    }
+
     // ========================================================================
     // 6. CÁMARA, MEDIAPIPE Y RASTREO BIMANUAL CON ESTABILIZACIÓN
     // ========================================================================
@@ -1429,6 +1450,7 @@
     let ultimosHombros = null;
 
     const handTracker = new MotorLSCLocal.DualHandTracker();
+    let maxManosConfiguradas = 1; // Modo 1 Mano (Unimanual) por defecto para evitar 2da mano fantasma
 
     function initMediaPipe() {
       if (typeof Hands === 'undefined') {
@@ -1441,10 +1463,10 @@
       });
 
       hands.setOptions({
-        maxNumHands: 2,
+        maxNumHands: maxManosConfiguradas,
         modelComplexity: 1,
-        minDetectionConfidence: 0.52, // Umbral calibrado anti-artefactos
-        minTrackingConfidence: 0.48
+        minDetectionConfidence: 0.62, // Umbral calibrado óptimo según barrido empírico
+        minTrackingConfidence: 0.58
       });
 
       hands.onResults(onHandsResults);
@@ -1593,9 +1615,11 @@
         bufferConsenso = [];
         ultimaSenaPronunciada = '';
 
-        // v5.0: Resetear detectores de mano neutra al desaparecer las manos
+        // Resetear detectores de mano neutra y compuertas cinemáticas al desaparecer las manos
         if (typeof _neutralDetectorSlot0 !== 'undefined') _neutralDetectorSlot0.reset();
         if (typeof _neutralDetectorSlot1 !== 'undefined') _neutralDetectorSlot1.reset();
+        if (typeof _motionGateSlot0 !== 'undefined') _motionGateSlot0.reset();
+        if (typeof _motionGateSlot1 !== 'undefined') _motionGateSlot1.reset();
         return;
       }
 
@@ -1633,25 +1657,36 @@
         const isBehind = hand.isOccluded || hand.isBehind;
         dibujarEsqueleto(hand.coords, hand.colorScheme, isBehind ? 0.50 : 0.95, hand.label, pred, isBehind);
 
-        // Selección de la seña activa predominante
+        // Selección de la seña activa predominante:
+        // Una mano visible y no ocluida SIEMPRE tiene prioridad sobre una mano ocluida/detrás
+        const manoActualVisible = !hand.isOccluded && !hand.isBehind;
+        const mejorActualVisible = mejorPrediccion ? !mejorPrediccion._isBehind : false;
+
         if (!mejorPrediccion) {
-          mejorPrediccion = pred;
+          mejorPrediccion = { ...pred, _isBehind: isBehind };
           mejorDesc = desc;
+        } else if (manoActualVisible && !mejorActualVisible) {
+          // La mano visible reemplaza a la mano oculta
+          mejorPrediccion = { ...pred, _isBehind: false };
+          mejorDesc = desc;
+        } else if (!manoActualVisible && mejorActualVisible) {
+          // Ignorar la mano ocluida si ya tenemos una mano visible activa
         } else {
+          // Ambas en igual estado de visibilidad: desempatar por estado y confianza
           const actualEsSena = pred.estado === 'SEÑA_DETECTADA';
           const mejorEsSena = mejorPrediccion.estado === 'SEÑA_DETECTADA';
 
           if (actualEsSena && !mejorEsSena) {
-            mejorPrediccion = pred;
+            mejorPrediccion = { ...pred, _isBehind: isBehind };
             mejorDesc = desc;
           } else if (actualEsSena && mejorEsSena) {
             if (pred.confianza > mejorPrediccion.confianza) {
-              mejorPrediccion = pred;
+              mejorPrediccion = { ...pred, _isBehind: isBehind };
               mejorDesc = desc;
             }
           } else if (!actualEsSena && !mejorEsSena) {
             if (pred.confianza > mejorPrediccion.confianza) {
-              mejorPrediccion = pred;
+              mejorPrediccion = { ...pred, _isBehind: isBehind };
               mejorDesc = desc;
             }
           }
@@ -1696,6 +1731,20 @@
         progressBar.style.background = 'var(--accent-amber)';
         bufferConsenso = [];
         ultimaSenaPronunciada = ''; // Desbloquear para que al detenerse reconozca la siguiente seña de inmediato
+        return;
+      }
+
+      // v5.2: Inferencia con Compuerta de Movimiento (Motion-Gated Inference)
+      // Si la mano está estática / en reposo sin movimiento de seña, abstención total de texto
+      if (pred.isMotionGated) {
+        stateBadge.textContent = 'MANO EN REPOSO';
+        stateBadge.className = 'pred-state-badge state-reposo';
+        predTitle.textContent = '[REPOSO / SIN SEÑA]';
+        predTitle.style.color = '#64748b';
+        predConfidence.textContent = '---';
+        progressBar.style.width = '0%';
+        bufferConsenso = [];
+        ultimaSenaPronunciada = '';
         return;
       }
 

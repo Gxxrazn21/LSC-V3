@@ -116,8 +116,8 @@ class LandmarkStabilizer {
     this.lastTimestamp = null;
     this.framesMissing = 0;
     this.framesVisible = 0; // Contador de persistencia temporal para evitar predicciones prematuras
-    this.maxGraceFrames = 5; // Persistencia de motion blur (ampliado para fluidez)
-    this.maxOcclusionFrames = 35; // Persistencia cuando está detrás de la otra mano (~1.1s ampliado)
+    this.maxGraceFrames = 4; // Persistencia de motion blur
+    this.maxOcclusionFrames = 10; // Persistencia cuando está genuinamente detrás de la otra mano (~300ms)
     this.currentVelocity = [0, 0, 0];
     this.isOccluded = false;
     this.lastForegroundWrist = null;
@@ -297,11 +297,14 @@ class DualHandTracker {
         if (d_palma < 0.025) continue; // Ignorar artefactos pequeños
 
         let label = 'Desconocida';
+        let score = 0.90;
         if (multiHandedness && multiHandedness[i]) {
           const c = multiHandedness[i].label || (multiHandedness[i].classification && multiHandedness[i].classification[0]?.label);
           if (c) label = c;
+          const s = multiHandedness[i].score || (multiHandedness[i].classification && multiHandedness[i].classification[0]?.score);
+          if (s !== undefined) score = s;
         }
-        detections.push({ pts, label, wrist: pts[0] });
+        detections.push({ pts, label, score, wrist: pts[0] });
       }
     }
 
@@ -318,6 +321,45 @@ class DualHandTracker {
     }
 
     this.framesWithoutHands = 0;
+
+    // Validación Post-Proceso Bimanual (Requisito Crítico: Evitar 2 manos cuando solo hay 1)
+    if (detections.length >= 2) {
+      const det0 = detections[0];
+      const det1 = detections[1];
+      const d_entre_manos = Vec3.dist(det0.wrist, det1.wrist);
+      
+      // 1. Descarte por proximidad espacial extrema (< 0.10):
+      // MediaPipe propone dos anclas para la misma mano física -> conservar la de mayor certeza
+      if (d_entre_manos < 0.10) {
+        if ((det1.score || 0) > (det0.score || 0)) {
+          detections.shift(); // Descartar det0
+        } else {
+          detections.pop();   // Descartar det1
+        }
+      } 
+      // 2. Descarte por asimetría severa de confianza de handedness:
+      // Si una mano tiene certeza alta (> 0.85) y la otra es muy dudosa (< 0.60)
+      else if (det0.score !== undefined && det1.score !== undefined) {
+        if (det0.score > 0.85 && det1.score < 0.60) {
+          detections.pop();
+        } else if (det1.score > 0.85 && det0.score < 0.60) {
+          detections.shift();
+        }
+      }
+      
+      // 3. Descarte de anomalía anatómica (dos manos idénticas en el mismo cuadrante)
+      if (detections.length >= 2) {
+        const d0 = detections[0];
+        const d1 = detections[1];
+        if (d0.label === d1.label && d0.label !== 'Desconocida') {
+          if ((d0.score || 1) < (d1.score || 1) - 0.12) {
+            detections.shift();
+          } else if ((d1.score || 1) < (d0.score || 1) - 0.12) {
+            detections.pop();
+          }
+        }
+      }
+    }
 
     // ========================================================================
     // CASO 1: EXACTAMENTE 1 MANO DETECTADA (GESTIÓN DE OCLUSIÓN DETRÁS)
@@ -348,14 +390,13 @@ class DualHandTracker {
 
       const upActive = activeSlot.update(det.pts, now);
 
-      // Verificar si la otra mano estaba recientemente activa y quedó oculta detrás
+      // Verificar si la otra mano estaba recientemente activa y REALMENTE quedó oculta detrás
       let upOther = null;
       const wasOtherActive = otherSlot.lastFiltered && otherSlot.framesMissing < otherSlot.maxOcclusionFrames;
       if (wasOtherActive) {
         const distToFront = Vec3.dist(det.wrist, otherSlot.lastFiltered[0]);
-        // Si las manos estaban cerca (se cruzaron o una se puso detrás)
-        // Umbral ampliado 0.22→0.30 para capturar más solapamientos reales
-        if (distToFront < 0.30 || otherSlot.isOccluded) {
+        // Solo considerar oclusión si las muñecas estaban verdaderamente solapadas (< 0.15)
+        if (distToFront < 0.15) {
           upOther = otherSlot.updateOccluded(det.wrist, now);
         } else {
           otherSlot.reset();
@@ -397,7 +438,19 @@ class DualHandTracker {
     const detB = detections[1];
 
     let detRight = null, detLeft = null;
-    if (detA.label === 'Right' && detB.label === 'Left') {
+    // Continuidad temporal: asociar al slot previo más cercano para evitar saltos de mano
+    if (this.slot0.lastFiltered && this.slot1.lastFiltered) {
+      const d0A = Vec3.dist(detA.wrist, this.slot0.lastFiltered[0]);
+      const d0B = Vec3.dist(detB.wrist, this.slot0.lastFiltered[0]);
+      const d1A = Vec3.dist(detA.wrist, this.slot1.lastFiltered[0]);
+      const d1B = Vec3.dist(detB.wrist, this.slot1.lastFiltered[0]);
+
+      if (d0A + d1B <= d0B + d1A) {
+        detRight = detA; detLeft = detB;
+      } else {
+        detRight = detB; detLeft = detA;
+      }
+    } else if (detA.label === 'Right' && detB.label === 'Left') {
       detRight = detA; detLeft = detB;
     } else if (detA.label === 'Left' && detB.label === 'Right') {
       detRight = detB; detLeft = detA;
@@ -414,9 +467,8 @@ class DualHandTracker {
     const up1 = this.slot1.update(detLeft.pts, now);
 
     // Calcular si una mano está visiblemente solapada o detrás de la otra
-    // Umbral ampliado 0.16→0.22 para detectar solapamientos parciales
     const dist2D = Vec3.norm2d(detRight.wrist[0] - detLeft.wrist[0], detRight.wrist[1] - detLeft.wrist[1]);
-    const isOverlapping = dist2D < 0.22;
+    const isOverlapping = dist2D < 0.16;
     const rightIsBehind = isOverlapping && (detRight.wrist[2] > detLeft.wrist[2] + 0.015);
     const leftIsBehind = isOverlapping && (detLeft.wrist[2] > detRight.wrist[2] + 0.015);
 
@@ -725,6 +777,199 @@ const _neutralDetectorSlot0 = new NeutralHandDetector();
 const _neutralDetectorSlot1 = new NeutralHandDetector();
 
 /**
+ * ============================================================================
+ * COMPUERTA CINEMÁTICA DE MOVIMIENTO (MOTION-GATED INFERENCE) - v5.2
+ * ============================================================================
+ * El clasificador neuronal SOLO evalúa señas cuando la mano presenta un patrón
+ * dinámico característico de seña activa. Si la mano está estática o en reposo,
+ * la compuerta se cierra:
+ * - Se abstiene de clasificar o emitir texto falso.
+ * - Retorna inmediatamente estado REPOSO / SIN_SEÑA con certeza máxima.
+ */
+class MotionGate {
+  constructor(options = {}) {
+    this.historyWindow = options.historyWindow || 8; // Últimos N frames
+    this.speedThreshold = options.speedThreshold || 0.028; // Umbral de velocidad cinemática
+    this.minActiveFrames = options.minActiveFrames || 3; // Frames activos para abrir compuerta
+    this.minStaticMs = options.minStaticMs || 250; // ms estáticos antes de cerrar compuerta
+    
+    this.speedHistory = [];
+    this.lastWrist = null;
+    this.lastTips = null;
+    this.lastActiveTime = null;
+    this.staticStartTime = null;
+    this.isOpen = false;
+  }
+
+  update(wristPos, fingerTips, timestamp) {
+    const now = timestamp || performance.now();
+    
+    if (!wristPos) {
+      this.reset();
+      return { isOpen: false, speed: 0, state: 'SIN_MANO' };
+    }
+
+    // Calcular velocidad promedio de la mano (muñeca + puntas de dedos)
+    let currentSpeed = 0;
+    if (this.lastWrist) {
+      const dWrist = Vec3.dist(wristPos, this.lastWrist);
+      currentSpeed = dWrist;
+      
+      if (fingerTips && this.lastTips && fingerTips.length === this.lastTips.length) {
+        let dTips = 0;
+        for (let i = 0; i < fingerTips.length; i++) {
+          dTips += Vec3.dist(fingerTips[i], this.lastTips[i]);
+        }
+        currentSpeed = (dWrist * 0.40) + ((dTips / fingerTips.length) * 0.60);
+      }
+    }
+
+    this.lastWrist = [...wristPos];
+    this.lastTips = fingerTips ? fingerTips.map(p => [...p]) : null;
+
+    this.speedHistory.push(currentSpeed);
+    if (this.speedHistory.length > this.historyWindow) {
+      this.speedHistory.shift();
+    }
+
+    // Velocidad media ponderada en la ventana
+    const avgSpeed = this.speedHistory.reduce((a, b) => a + b, 0) / this.speedHistory.length;
+    const isMotionActive = avgSpeed >= this.speedThreshold;
+
+    if (isMotionActive) {
+      this.lastActiveTime = now;
+      this.staticStartTime = null;
+      
+      const activeFrames = this.speedHistory.filter(s => s >= this.speedThreshold).length;
+      if (activeFrames >= this.minActiveFrames) {
+        this.isOpen = true;
+      }
+    } else {
+      if (!this.staticStartTime) {
+        this.staticStartTime = now;
+      }
+      const staticDuration = now - this.staticStartTime;
+      if (staticDuration >= this.minStaticMs) {
+        this.isOpen = false;
+      }
+    }
+
+    return {
+      isOpen: this.isOpen,
+      speed: avgSpeed,
+      isMotionActive: isMotionActive,
+      state: this.isOpen ? 'MOVIMIENTO_SEÑA' : 'MANO_ESTÁTICA'
+    };
+  }
+
+  reset() {
+    this.speedHistory = [];
+    this.lastWrist = null;
+    this.lastTips = null;
+    this.lastActiveTime = null;
+    this.staticStartTime = null;
+    this.isOpen = false;
+  }
+}
+
+// Instancias globales de compuerta cinemática
+const _motionGateSlot0 = new MotionGate();
+const _motionGateSlot1 = new MotionGate();
+
+/**
+ * ============================================================================
+ * HISTÉRESIS Y DEBOUNCE TEMPORAL (CONTROL DE EMISIÓN ROBUSTA) - v5.2
+ * ============================================================================
+ * - Exige estabilidad temporal mediante ventana de votación (K de N frames).
+ * - Umbral mínimo de confianza (>= 75%) y margen sobre top-2 (>= 15%).
+ * - Cooldown / debounce post-emisión (600ms) para evitar repeticiones espurias.
+ */
+class HysteresisDebounce {
+  constructor(options = {}) {
+    this.windowSize = options.windowSize || 12;
+    this.consensusThreshold = options.consensusThreshold || 8; // 8 de 12
+    this.minConfidence = options.minConfidence || 0.75;
+    this.minMargin = options.minMargin || 0.15;
+    this.cooldownMs = options.cooldownMs || 600;
+    
+    this.buffer = [];
+    this.lastEmissionTime = 0;
+    this.lastEmittedSign = '';
+  }
+
+  push(prediction, timestamp) {
+    const now = timestamp || performance.now();
+    
+    // Si estamos en período de enfriamiento post-emisión (mute period)
+    if (now - this.lastEmissionTime < this.cooldownMs) {
+      return { emitir: false, enCooldown: true, sena: null, confianza: 0 };
+    }
+
+    if (!prediction || prediction.estado !== 'SEÑA_DETECTADA') {
+      this.buffer.push({ sena: 'REPOSO', conf: 1.0 });
+    } else if (prediction.confianza >= this.minConfidence && (prediction.margen === undefined || prediction.margen >= this.minMargin)) {
+      this.buffer.push({ sena: prediction.sena, conf: prediction.confianza });
+    } else {
+      this.buffer.push({ sena: 'TRANSICION', conf: prediction.confianza });
+    }
+
+    if (this.buffer.length > this.windowSize) {
+      this.buffer.shift();
+    }
+
+    // Contar votos en la ventana
+    const conteo = {};
+    let totalConf = {};
+    for (const item of this.buffer) {
+      conteo[item.sena] = (conteo[item.sena] || 0) + 1;
+      totalConf[item.sena] = (totalConf[item.sena] || 0) + item.conf;
+    }
+
+    let topSena = null;
+    let topVotos = 0;
+    for (const [s, v] of Object.entries(conteo)) {
+      if (v > topVotos) {
+        topVotos = v;
+        topSena = s;
+      }
+    }
+
+    // Comprobar si se alcanza el consenso estricto de histéresis
+    if (topSena && topSena !== 'REPOSO' && topSena !== 'TRANSICION' && topVotos >= this.consensusThreshold) {
+      // Evitar repetir la misma palabra consecutiva sin transición
+      if (topSena !== this.lastEmittedSign || (now - this.lastEmissionTime > 2000)) {
+        this.lastEmissionTime = now;
+        this.lastEmittedSign = topSena;
+        this.buffer = []; // Limpiar buffer tras emisión exitosa
+        
+        const avgConf = (totalConf[topSena] || 0) / topVotos;
+        return {
+          emitir: true,
+          enCooldown: false,
+          sena: topSena,
+          confianza: avgConf,
+          votos: topVotos
+        };
+      }
+    }
+
+    return {
+      emitir: false,
+      enCooldown: false,
+      sena: topSena,
+      votos: topVotos,
+      totalFrames: this.buffer.length
+    };
+  }
+
+  reset() {
+    this.buffer = [];
+    this.lastEmissionTime = 0;
+    this.lastEmittedSign = '';
+  }
+}
+
+/**
  * Realiza la inferencia de la Red Neuronal MLP On-Device.
  * - Clasifica entre las 13 clases del modelo ultra-preciso.
  * - Detecta explícitamente REPOSO y TRANSICION.
@@ -740,6 +985,28 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   }
 
   const { scaler_mean, scaler_scale, clases } = modelo;
+
+  // 0. COMPUERTA CINEMÁTICA DE MOVIMIENTO (MOTION-GATED INFERENCE v5.2)
+  // Si la mano está estática/inmóvil sin movimiento activo de seña, abstenerse de predecir texto
+  const slotIdx = (handMeta && handMeta.slot !== undefined) ? handMeta.slot : 0;
+  const motionGate = slotIdx === 1 ? _motionGateSlot1 : _motionGateSlot0;
+  const wristPos = (handMeta && handMeta.coords) ? handMeta.coords[0] : null;
+  const tips = (handMeta && handMeta.coords) ? [handMeta.coords[4], handMeta.coords[8], handMeta.coords[12], handMeta.coords[16], handMeta.coords[20]] : null;
+  const gateRes = motionGate.update(wristPos, tips, performance.now());
+
+  if (!gateRes.isOpen) {
+    return {
+      sena: "REPOSO",
+      rawSena: "REPOSO",
+      confianza: 0.99,
+      margen: 0.99,
+      estado: "REPOSO",
+      candidatos: [{ sena: "REPOSO", probabilidad: 0.99 }],
+      isMotionGated: true,
+      gateSpeed: gateRes.speed,
+      gateState: gateRes.state
+    };
+  }
 
   // 1. Normalización estándar (x - mean) / scale
   let layerInput = new Float32Array(109);
@@ -828,12 +1095,11 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
 
   const neutralResult = neutralDetector.evaluate(extDedos, speed, wristPos, performance.now());
 
-  // Si la mano está confirmada como neutra Y la predicción no es HOLA/BUENAS con movimiento previo
+  // Si la mano está confirmada como neutra Y la predicción no es una seña válida con mano abierta
   if (neutralResult.isNeutral && neutralResult.framesNeutral >= 8) {
-    // HOLA y BUENAS son las ÚNICAS señas LSC con mano abierta, pero requieren movimiento activo
-    // Si está estática > 350ms, NO es ninguna seña
-    const esSenaConManoAbiertaValida = (top1.sena === 'HOLA' || top1.sena === 'BUENAS' || top1.sena === 'TARDES');
-    if (!esSenaConManoAbiertaValida || neutralResult.durationMs > 800) {
+    // HOLA, BUENAS, TARDES y GUSTAR son señas LSC compatibles con mano abierta
+    const esSenaConManoAbiertaValida = (top1.sena === 'HOLA' || top1.sena === 'BUENAS' || top1.sena === 'TARDES' || top1.sena === 'GUSTAR');
+    if (!esSenaConManoAbiertaValida || neutralResult.durationMs > 900) {
       return {
         sena: 'REPOSO',
         rawSena: top1.sena,
@@ -847,40 +1113,38 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     }
   }
 
-  // 5b. Salvaguardas Anatómicas Canónicas LSC expandidas (v5.0):
-  // Previene falsos positivos cuando la mano está abierta/tendida sin hacer seña
+  // 5b. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v5.1):
+  // dy normalizado respecto a hombros (dy > 0 es hacia abajo/abdomen, dy < 0 hacia arriba/cabeza)
+  const dy = (vec109[106] || 0) / 2.5;
 
-  if (top1.sena === "DIAS" && ext_medio > 0.55) {
-    // DÍAS requiere dedo índice erguido y los demás doblados (sol naciente).
-    top1.sena = esManoAbierta ? "REPOSO" : "TRANSICION";
-    top1.probabilidad = 0.95;
-  } else if (top1.sena === "LICOR" && esManoSemiAbierta) {
-    // LICOR en LSC: pulgar extendido hacia la garganta, puño semi-cerrado.
-    // Si índice Y medio están abiertos, es mano tendida, NO LICOR.
-    top1.sena = esManoAbierta ? "REPOSO" : "TRANSICION";
-    top1.probabilidad = 0.93;
-  } else if (top1.sena === "YO" && esManoAbierta) {
-    // YO: índice apuntando al pecho, no mano completamente abierta.
-    top1.sena = "REPOSO";
-    top1.probabilidad = 0.95;
-  } else if (top1.sena === "AÑOS" && (ext_indice > 0.60 || ext_medio > 0.60)) {
-    // AÑOS: puño cerrado acariciando mejilla.
+  if (top1.sena === "DIAS" && dy > 0.50) {
+    // DÍAS se realiza en la mitad superior del cuerpo (salida del sol), no en abdomen/cadera
     top1.sena = "TRANSICION";
     top1.probabilidad = 0.90;
-  } else if (top1.sena === "NOCHES" && esManoAbierta && speed < 0.10) {
-    // NOCHES: manos descendiendo. Si están abiertas y estáticas, es reposo.
+  } else if (top1.sena === "LICOR" && (esManoAbierta || (ext_indice > 0.75 && ext_medio > 0.75 && ext_anular > 0.75))) {
+    // LICOR: pulgar al cuello. Si todos los dedos están extendidos como saludo, es mano abierta/HOLA, no LICOR
+    top1.sena = esManoAbierta ? "REPOSO" : "TRANSICION";
+    top1.probabilidad = 0.93;
+  } else if (top1.sena === "YO" && dy < -0.30) {
+    // YO: índice al pecho/esternón, no arriba en la cabeza
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.92;
+  } else if (top1.sena === "AÑOS" && (ext_indice > 0.70 || ext_medio > 0.70)) {
+    // AÑOS: puño cerrado acariciando mejilla
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.90;
+  } else if (top1.sena === "NOCHES" && esManoAbierta && speed < 0.08) {
+    // NOCHES: manos descendiendo
     top1.sena = "REPOSO";
     top1.probabilidad = 0.92;
-  } else if (top1.sena === "GUSTAR" && esManoAbierta && ext_anular > 0.60) {
-    // GUSTAR: palma sobre corazón con roce. Si todos dedos abiertos y quietos → reposo.
+  } else if (top1.sena === "GUSTAR" && dy < -0.35) {
+    // GUSTAR: palma sobre el corazón/pecho, no arriba en la cabeza
     top1.sena = "TRANSICION";
     top1.probabilidad = 0.90;
   } else if (top1.sena === "NOMBRE" && esManoAbierta && speed < 0.08) {
-    // NOMBRE requiere configuración H o dedos selectivos, no mano completamente abierta estática.
     top1.sena = "TRANSICION";
     top1.probabilidad = 0.90;
   } else if (top1.sena === "GRACIAS" && esManoAbierta && speed < 0.08) {
-    // GRACIAS: yemas al mentón. Mano abierta estática no es GRACIAS.
     top1.sena = "TRANSICION";
     top1.probabilidad = 0.90;
   }
@@ -1111,6 +1375,8 @@ if (typeof module !== 'undefined' && module.exports) {
     LandmarkStabilizer,
     DualHandTracker,
     NeutralHandDetector,
+    MotionGate,
+    HysteresisDebounce,
     MejoradorVideoOnDevice,
     DecodificadorContinuoCTC,
     INDICES_FACIALES_NMM_64,
@@ -1125,6 +1391,8 @@ if (typeof module !== 'undefined' && module.exports) {
     LandmarkStabilizer,
     DualHandTracker,
     NeutralHandDetector,
+    MotionGate,
+    HysteresisDebounce,
     MejoradorVideoOnDevice,
     DecodificadorContinuoCTC,
     INDICES_FACIALES_NMM_64,
