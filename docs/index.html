@@ -1370,8 +1370,10 @@
     let timestampUltimoReposo = 0;
     let timestampUltimaTransicion = 0;
     let bufferConsenso = [];
-    const VENTANA_CONSENSO = 7; // Ventana ágil de ~200ms para encadenar señas consecutivas sin retraso
-    const UMBRAL_CONSENSO = 5;  // Requiere 5 de 7 fotogramas concordantes para confirmar
+    let timestampUltimaEmision = 0;
+    const VENTANA_CONSENSO = 12;  // v5.0: Ventana ampliada ~400ms para mayor certeza
+    const UMBRAL_CONSENSO = 8;    // v5.0: 8 de 12 fotogramas concordantes
+    const MUTE_PERIOD_MS = 600;   // v5.0: Silencio post-emisión para señas consecutivas limpias
 
     function adjustMirroring() {
       const transformVal = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
@@ -1476,10 +1478,11 @@
     // Componentes On-Device de Mejora y Decodificación Continua
     const mejoradorVideo = new MotorLSCLocal.MejoradorVideoOnDevice();
     const decodificadorCTC = new MotorLSCLocal.DecodificadorContinuoCTC({
-      tamanoVentana: 40,
+      tamanoVentana: 45,
       pasoSalto: 8,
       umbralConfianza: 0.85,
       tiempoCooldownMs: 1400,
+      mutePeriodMs: 600,
       onPalabraConfirmada: (palabra, conf) => {
         // La emisión de voz y oraciones se gestiona de forma unificada en actualizarUI
       }
@@ -1589,6 +1592,10 @@
 
         bufferConsenso = [];
         ultimaSenaPronunciada = '';
+
+        // v5.0: Resetear detectores de mano neutra al desaparecer las manos
+        if (typeof _neutralDetectorSlot0 !== 'undefined') _neutralDetectorSlot0.reset();
+        if (typeof _neutralDetectorSlot1 !== 'undefined') _neutralDetectorSlot1.reset();
         return;
       }
 
@@ -1617,7 +1624,9 @@
 
       activeHands.forEach(hand => {
         const desc = MotorLSCLocal.extraerDescriptorMultimodal(hand.coords, ultimosHombros);
-        const pred = MotorLSCLocal.predecirRedNeuronal(desc.vec109, window.MODELO_LSC);
+        // v5.0: Pasar metadata de la mano para detector de neutralidad y velocidad
+        const handMeta = { slot: hand.slot, speed: hand.speed || 0, coords: hand.coords };
+        const pred = MotorLSCLocal.predecirRedNeuronal(desc.vec109, window.MODELO_LSC, handMeta);
         hand.desc = desc;
         hand.pred = pred;
 
@@ -1690,6 +1699,20 @@
         return;
       }
 
+      // v5.0: Detectar mano neutra/tendida → mostrar estado especial
+      if (pred.isNeutralHand && pred.neutralDurationMs > 400) {
+        stateBadge.textContent = 'MANO DETECTADA';
+        stateBadge.className = 'pred-state-badge state-reposo';
+        predTitle.textContent = '[MANO TENDIDA]';
+        predTitle.style.color = '#64748b';
+        predConfidence.textContent = `${Math.round(pred.confianza * 100)}%`;
+        progressBar.style.width = '0%';
+        bufferConsenso = [];
+        // Desbloquear para próxima seña cuando empiece a moverse
+        ultimaSenaPronunciada = '';
+        return;
+      }
+
       if (pred.estado === 'SEÑA_DETECTADA' && pred.confianza >= 0.72 && (pred.margen === undefined || pred.margen >= 0.10)) {
         stateBadge.textContent = `SEÑA DETECTADA`;
         stateBadge.className = 'pred-state-badge state-detected';
@@ -1711,11 +1734,14 @@
           const now = Date.now();
           const esMismaSena = (masFrecuente === ultimaSenaPronunciada);
 
+          // v5.0: Verificar mute period post-emisión
+          const enMutePeriod = (now - timestampUltimaEmision) < MUTE_PERIOD_MS;
+
           // Si es una seña nueva en la secuencia: emitir y agregar de inmediato
-          // (NO se repite periódicamente si la mano se queda inmóvil)
-          if (!esMismaSena) {
+          if (!esMismaSena && !enMutePeriod) {
             ultimaSenaPronunciada = masFrecuente;
             timestampUltimaPronunciada = now;
+            timestampUltimaEmision = now;
             bufferConsenso = []; // Limpiar para que la siguiente seña consecutiva no arrastre votos viejos
             agregarPalabraAOracion(masFrecuente);
             emitirFeedback(masFrecuente, { vibrar: true, hablar: true });
