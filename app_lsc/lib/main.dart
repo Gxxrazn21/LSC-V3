@@ -216,6 +216,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
         headers: {
           'content-type': mime,
           'access-control-allow-origin': '*',
+          'cache-control': 'no-cache, no-store, must-revalidate',
+          'pragma': 'no-cache',
+          'expires': '0',
         },
       );
     } catch (e) {
@@ -240,7 +243,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
       client.connectionTimeout = const Duration(seconds: 25);
 
       for (final fileName in filesToSync) {
-        final uri = Uri.parse('$base/$fileName');
+        final uri = Uri.parse('$base/$fileName?nocache=${DateTime.now().millisecondsSinceEpoch}');
         final request = await client.getUrl(uri);
         final response = await request.close();
 
@@ -382,7 +385,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                                 });
 
                                 nav.pop();
-                                _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html'));
+                                await _controller.clearCache();
+                                _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
                                 messenger.showSnackBar(
                                   const SnackBar(
                                     content: Text('✅ ¡Modelo actualizado con éxito desde la nube!'),
@@ -415,8 +419,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
                           ),
                           icon: const Icon(Icons.refresh, size: 18),
                           label: const Text('Recargar', style: TextStyle(fontWeight: FontWeight.w700)),
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.of(ctx).pop();
+                            await _controller.clearCache();
                             _controller.reload();
                           },
                         ),
@@ -449,7 +454,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                             });
 
                             nav.pop();
-                            _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html'));
+                            await _controller.clearCache();
+                            _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
                             messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('Restablecido a los archivos originales de la APK'),
