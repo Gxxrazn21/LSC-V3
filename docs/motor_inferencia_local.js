@@ -116,8 +116,8 @@ class LandmarkStabilizer {
     this.lastTimestamp = null;
     this.framesMissing = 0;
     this.framesVisible = 0; // Contador de persistencia temporal para evitar predicciones prematuras
-    this.maxGraceFrames = 4; // Persistencia de motion blur
-    this.maxOcclusionFrames = 10; // Persistencia cuando está genuinamente detrás de la otra mano (~300ms)
+    this.maxGraceFrames = 6; // Persistencia ante motion blur y giros de palma
+    this.maxOcclusionFrames = 45; // Persistencia extendida cuando una mano está detrás (~1.5s)
     this.currentVelocity = [0, 0, 0];
     this.isOccluded = false;
     this.lastForegroundWrist = null;
@@ -128,7 +128,8 @@ class LandmarkStabilizer {
 
     if (!rawCoords || rawCoords.length < 21) {
       this.framesMissing++;
-      this.framesVisible = 0; // Resetear contador al desaparecer la mano
+      // Decrementar suavemente para no trabar la inferencia en preparación ante giros
+      this.framesVisible = Math.max(0, this.framesVisible - 1);
       if (this.framesMissing <= this.maxGraceFrames && this.lastFiltered) {
         // Extrapolación inercial suave
         const dt = Math.min((now - (this.lastTimestamp || now)) / 1000.0, 0.05) || 0.033;
@@ -322,41 +323,18 @@ class DualHandTracker {
 
     this.framesWithoutHands = 0;
 
-    // Validación Post-Proceso Bimanual (Requisito Crítico: Evitar 2 manos cuando solo hay 1)
+    // Validación Post-Proceso Bimanual (v5.4.0: Permite manos solapadas, cruzadas o detrás)
     if (detections.length >= 2) {
       const det0 = detections[0];
       const det1 = detections[1];
       const d_entre_manos = Vec3.dist(det0.wrist, det1.wrist);
       
-      // 1. Descarte por proximidad espacial extrema (< 0.10):
-      // MediaPipe propone dos anclas para la misma mano física -> conservar la de mayor certeza
-      if (d_entre_manos < 0.10) {
+      // Únicamente descartar si es un duplicado idéntico exacto del mismo punto físico (< 0.035)
+      if (d_entre_manos < 0.035) {
         if ((det1.score || 0) > (det0.score || 0)) {
-          detections.shift(); // Descartar det0
+          detections.shift(); // Descartar duplicado
         } else {
-          detections.pop();   // Descartar det1
-        }
-      } 
-      // 2. Descarte por asimetría severa de confianza de handedness:
-      // Si una mano tiene certeza alta (> 0.85) y la otra es muy dudosa (< 0.60)
-      else if (det0.score !== undefined && det1.score !== undefined) {
-        if (det0.score > 0.85 && det1.score < 0.60) {
           detections.pop();
-        } else if (det1.score > 0.85 && det0.score < 0.60) {
-          detections.shift();
-        }
-      }
-      
-      // 3. Descarte de anomalía anatómica (dos manos idénticas en el mismo cuadrante)
-      if (detections.length >= 2) {
-        const d0 = detections[0];
-        const d1 = detections[1];
-        if (d0.label === d1.label && d0.label !== 'Desconocida') {
-          if ((d0.score || 1) < (d1.score || 1) - 0.12) {
-            detections.shift();
-          } else if ((d1.score || 1) < (d0.score || 1) - 0.12) {
-            detections.pop();
-          }
         }
       }
     }
@@ -390,13 +368,13 @@ class DualHandTracker {
 
       const upActive = activeSlot.update(det.pts, now);
 
-      // Verificar si la otra mano estaba recientemente activa y REALMENTE quedó oculta detrás
+      // Verificar si la otra mano estaba recientemente activa y quedó oculta detrás
       let upOther = null;
       const wasOtherActive = otherSlot.lastFiltered && otherSlot.framesMissing < otherSlot.maxOcclusionFrames;
       if (wasOtherActive) {
         const distToFront = Vec3.dist(det.wrist, otherSlot.lastFiltered[0]);
-        // Solo considerar oclusión si las muñecas estaban verdaderamente solapadas (< 0.15)
-        if (distToFront < 0.15) {
+        // Rango ampliado de oclusión (< 0.40) para manos colocadas detrás
+        if (distToFront < 0.40) {
           upOther = otherSlot.updateOccluded(det.wrist, now);
         } else {
           otherSlot.reset();
@@ -920,9 +898,9 @@ const _neutralDetectorSlot1 = new NeutralHandDetector();
 class MotionGate {
   constructor(options = {}) {
     this.historyWindow = options.historyWindow || 8; // Últimos N frames
-    this.speedThreshold = options.speedThreshold || 0.028; // Umbral de velocidad cinemática
-    this.minActiveFrames = options.minActiveFrames || 3; // Frames activos para abrir compuerta
-    this.minStaticMs = options.minStaticMs || 250; // ms estáticos antes de cerrar compuerta
+    this.speedThreshold = options.speedThreshold || 0.015; // Umbral cinemático adaptado a giros y pausas suaves
+    this.minActiveFrames = options.minActiveFrames || 2; // Frames activos para abrir compuerta
+    this.minStaticMs = options.minStaticMs || 1500; // 1.5s estáticos antes de considerar reposo prolongado
     
     this.speedHistory = [];
     this.lastWrist = null;
@@ -1205,6 +1183,29 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const top1 = candidatos[0];
   const top2 = candidatos[1] || { probabilidad: 0 };
   const margen = top1.probabilidad - top2.probabilidad;
+
+  // 4b. Medición de Entropía y Blindaje Anti-Adivinanzas (v5.4.0)
+  // Si la distribución de probabilidad es difusa o el modelo está dudando entre varias señas
+  // se clasifica inmediatamente como TRANSICIÓN para evitar "adivinanzas" espurias
+  let entropia = 0;
+  for (let j = 0; j < num_clases; j++) {
+    const p = probs[j];
+    if (p > 1e-6) entropia -= p * Math.log2(p);
+  }
+
+  const estaAdivinando = (entropia > 1.30 && top1.probabilidad < 0.80) || (margen < 0.12 && top1.probabilidad < 0.82);
+  if (estaAdivinando && top1.sena !== 'REPOSO') {
+    return {
+      sena: 'TRANSICION',
+      rawSena: top1.sena,
+      confianza: top1.probabilidad,
+      margen: margen,
+      entropia: entropia,
+      estado: 'TRANSICIÓN',
+      candidatos: candidatos.slice(0, 3),
+      isGuessing: true
+    };
+  }
 
   // 5. Extraer extensión de dedos del vector para salvaguardas
   const ext_pulgar  = (vec109[63] || 0) / 3.2;

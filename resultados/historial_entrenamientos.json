@@ -167,5 +167,30 @@
     "recall_licor": 0.9977777777777778,
     "ha_mejorado": true,
     "descripcion": "v5.0: Anti-alucinación (LICOR/NOCHES/GUSTAR filtrado), mano neutra sintética, arquitectura 640→384→192"
+  },
+  {
+    "id": "20260911_173313",
+    "fecha": "2026-09-11 17:33:13",
+    "version": "5.0.0",
+    "total_muestras": 5850,
+    "dimensiones": 109,
+    "arquitectura": [
+      109,
+      640,
+      384,
+      192,
+      13
+    ],
+    "accuracy_global": 0.9888888888888889,
+    "f1_score": 0.9889856611041561,
+    "precision_cv_media": 0.8926495726495727,
+    "precision_hola": 1.0,
+    "recall_hola": 0.9044444444444445,
+    "precision_dias": 1.0,
+    "recall_dias": 1.0,
+    "precision_licor": 1.0,
+    "recall_licor": 0.9955555555555555,
+    "ha_mejorado": true,
+    "descripcion": "v5.0: Anti-alucinación (LICOR/NOCHES/GUSTAR filtrado), mano neutra sintética, arquitectura 640→384→192"
   }
 ]

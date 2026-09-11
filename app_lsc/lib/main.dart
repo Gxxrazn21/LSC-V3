@@ -237,6 +237,10 @@ class _LSCHomePageState extends State<LSCHomePage> {
         'index.html',
         'motor_inferencia_local.js',
         'modelo_ia_cliente.js',
+        'logo_simbolo.png',
+        'logo.png',
+        'icon-192.png',
+        'icon-512.png',
       ];
 
       final client = HttpClient();
@@ -334,8 +338,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                         Expanded(
                           child: Text(
                             _hasDownloadedAssets
-                                ? 'Versión Nube IA v5.3.0 (Ubicación TAB activa)'
-                                : 'Ejecutando versión embebida de la APK (IA v5.3.0)',
+                                ? 'Versión Nube IA v5.4.0 (Bimanual & Rotación activa)'
+                                : 'Ejecutando versión embebida de la APK (IA v5.4.0)',
                             style: const TextStyle(fontSize: 12, color: Colors.white70),
                           ),
                         ),
@@ -389,7 +393,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                                 _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
                                 messenger.showSnackBar(
                                   const SnackBar(
-                                    content: Text('✅ ¡Modelo actualizado con éxito a IA v5.3.0 (Ubicación TAB)!'),
+                                    content: Text('✅ ¡Modelo actualizado con éxito a IA v5.4.0 (Robustez Bimanual & Rotación)!'),
                                     backgroundColor: Colors.green,
                                     duration: Duration(seconds: 4),
                                   ),

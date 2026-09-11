@@ -162,23 +162,47 @@ def main():
     print(f"    - REPOSO (Idle) rescatado: {len(X_reposo_raw)} muestras (incluye {n_synth if mano_abierta_sources else 0} sintéticas)")
     print(f"    - TRANSICIÓN rescatada: {len(X_trans_raw)} muestras")
 
-    # 2. Balanceo Fino con Aumento de Datos Multimodal
+    # 2. Balanceo Fino con Aumento de Datos Multimodal y Rotación 3D (v5.4.0)
     np.random.seed(42)
     X_final_list = []
     y_final_list = []
-    target_por_clase = 450  # v5.2: 450 muestras por clase para máxima generalización
+    target_por_clase = 450  # 450 muestras por clase para máxima generalización
+
+    def aplicar_rotacion_3d(X_in, max_grados=18.0):
+        """Aplica rotación 3D estocástica alrededor del eje Y canónico a las 21 articulaciones y normal."""
+        X_rot = X_in.copy()
+        n_samples = len(X_in)
+        angulos_rad = np.radians(np.random.uniform(-max_grados, max_grados, n_samples))
+        cos_a = np.cos(angulos_rad)
+        sin_a = np.sin(angulos_rad)
+
+        # Rotar cada uno de los 21 puntos canónicos (indices 0..62)
+        for i in range(21):
+            px = X_rot[:, i * 3]
+            pz = X_rot[:, i * 3 + 2]
+            X_rot[:, i * 3]     = px * cos_a + pz * sin_a
+            X_rot[:, i * 3 + 2] = -px * sin_a + pz * cos_a
+
+        # Rotar vector normal de la palma (indices 102..104)
+        nx = X_rot[:, 102]
+        nz = X_rot[:, 104]
+        X_rot[:, 102] = nx * cos_a + nz * sin_a
+        X_rot[:, 104] = -nx * sin_a + nz * cos_a
+        return X_rot
 
     for c, Xc in clean_samples.items():
         reps = int(np.ceil(target_por_clase / len(Xc)))
         for r in range(reps):
             if r == 0:
-                noise = np.zeros_like(Xc)
+                X_rep = Xc.copy()
             else:
-                # v5.0: Ruido articular más conservador para mantener separabilidad
+                # v5.4.0: Rotación 3D para robustez ante giros de palma y variaciones angulares
+                X_rep = aplicar_rotacion_3d(Xc, max_grados=15.0)
                 noise = np.zeros_like(Xc)
-                noise[:, :105] = np.random.normal(0, 0.005, (len(Xc), 105))
-                noise[:, 105:] = np.random.normal(0, 0.008, (len(Xc), 4))
-            X_final_list.append(Xc + noise)
+                noise[:, :105] = np.random.normal(0, 0.004, (len(Xc), 105))
+                noise[:, 105:] = np.random.normal(0, 0.007, (len(Xc), 4))
+                X_rep += noise
+            X_final_list.append(X_rep)
             y_final_list.append(np.array([c] * len(Xc)))
 
     # REPOSO: balancear a target
@@ -325,7 +349,7 @@ def main():
         "weights": weights_export,
         "biases": biases_export,
         "layers": layers_list,
-        "version": "5.0.0",
+        "version": "5.4.0",
         "precision_cv": float(acc_media),
         "precision_global": float(acc_final)
     }
@@ -336,17 +360,17 @@ def main():
     print(f"  [OK] Modelo JSON exportado a: {json_path}")
 
     js_code = f"""/**
- * MODELO DE INTELIGENCIA ARTIFICIAL LSC v5.3.0 (ON-DEVICE / ZERO SERVER)
+ * MODELO DE INTELIGENCIA ARTIFICIAL LSC v5.4.0 (ON-DEVICE / ZERO SERVER)
  * Precisión Validación Cruzada: {acc_media*100:.2f}% | Precisión Global: {acc_final*100:.2f}%
  * Arquitectura: MLP 109D -> {' -> '.join(str(x) for x in arch)} -> {len(clases_ordenadas)} Clases
  * Clases: {json.dumps(clases_ordenadas)}
- * Fonología: Stream de Ubicación Anatómica (TAB) + Filtros Cinemáticos
+ * Fonología: Stream de Ubicación Anatómica (TAB) + Filtros Cinemáticos + Invarianza a Rotación
  */
-const VERSION_MODELO_LSC = "5.3.0";
+const VERSION_MODELO_LSC = "5.4.0";
 const BUILD_FECHA_LSC = "{time.strftime('%Y-%m-%d')}";
 const METADATOS_MODELO_LSC = {{
-  version: "5.3.0",
-  subversion: "TAB-Location",
+  version: "5.4.0",
+  subversion: "Bimanual-Rotation-TAB",
   precision: "{acc_final*100:.2f}%",
   precision_cv: "{acc_media*100:.2f}%",
   clases: {len(clases_ordenadas)},
@@ -375,7 +399,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     # 9. Guardar Métricas
     metricas = {
         "fecha": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "version": "5.3.0",
+        "version": "5.4.0",
         "total_muestras": len(X),
         "precision_global": float(acc_final),
         "precision_cv_media": float(acc_media),
@@ -405,7 +429,7 @@ if (typeof module !== 'undefined' && module.exports) {{
 
     # A. Reporte de texto plano
     txt_report = f"""======================================================================
-  REPORTE DE CLASIFICACION - LSC v5.3.0 (FONOLOGÍA TAB + UBICACIÓN CORPORAL)
+  REPORTE DE CLASIFICACION - LSC v5.4.0 (BIMANUAL + ROTACIÓN 3D + TAB)
   Fecha: {timestamp_str} | Muestras: {len(X)} | Dims: 109D
   Arquitectura: {' → '.join(str(x) for x in layers_list)}
   Accuracy Global: {acc_final * 100:.2f}% | F1-Score: {f1_final:.4f}
