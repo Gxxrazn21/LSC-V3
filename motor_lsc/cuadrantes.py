@@ -116,14 +116,14 @@ def clasificar_cuadrante(
     # 2. Modo Fallback (Sin Pose - Basado en Cuadrícula Relativa Normalizada)
     metricas = {"wx": wx, "wy": wy, "wz": wz}
 
-    if wy < 0.32:
+    if wy < 0.38:
         return CuadranteEspacial.CABEZA_ROSTRO, metricas
-    elif 0.32 <= wy < 0.45:
+    elif 0.38 <= wy < 0.48:
         if 0.35 <= wx <= 0.65:
             return CuadranteEspacial.CUELLO_GARGANTA, metricas
         else:
             return CuadranteEspacial.CABEZA_ROSTRO, metricas
-    elif 0.45 <= wy < 0.68:
+    elif 0.48 <= wy < 0.72:
         if 0.38 <= wx <= 0.62:
             return CuadranteEspacial.PECHO_TORSO, metricas
         elif 0.22 <= wx <= 0.78:

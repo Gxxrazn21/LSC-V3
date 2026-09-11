@@ -629,50 +629,181 @@ function extraerDescriptorArticular(coords) {
 }
 
 /**
- * Descriptor multimodal 109D combinando cinemática de mano
- * con la posición anatómica relativa a los hombros.
+ * ============================================================================
+ * MÓDULO DE EXTRACCIÓN DE ZONAS CORPORALES (PARÁMETRO FONOLÓGICO TAB DE LSC)
+ * ============================================================================
+ * Calcula la ubicación relativa de las manos respecto al cuerpo del signante
+ * a partir de los landmarks de Pose de MediaPipe (nariz, hombros y caderas),
+ * normalizando de forma exacta por el tamaño corporal (distancia bi-acromial w_h).
+ * 
+ * Zonas Fonológicas TAB (Stokoe / LSC):
+ * 1. CABEZA_ROSTRO: Frente, sienes, mejillas, orejas, ojos (HOLA, BUENAS, AÑOS).
+ * 2. CUELLO_GARGANTA: Mandíbula, mentón, laringe, clavículas (LICOR, GRACIAS).
+ * 3. PECHO_TORSO: Esternón, tórax, corazón (YO, GUSTAR, NOMBRE).
+ * 4. ABDOMEN_CADERA: Región abdominal inferior, cadera o regazo (REPOSO).
+ * 5. ESPACIO_NEUTRO: Espacio tridimensional frente al cuerpo sin contacto corporal.
+ *
+ * Requisito: Cero segmentación visual por cámara (eficiente para mobile O(1)).
  */
-function extraerDescriptorMultimodal(handCoords, poseAnchors) {
-  const { vec105, ext_dedos, p_canon } = extraerDescriptorArticular(handCoords);
-  const p0 = handCoords[0]; // Muñeca [x, y, z]
+function extraerZonasCorporalesPose(handCoords, poseAnchors) {
+  if (!handCoords || handCoords.length === 0) return null;
 
-  let dx = 0.0, dy = 0.0, dz = 0.0;
+  // Centroide de la mano y muñeca (p0)
+  const p0 = handCoords[0];
+  let sumX = 0, sumY = 0, sumZ = 0;
+  for (let i = 0; i < handCoords.length; i++) {
+    sumX += handCoords[i][0];
+    sumY += handCoords[i][1];
+    sumZ += (handCoords[i][2] || 0.0);
+  }
+  const nPts = handCoords.length;
+  const centroideMano = [sumX / nPts, sumY / nPts, sumZ / nPts];
+
+  // Punto de articulación de referencia: ponderación entre muñeca y centroide
+  const pMano = [
+    0.4 * p0[0] + 0.6 * centroideMano[0],
+    0.4 * p0[1] + 0.6 * centroideMano[1],
+    0.4 * (p0[2] || 0) + 0.6 * centroideMano[2]
+  ];
+
+  let c_h = [0.50, 0.68, 0.0];
+  let w_h = 0.38;
+  let c_nariz = null;
+  let c_cadera = null;
+
   if (poseAnchors && poseAnchors.hombro_izq && poseAnchors.hombro_der) {
     const hizq = poseAnchors.hombro_izq;
     const hder = poseAnchors.hombro_der;
-    const c_h = [0.5 * (hizq[0] + hder[0]), 0.5 * (hizq[1] + hder[1]), 0.5 * (hizq[2] + hder[2])];
-    const w_h = Math.max(Vec3.norm2d(hizq[0] - hder[0], hizq[1] - hder[1]), 0.10);
+    c_h = [0.5 * (hizq[0] + hder[0]), 0.5 * (hizq[1] + hder[1]), 0.5 * ((hizq[2] || 0) + (hder[2] || 0))];
+    w_h = Math.max(Vec3.norm2d(hizq[0] - hder[0], hizq[1] - hder[1]), 0.10);
 
-    dx = (p0[0] - c_h[0]) / w_h;
-    dy = (p0[1] - c_h[1]) / w_h;
-    dz = (p0[2] - c_h[2]) / w_h;
-  } else {
-    // Estimación anatómica calibrada para encuadre selfie/móvil
-    // Hombros centrados horizontalmente en 0.50, altura clavicular en 0.68, ancho 0.38
-    const c_h_default = [0.50, 0.68, 0.0];
-    const w_h_default = 0.38;
-    dx = (p0[0] - c_h_default[0]) / w_h_default;
-    dy = (p0[1] - c_h_default[1]) / w_h_default;
-    dz = (p0[2] || 0.0) / w_h_default;
+    if (poseAnchors.nariz) {
+      c_nariz = [poseAnchors.nariz[0], poseAnchors.nariz[1], poseAnchors.nariz[2] || 0];
+    }
+    if (poseAnchors.cadera_izq && poseAnchors.cadera_der) {
+      const cizq = poseAnchors.cadera_izq;
+      const cder = poseAnchors.cadera_der;
+      c_cadera = [0.5 * (cizq[0] + cder[0]), 0.5 * (cizq[1] + cder[1]), 0.5 * ((cizq[2] || 0) + (cder[2] || 0))];
+    }
   }
 
+  // Centros anatómicos normalizados
+  const centroCabeza = c_nariz ? c_nariz : [c_h[0], c_h[1] - 0.70 * w_h, c_h[2]];
+  const centroCuello = [c_h[0], c_h[1] - 0.15 * w_h, c_h[2]];
+  const centroPecho = [c_h[0], c_h[1] + 0.35 * w_h, c_h[2]];
+  const centroAbdomen = c_cadera ? c_cadera : [c_h[0], c_h[1] + 0.85 * w_h, c_h[2]];
+  const centroEspacioNeutro = [c_h[0], c_h[1] + 0.40 * w_h, c_h[2] - 0.50 * w_h];
+
+  // Desplazamiento relativo continuo a hombros
+  const dx = (p0[0] - c_h[0]) / w_h;
+  const dy = (p0[1] - c_h[1]) / w_h;
+  const dz = ((p0[2] || 0.0) - c_h[2]) / w_h;
   const dist_cuerpo = Math.hypot(dx, dy, dz);
-  const cuerpo_coords = [dx * 2.5, dy * 2.5, dz * 2.5, dist_cuerpo * 2.5];
 
-  const vec109 = vec105.concat(cuerpo_coords);
+  // Distancias Euclidianas normalizadas a cada centro anatómico
+  const distCabeza = Math.hypot((pMano[0] - centroCabeza[0]) / w_h, (pMano[1] - centroCabeza[1]) / w_h, (pMano[2] - centroCabeza[2]) / w_h);
+  const distCuello = Math.hypot((pMano[0] - centroCuello[0]) / w_h, (pMano[1] - centroCuello[1]) / w_h, (pMano[2] - centroCuello[2]) / w_h);
+  const distPecho = Math.hypot((pMano[0] - centroPecho[0]) / w_h, (pMano[1] - centroPecho[1]) / w_h, (pMano[2] - centroPecho[2]) / w_h);
+  const distAbdomen = Math.hypot((pMano[0] - centroAbdomen[0]) / w_h, (pMano[1] - centroAbdomen[1]) / w_h, (pMano[2] - centroAbdomen[2]) / w_h);
+  const distNeutro = Math.hypot((pMano[0] - centroEspacioNeutro[0]) / w_h, (pMano[1] - centroEspacioNeutro[1]) / w_h, (pMano[2] - centroEspacioNeutro[2]) / w_h);
 
-  let zona = "PECHO";
-  if (dy < -0.30) {
+  // Clasificación fonológica discreta robusta (Signing Space)
+  let zona = "PECHO_TORSO";
+  let labelZona = "PECHO";
+  let emojiZona = "🫀";
+
+  if (dy < -0.22) {
     zona = "CABEZA_ROSTRO";
-  } else if (dy > 0.45) {
+    labelZona = "CABEZA / ROSTRO";
+    emojiZona = "🗣️";
+  } else if (dy >= -0.22 && dy <= 0.12) {
+    if (Math.abs(dx) <= 0.65) {
+      zona = "CUELLO_GARGANTA";
+      labelZona = "CUELLO / GARGANTA";
+      emojiZona = "🧣";
+    } else {
+      zona = "CABEZA_ROSTRO";
+      labelZona = "CABEZA / LATERAL";
+      emojiZona = "🗣️";
+    }
+  } else if (dy > 0.12 && dy <= 0.70) {
+    if (Math.abs(dx) <= 0.55) {
+      zona = "PECHO_TORSO";
+      labelZona = "PECHO / TORSO";
+      emojiZona = "🫀";
+    } else if (Math.abs(dx) <= 1.10) {
+      zona = "ESPACIO_CENTRAL";
+      labelZona = "ESPACIO CENTRAL";
+      emojiZona = "👐";
+    } else {
+      zona = "ESPACIO_LATERAL";
+      labelZona = "ESPACIO LATERAL";
+      emojiZona = "↔️";
+    }
+  } else if (dy > 0.70 && dy <= 1.45) {
     zona = "ABDOMEN_CADERA";
+    labelZona = "ABDOMEN / CADERA";
+    emojiZona = "👇";
+  } else {
+    zona = "LATERAL_BAJO";
+    labelZona = "POSICIÓN BAJA / REPOSO";
+    emojiZona = "💤";
   }
+
+  // Softmax de afinidad entre las 5 zonas fonológicas
+  const distancias = [distCabeza, distCuello, distPecho, distAbdomen, distNeutro];
+  const sigma = 0.5;
+  const expScores = distancias.map(d => Math.exp(-(d * d) / (2 * sigma * sigma)));
+  const sumExp = expScores.reduce((a, b) => a + b, 0) || 1.0;
+  const afinidades = expScores.map(e => e / sumExp);
+
+  return {
+    dx,
+    dy,
+    dz,
+    dist_cuerpo,
+    escala: w_h,
+    centroides: { mano: pMano, hombros: c_h },
+    distancias: {
+      cabeza: distCabeza,
+      cuello: distCuello,
+      pecho: distPecho,
+      abdomen: distAbdomen,
+      neutro: distNeutro
+    },
+    afinidades: {
+      cabeza: afinidades[0],
+      cuello: afinidades[1],
+      pecho: afinidades[2],
+      abdomen: afinidades[3],
+      neutro: afinidades[4]
+    },
+    zona,
+    labelZona,
+    emojiZona,
+    cuerpo_coords: [dx * 2.5, dy * 2.5, dz * 2.5, dist_cuerpo * 2.5]
+  };
+}
+
+/**
+ * Descriptor multimodal 109D combinando cinemática de mano
+ * con el stream fonológico de ubicación anatómica (TAB).
+ */
+function extraerDescriptorMultimodal(handCoords, poseAnchors) {
+  const { vec105, ext_dedos, p_canon } = extraerDescriptorArticular(handCoords);
+  const infoZonas = extraerZonasCorporalesPose(handCoords, poseAnchors);
+
+  const cuerpo_coords = infoZonas.cuerpo_coords;
+  const vec109 = vec105.concat(cuerpo_coords);
 
   return {
     vec109,
     ext_dedos,
-    dy,
-    zona,
+    dy: infoZonas.dy,
+    zona: infoZonas.zona,
+    labelZona: infoZonas.labelZona,
+    emojiZona: infoZonas.emojiZona,
+    infoZonas,
     p_canon
   };
 }
@@ -1088,10 +1219,8 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
 
   // 5a. DETECTOR DE MANO NEUTRA (v5.0) — Bloqueo preventivo total
   // Si la mano está tendida/abierta y estática, forzar REPOSO independientemente del modelo
-  const slotIdx = (handMeta && handMeta.slot !== undefined) ? handMeta.slot : 0;
   const neutralDetector = slotIdx === 1 ? _neutralDetectorSlot1 : _neutralDetectorSlot0;
   const speed = (handMeta && handMeta.speed !== undefined) ? handMeta.speed : 0;
-  const wristPos = (handMeta && handMeta.coords) ? handMeta.coords[0] : null;
 
   const neutralResult = neutralDetector.evaluate(extDedos, speed, wristPos, performance.now());
 
@@ -1369,6 +1498,7 @@ const INDICES_FACIALES_NMM_64 = [
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     extraerDescriptorArticular,
+    extraerZonasCorporalesPose,
     extraerDescriptorMultimodal,
     predecirRedNeuronal,
     OneEuroFilter,
@@ -1385,6 +1515,7 @@ if (typeof module !== 'undefined' && module.exports) {
 } else {
   window.MotorLSCLocal = {
     extraerDescriptorArticular,
+    extraerZonasCorporalesPose,
     extraerDescriptorMultimodal,
     predecirRedNeuronal,
     OneEuroFilter,

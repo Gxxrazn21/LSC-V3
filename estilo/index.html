@@ -848,7 +848,7 @@
       <div class="brand-icon">LSC</div>
       <div class="brand-text">
         <h1>Seña LSC</h1>
-        <span id="modelStatusTag" style="color: #00ff9d; font-size: 11px; font-weight: 700;">⚡ IA v4.0 (98.7% Clean • Anti-Ruido)</span>
+        <span id="modelStatusTag" style="color: #00ff9d; font-size: 11px; font-weight: 700;">⚡ IA v5.3.0 (TAB Ubicación Corporal • 99.5%)</span>
       </div>
     </div>
     <div class="header-actions">
@@ -1484,8 +1484,11 @@
         pose.onResults((res) => {
           if (res.poseLandmarks && res.poseLandmarks.length >= 13) {
             ultimosHombros = {
+              nariz: res.poseLandmarks[0] ? [res.poseLandmarks[0].x, res.poseLandmarks[0].y, res.poseLandmarks[0].z] : null,
               hombro_izq: [res.poseLandmarks[11].x, res.poseLandmarks[11].y, res.poseLandmarks[11].z],
               hombro_der: [res.poseLandmarks[12].x, res.poseLandmarks[12].y, res.poseLandmarks[12].z],
+              cadera_izq: res.poseLandmarks.length > 23 ? [res.poseLandmarks[23].x, res.poseLandmarks[23].y, res.poseLandmarks[23].z] : null,
+              cadera_der: res.poseLandmarks.length > 24 ? [res.poseLandmarks[24].x, res.poseLandmarks[24].y, res.poseLandmarks[24].z] : null,
             };
           }
         });
@@ -1709,6 +1712,13 @@
     }
 
     function actualizarUI(pred, desc, numManos, isPreparingHand, isFastMotion) {
+      // Actualización en tiempo real del cuadrante corporal fonológico (TAB)
+      if (desc && desc.zona) {
+        quadrantBadge.textContent = `${desc.emojiZona || '📍'} ${desc.labelZona || desc.zona}`;
+      } else {
+        quadrantBadge.textContent = 'CÁMARA LISTA';
+      }
+
       if (isPreparingHand) {
         stateBadge.textContent = '✋ ACOMODANDO SEÑA...';
         stateBadge.className = 'pred-state-badge state-transicion';
@@ -1936,8 +1946,19 @@
       ctx.restore();
     }
 
+    function actualizarVersionUI() {
+      const statusTag = document.getElementById('modelStatusTag');
+      if (statusTag) {
+        const v = (typeof VERSION_MODELO_LSC !== 'undefined') ? VERSION_MODELO_LSC : '5.3.0';
+        const prec = (typeof METADATOS_MODELO_LSC !== 'undefined' && METADATOS_MODELO_LSC.precision) ? METADATOS_MODELO_LSC.precision : '99.5%';
+        statusTag.textContent = `⚡ IA v${v} (TAB Ubicación Corporal • ${prec})`;
+        statusTag.style.color = '#00ff9d';
+      }
+    }
+
     // Inicialización al cargar la página
     window.addEventListener('DOMContentLoaded', () => {
+      actualizarVersionUI();
       startCamera();
       initMediaPipe();
     });

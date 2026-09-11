@@ -44,6 +44,7 @@ SUSTANTIVOS_OBJETOS = {
     "CASA": {"texto": "la casa", "prep": "a la"},
     "LICOR": {"texto": "el licor", "prep": "con"},
     "NOMBRE": {"texto": "nombre"},
+    "AÑOS": {"texto": "años"},
     "ANNOS": {"texto": "años"},
 }
 
@@ -370,8 +371,8 @@ class EnsambladorFrases:
                 return "¿Cuál es tu nombre?"
             return f"Nombre: {nombre_str.capitalize()}."
 
-        # Regla B: Edad / Años (ej: [YO, ANNOS, 10] o [YO, 10, ANNOS] o [5, ANNOS])
-        if "ANNOS" in glosas:
+        # Regla B: Edad / Años (ej: [YO, AÑOS, 10] o [YO, 10, AÑOS] o [5, AÑOS])
+        if "ANNOS" in glosas or "AÑOS" in glosas:
             numeros = [g for g in glosas if g.isdigit() or g in ["MIL", "MILLON"]]
             num_str = numeros[0] if numeros else "algunos"
             if "YO" in glosas:

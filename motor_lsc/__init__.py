@@ -19,6 +19,8 @@ from .base_vectores import BaseVectoresLSC
 from .ensamblador_frases import EnsambladorFrases, VentanaConsenso
 from .tts_local import MotorVozLocal
 from .exportador_poses_3d import ExportadorPoses3D
+from .clasificador_ia import ClasificadorIALSC
+from .camara_api import CamaraLSC
 
 __all__ = [
     "CuadranteEspacial",
@@ -31,5 +33,7 @@ __all__ = [
     "VentanaConsenso",
     "MotorVozLocal",
     "ExportadorPoses3D",
+    "ClasificadorIALSC",
+    "CamaraLSC",
 ]
 

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  lsc-servidor:
+    build: .
+    container_name: lsc_servidor_movil
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./modelos_guardados:/app/modelos_guardados
+      - ./resultados:/app/resultados
+      - ./datasets:/app/datasets
+      - ./estilo:/app/estilo
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

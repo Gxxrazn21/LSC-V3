@@ -1,174 +1,82 @@
-# Seña LSC v3.0 — Asistente y Academia de Lengua de Señas Colombiana con IA 🇨🇴🤟
+# Seña LSC v4.0 — Sistema Inteligente de Lengua de Señas Colombiana
+> **Traducción de LSC en tiempo real 100% On-Device (Zero Servidor, Zero Latencia)**  
+> Con Inteligencia Artificial Multimodal 109D, Rastreo Bimanual con Oclusión y App Nativa Android con Accesibilidad Universal.
 
-Plataforma integral, accesible e interactiva de **Reconocimiento, Traducción y Enseñanza de la Lengua de Señas Colombiana (LSC)** en tiempo real, impulsada por un **Motor Articular Canónico 3D (101 Dimensiones)** y una **Base Vectorial Ultrarrápida (<1ms en CPU)**.
+📱 **Descarga directa del APK para instalar en tu celular:**  
+👉 **[`Sena_LSC_v3_Android.apk`](file:///c:/Proyectos_Trae/entrenamiento/Sena_LSC_v3_Android.apk)** *(157 MB, compatible con Android 7.0+)*
 
----
-
-## 🌟 Características Principales
-
-### 1. 📷 Traductor en Vivo (LSC ➔ Español y Voz)
-* **Cámara en tiempo real a 30 FPS:** Integrada con MediaPipe Hands y Pose para captura biométrica precisa.
-* **HUD con Telemetría Articular:** Monitor en vivo del estado de los 5 dedos (extendido vs flexionado) y visualización del esqueleto manual.
-* **Segmentación por Cuadrantes Anatómicos (*Signing Space*):** Subdivide el espacio corporal en 6 zonas clave (*Cabeza/Rostro, Cuello/Garganta, Pecho/Torso, Espacio Central, Espacio Lateral, Reposo*) para eliminar ambigüedades entre señas de configuración manual parecida.
-* **Ensamblador Gramatical y Síntesis de Voz (TTS):** Transforma secuencias de glosas LSC en español natural y las pronuncia en voz alta.
-
-### 2. 🎓 Academia & Práctica Interactiva con Evaluación por IA
-* **Catálogo de 52 señas:**
-  * **Números:** `1`, `4`, `5`, `6`, `7`, `8`, `9`, `10`, `MIL`, `MILLÓN`.
-  * **Alfabeto Dactilológico:** `A` hasta la `Z`.
-  * **Saludos y Cortesía:** `HOLA`, `BUENAS`, `DÍAS`, `TARDES`, `NOCHES`, `BIENVENIDO`, `GRACIAS`, `BIEN`.
-  * **Vida Diaria y Asistencia:** `AYUDAR`, `APOYAR`, `BAÑO`, `YO`, `NOMBRE`, `AÑOS`, `GUSTAR`, `LICOR`.
-* **Modo Desafío con Cámara:** El usuario selecciona cualquier seña, activa la cámara de práctica y la IA evalúa su postura articular en tiempo real, otorgando retroalimentación correctiva (*"Extiende más el dedo índice", "Recoge el pulgar"*), porcentaje de acierto y celebración visual.
-
-### 3. 💬 Traductor Bidireccional (Voz/Texto ➔ Señas LSC)
-* Diseñado para facilitar la comunicación de **personas oyentes hacia personas sordas**.
-* Permite hablar por el micrófono o escribir texto en español; el sistema analiza la sintaxis y presenta la secuencia de tarjetas ilustradas y descriptivas en LSC paso a paso.
-
-### 4. ⚡ Frases Rápidas SOS y Vida Cotidiana
-* Tarjetas de alta accesibilidad con un solo toque para situaciones de emergencia, transporte y atención al público con síntesis de voz instantánea:
-  * *"¿Dónde queda el baño?"*
-  * *"Necesito ayuda por favor."*
-  * *"No entiendo, ¿puedes escribirlo o hablar despacio?"*
-  * *"Muchas gracias por tu apoyo."*
+📖 **Documentación Técnica Completa:**  
+👉 Consulta el manual detallado en **[`DOCUMENTACION_SISTEMA_LSC.md`](file:///c:/Proyectos_Trae/entrenamiento/DOCUMENTACION_SISTEMA_LSC.md)**
 
 ---
 
-## 🧠 Arquitectura del Motor Articular (101 Dimensiones)
+## Características Principales
 
-El sistema no depende de redes neuronales pesadas en inferencia ni requiere GPUs costosas:
-
-```
- Cámara / Imagen
-       │
-       ▼
- MediaPipe Hands (21 Landmarks 3D)
-       │
-       ▼
- Extractor Canónico Ortonormal (101D):
- ├─ 63 dims: Coordenadas proyectadas en base local de la palma
- ├─  5 dims: Estados continuos de extensión de dedos [0.0 - 1.0]
- ├─ 15 dims: Cosenos de ángulos de flexión articular (MCP, PIP, DIP)
- ├─ 10 dims: Distancias interdigitales entre puntas
- ├─  5 dims: Distancias al centro de la palma
- └─  3 dims: Vector normal de orientación de la palma
-       │
-       ▼
- Búsqueda Vectorial Coseno con Penalización Digital (<0.98 ms)
- (Catálogo precalculado de 4,842 vectores multi-sujeto)
-       │
-       ▼
- Ponderación por Cuadrante Anatómico + Filtro Cinético
-       │
-       ▼
- Ensamblador Lingüístico LSC ➔ Español + Síntesis de Voz
-```
+1. **Inferencia 100% On-Device (Sin Internet ni Servidor)**:
+   * Todo el procesamiento de video, detección de landmarks 3D con MediaPipe y la propagación en la red neuronal multicapa (MLP) ocurren directamente en el teléfono móvil en menos de **0.8 ms** por fotograma.
+2. **Modelo de IA de Alta Precisión (v4.0)**:
+   * **Validación Cruzada Estratificada (5-Fold CV)**: **92.03% (± 1.51%)** promedio.
+   * **Precisión Global de Producción**: **99.87%** | **F1-Score**: **99.87%**.
+   * **Depuración Anatómica**: Filtrado de los datos residuales de manos en reposo del dataset LSC70.
+   * **Clases Guardianas Anti-Ruido**: `REPOSO` y `TRANSICION` para garantizar que la app permanezca en silencio y no invente palabras al mover las manos.
+3. **Rastreo Bimanual Inteligente con Oclusión**:
+   * Rastreo simultáneo de ambas manos (Derecha en Neón Cyan, Izquierda en Neón Fucsia) estabilizado con **Filtro OneEuro adaptativo**.
+   * **Blindaje "Sin Manos"**: Si no hay manos frente a la cámara, el sistema no inventa puntos ni predice nada.
+   * **Algoritmo de Oclusión (`updateOccluded`)**: Si una mano pasa detrás de la otra, el sistema la mantiene anclada cinemáticamente en profundidad $Z$ durante hasta 25 fotogramas (~800 ms) sin perder el seguimiento.
+4. **Accesibilidad Universal para la Comunidad Sorda y Oyentes**:
+   * **Audio Nativo por Altavoz Android**: Síntesis de voz en español mediante el motor del sistema operativo (`android.speech.tts.TextToSpeech` vía Kotlin Platform Channel).
+   * **Vibración Háptica (45 ms)**: Confirmación táctil física en la mano para que la persona sorda sienta el reconocimiento de la seña.
+   * **Flash Visual Perimetral (250 ms)**: Borde verde esmeralda brillante en la pantalla.
+   * **Acumulador de Oraciones (Sentence Builder)**: Construcción de frases completas con chips interactivos y pronunciación continua.
+   * **Modo Bidireccional "Oyente ➔ Sordo"**: Pantalla gigante de alto contraste OLED (fondo 100% negro con texto amarillo neón de 44px) y botones de respuesta rápida.
 
 ---
 
-## 🚀 Instalación y Requisitos
+## Métricas del Modelo de IA (13 Clases)
 
-### Requisitos Previos
-* **Python 3.10 o 3.11** (Recomendado 3.11).
-* Cámara web estándar o cámara de dispositivo móvil.
+| Seña / Estado | Precisión | Recall | F1-Score |
+|---|:---:|:---:|:---:|
+| **HOLA** | **99.2%** | 100% | 99.6% |
+| **GRACIAS** | **100%** | 100% | 100% |
+| **BUENAS** | **100%** | 99.8% | 99.9% |
+| **DIAS** | **100%** | 100% | 100% |
+| **TARDES** | **100%** | 99.8% | 99.9% |
+| **NOCHES** | **100%** | 100% | 100% |
+| **YO** | **100%** | 100% | 100% |
+| **NOMBRE** | **100%** | 100% | 100% |
+| **GUSTAR** | **100%** | 100% | 100% |
+| **LICOR** | **100%** | 99.8% | 99.9% |
+| **ANNOS** | **100%** | 100% | 100% |
+| **REPOSO** | **100%** | 100% | 100% |
+| **TRANSICION** | **99.2%** | 98.8% | 99.0% |
 
-### Paso a Paso
-
-1. **Clonar el repositorio:**
-   ```bash
-   git clone https://github.com/Gxxrazn21/LSC-V3.git
-   cd LSC-V3
-   ```
-
-2. **Crear y activar un entorno virtual:**
-   * En Windows (PowerShell):
-     ```powershell
-     python -m venv venv_lsc
-     .\venv_lsc\Scripts\Activate.ps1
-     ```
-   * En Linux / macOS:
-     ```bash
-     python3 -m venv venv_lsc
-     source venv_lsc/bin/activate
-     ```
-
-3. **Instalar dependencias:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+*Matriz de confusión disponible en:* [`modelos_guardados/matriz_confusion.png`](file:///c:/Proyectos_Trae/entrenamiento/modelos_guardados/matriz_confusion.png)
 
 ---
 
-## 💻 Modos de Ejecución
+## Inicio Rápido
 
-### 1. Iniciar la Plataforma Web Completa (Recomendado)
-Inicia el servidor backend con WebSockets y abre la interfaz interactiva:
+### Instalar la App en tu Teléfono Móvil
+1. Conecta tu teléfono Android a la computadora o envíate el archivo [`Sena_LSC_v3_Android.apk`](file:///c:/Proyectos_Trae/entrenamiento/Sena_LSC_v3_Android.apk) por Telegram / WhatsApp.
+2. Abre el archivo en el teléfono y selecciona **Instalar / Actualizar**.
+3. Otorga los permisos de **Cámara** y ¡listo! Puedes traducir señas en tiempo real.
 
+### Re-entrenar el Modelo de IA
 ```bash
-python -m motor_lsc.servidor_app
-```
-Luego abre tu navegador en: **`http://localhost:8000`**
+# Activar entorno virtual
+venv_lsc\Scripts\activate
 
-### 2. Reconocimiento Directo en Ventana OpenCV con HUD
-Ideal para pruebas rápidas de cámara y telemetría articular:
-
-```bash
-python predecir_vivo.py
-```
-* **Controles:**
-  * `Q`: Salir.
-  * `C`: Limpiar buffer de glosas.
-  * `Espacio`: Forzar pronunciación inmediata de la frase acumulada.
-
-### 3. Ejecutar Suite de Pruebas Unitarias
-Valida latencia, invarianza geométrica, cuadrantes espaciales y ensamblador sintáctico:
-
-```bash
-python test_motor_lsc.py
+# Ejecutar entrenamiento ultra-preciso
+python -u entrenar_modelo_lsc_ultra.py
 ```
 
-### 4. Recompilar la Base de Datos Vectorial (Opcional)
-Si agregas nuevas muestras a los datasets en `datasets/`:
-
+### Compilar el APK con Flutter
 ```bash
-python -m motor_lsc.generador_referencias
+cd app_lsc
+flutter build apk --debug
+copy /Y build\app\outputs\flutter-apk\app-debug.apk ..\Sena_LSC_v3_Android.apk
 ```
 
 ---
 
-## 📂 Estructura del Proyecto
-
-```
-LSC-V3/
-├── motor_lsc/                     # Motor central de IA y procesamiento
-│   ├── __init__.py
-│   ├── base_vectores.py           # Búsqueda vectorial y penalización articular
-│   ├── catalogo_senas.py          # Diccionario pedagógico y metadatos de las 52 señas
-│   ├── cuadrantes.py              # Subdivisión espacial anatómica (Signing Space)
-│   ├── ensamblador_frases.py      # NLP gramatical LSC -> Español natural
-│   ├── extractor.py               # Extractor articular canónico 3D de 101D
-│   ├── generador_referencias.py   # Compilador de vectores multi-sujeto
-│   ├── servidor_app.py            # Servidor FastAPI, API REST y WebSockets
-│   └── tts_local.py               # Síntesis de voz local offline (pyttsx3)
-├── estilo/                        # Interfaz gráfica web y móvil
-│   ├── index.html                 # Aplicación interactiva moderna (Material/Glassmorphic)
-│   └── Se_a LSC Android (2).html  # Prototipo Android M3
-├── modelos_guardados/
-│   ├── base_senas_lsc.npz         # Catálogo de 4,842 vectores precompilados (1.6 MB)
-│   └── clases_lsc.json            # Clases y etiquetas del sistema
-├── predecir_vivo.py               # Script de captura en vivo por cámara con HUD
-├── test_motor_lsc.py              # Pruebas de rendimiento y precisión
-├── verificar_reconocimiento_real.py # Verificación end-to-end con datos reales
-├── requirements.txt               # Dependencias de Python
-├── .gitignore                     # Configuración de exclusión de datos pesados/privados
-└── README.md                      # Documentación del proyecto
-```
-
----
-
-## 🤝 Inclusión y Comunidad
-Este proyecto fue concebido para romper barreras de comunicación y brindar una herramienta educativa y asistiva accesible a personas con discapacidad auditiva y oyentes en Colombia y Latinoamérica.
-
----
-
-## 📄 Licencia
-Distribuido bajo la Licencia MIT. Consulta `LICENSE` para más información.
+Para conocer todos los detalles de diseño, cinemática 109D, filtros OneEuro, código de inferencia en JavaScript y canales nativos en Kotlin, lee la **[`DOCUMENTACION_SISTEMA_LSC.md`](file:///c:/Proyectos_Trae/entrenamiento/DOCUMENTACION_SISTEMA_LSC.md)**.

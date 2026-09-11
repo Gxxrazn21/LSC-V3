@@ -231,6 +231,15 @@ DICCIONARIO_EDUCATIVO_LSC: Dict[str, Dict[str, Any]] = {
         "consejo": "Movimiento breve hacia la barbilla.",
         "ejemplo_uso": "No tomo licor.",
     },
+    "AÑOS": {
+        "nombre": "Años / Edad",
+        "categoria": "Identidad",
+        "cuadrante": "ESPACIO_LATERAL",
+        "dedos": [1, 0, 0, 0, 0],
+        "descripcion": "Puño rotando alrededor del otro puño o rozando la barbilla para indicar edad.",
+        "consejo": "Se acompaña del número de años.",
+        "ejemplo_uso": "Tengo 20 años.",
+    },
     "ANNOS": {
         "nombre": "Años / Edad",
         "categoria": "Identidad",

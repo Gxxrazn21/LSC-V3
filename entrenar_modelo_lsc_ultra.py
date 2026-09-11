@@ -336,18 +336,34 @@ def main():
     print(f"  [OK] Modelo JSON exportado a: {json_path}")
 
     js_code = f"""/**
- * MODELO DE INTELIGENCIA ARTIFICIAL LSC v5.0 (ON-DEVICE / ZERO SERVER)
+ * MODELO DE INTELIGENCIA ARTIFICIAL LSC v5.3.0 (ON-DEVICE / ZERO SERVER)
  * Precisión Validación Cruzada: {acc_media*100:.2f}% | Precisión Global: {acc_final*100:.2f}%
  * Arquitectura: MLP 109D -> {' -> '.join(str(x) for x in arch)} -> {len(clases_ordenadas)} Clases
  * Clases: {json.dumps(clases_ordenadas)}
- * Anti-alucinación: Filtros anatómicos expandidos + muestras neutras sintéticas
+ * Fonología: Stream de Ubicación Anatómica (TAB) + Filtros Cinemáticos
  */
+const VERSION_MODELO_LSC = "5.3.0";
+const BUILD_FECHA_LSC = "{time.strftime('%Y-%m-%d')}";
+const METADATOS_MODELO_LSC = {{
+  version: "5.3.0",
+  subversion: "TAB-Location",
+  precision: "{acc_final*100:.2f}%",
+  precision_cv: "{acc_media*100:.2f}%",
+  clases: {len(clases_ordenadas)},
+  fecha: "{time.strftime('%Y-%m-%d')}"
+}};
 const _MODELO_LSC_DATA = {json.dumps(modelo_json)};
 if (typeof window !== 'undefined') {{
   window.MODELO_LSC = _MODELO_LSC_DATA;
+  window.VERSION_MODELO_LSC = VERSION_MODELO_LSC;
+  window.METADATOS_MODELO_LSC = METADATOS_MODELO_LSC;
 }}
 if (typeof module !== 'undefined' && module.exports) {{
-  module.exports = _MODELO_LSC_DATA;
+  module.exports = {{
+    ..._MODELO_LSC_DATA,
+    VERSION_MODELO_LSC,
+    METADATOS_MODELO_LSC
+  }};
 }}
 """
     for dest in ["estilo/modelo_ia_cliente.js", "app_lsc/assets/web/modelo_ia_cliente.js", "docs/modelo_ia_cliente.js"]:
@@ -359,7 +375,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     # 9. Guardar Métricas
     metricas = {
         "fecha": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "version": "5.0.0",
+        "version": "5.3.0",
         "total_muestras": len(X),
         "precision_global": float(acc_final),
         "precision_cv_media": float(acc_media),
@@ -389,7 +405,7 @@ if (typeof module !== 'undefined' && module.exports) {{
 
     # A. Reporte de texto plano
     txt_report = f"""======================================================================
-  REPORTE DE CLASIFICACION - LSC v5.0 (ANTI-ALUCINACIÓN + MANO NEUTRA)
+  REPORTE DE CLASIFICACION - LSC v5.3.0 (FONOLOGÍA TAB + UBICACIÓN CORPORAL)
   Fecha: {timestamp_str} | Muestras: {len(X)} | Dims: 109D
   Arquitectura: {' → '.join(str(x) for x in layers_list)}
   Accuracy Global: {acc_final * 100:.2f}% | F1-Score: {f1_final:.4f}
@@ -407,7 +423,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     cur_metrics = {
         "id": timestamp_id,
         "fecha": timestamp_str,
-        "version": "5.0.0",
+        "version": "5.3.0",
         "total_muestras": len(X),
         "dimensiones": 109,
         "arquitectura": layers_list,

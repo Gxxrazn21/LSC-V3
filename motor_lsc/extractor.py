@@ -1,17 +1,20 @@
 """
 =============================================================
-EXTRACTOR ARTICULATORIO, CANONICO Y TEMPORALMENTE ESTABILIZADO (LSC)
-Lengua de Señas Colombiana (LSC)
+EXTRACTOR ARTICULATORIO v3.0 — LSC (Lengua de Señas Colombiana)
 =============================================================
-Pipeline cinemático y anti-ruido:
-1. Preprocesamiento óptico anti-ruido (Gaussian Denoise + CLAHE en Luminancia LAB).
-2. Estabilización temporal adaptativa con OneEuroFilter 3D (elimina jitter de cámara).
+Pipeline cinemático con mejora de cámara integrada:
+1. Preprocesamiento Óptico Mejorado (v3.0):
+   - Bilateral Filter: preserva bordes de dedos, suprime ruido de sensor.
+   - CLAHE adaptativo en canal L (espacio LAB): realza contraste en iluminación baja.
+   - Sharpening kernel 3×3: acentúa articulaciones y contornos digitales.
+   - Auto White Balance (Gray World Assumption): normaliza dominante de color.
+2. Estabilización temporal OneEuroFilter 3D (elimina jitter de cámara).
 3. Coordenadas 3D canónicas ortonormales en la base de la palma (63 dims).
-4. Estados continuos de extensión digital calculados en el espacio canónico (5 dims).
-5. Cosenos de ángulos de flexión articular MCP/PIP/DIP (15 dims).
-6. Distancias interdigitales entre las 5 puntas (10 dims).
+4. Estados continuos de extensión digital (5 dims).
+5. Cosenos de ángulos articulares MCP/PIP/DIP (15 dims).
+6. Distancias interdigitales entre puntas (10 dims).
 7. Distancias de puntas al centro de la palma (5 dims).
-8. Métricas de contacto y proximidad del pulgar (4 dims: pulgar a índice, medio, anular, base).
+8. Métricas de contacto y proximidad del pulgar (4 dims).
 9. Vector normal de orientación espacial de la palma (3 dims).
 Descriptor total: 105 dimensiones perfectamente balanceadas.
 """
@@ -86,32 +89,73 @@ class OneEuroFilter3D:
 
 
 # ─────────────────────────────────────────────────────────────
-# 2. PREPROCESAMIENTO OPTICO ANTI-RUIDO
+# 2. PREPROCESAMIENTO OPTICO MEJORADO v3.0 (MEJORA DE CÁMARA)
 # ─────────────────────────────────────────────────────────────
+
+# Kernel de sharpening adaptativo para realce de articulaciones digitales
+_KERNEL_SHARPEN = np.array([
+    [ 0, -0.5,  0],
+    [-0.5,  3, -0.5],
+    [ 0, -0.5,  0],
+], dtype=np.float32)
+
+
+def auto_white_balance(frame_bgr: np.ndarray) -> np.ndarray:
+    """
+    Corrección de balance de blancos por Gray World Assumption.
+    Normaliza la dominante de color para estabilizar la detección de piel
+    en diferentes temperaturas de luz (LED fría, fluorescente, luz solar).
+    """
+    result = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2LAB).astype(np.float32)
+    avg_a = np.mean(result[:, :, 1])
+    avg_b = np.mean(result[:, :, 2])
+    result[:, :, 1] = result[:, :, 1] - (avg_a - 128) * (result[:, :, 0] / 255.0) * 1.1
+    result[:, :, 2] = result[:, :, 2] - (avg_b - 128) * (result[:, :, 0] / 255.0) * 1.1
+    result = np.clip(result, 0, 255).astype(np.uint8)
+    return cv2.cvtColor(result, cv2.COLOR_LAB2BGR)
+
 
 def preprocesar_imagen_anti_ruido(
     frame_bgr: np.ndarray,
     aplicar_clahe: bool = True,
     suavizar_ruido: bool = True,
+    aplicar_sharpening: bool = True,
+    aplicar_awb: bool = True,
 ) -> np.ndarray:
     """
-    Mejora la calidad del fotograma suprimiendo ruido de sensor/iluminación tenue
-    y realzando los bordes y articulaciones de las manos.
-    Pipeline: Bilateral Filter (preserva bordes) → CLAHE adaptativo en LAB.
+    Pipeline de mejora de cámara v3.0 para captura de señas LSC.
+    Optimiza la imagen para condiciones de iluminación variable y cámaras
+    de baja calidad (webcams integradas, cámaras de portátil).
+
+    Pipeline:
+      1. Auto White Balance  — estabiliza dominante de color
+      2. Bilateral Filter    — preserva bordes, suprime ruido de sensor
+      3. CLAHE en LAB        — realza contraste en iluminación tenue
+      4. Sharpening 3×3      — acentúa contornos de dedos para MediaPipe
     """
     out = frame_bgr
+
+    # Paso 1: Auto White Balance (Gray World)
+    if aplicar_awb:
+        out = auto_white_balance(out)
+
+    # Paso 2: Bilateral Filter — suprime ruido preservando bordes de articulaciones
     if suavizar_ruido:
-        # Bilateral Filter: preserva bordes de los dedos mientras suaviza ruido de sensor
         out = cv2.bilateralFilter(out, d=5, sigmaColor=45, sigmaSpace=45)
 
+    # Paso 3: CLAHE adaptativo en luminancia LAB
     if aplicar_clahe:
-        # Realce de contraste adaptativo local en luminancia LAB
         lab = cv2.cvtColor(out, cv2.COLOR_BGR2LAB)
         l, a, b = cv2.split(lab)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
         cl = clahe.apply(l)
         limg = cv2.merge((cl, a, b))
         out = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+
+    # Paso 4: Sharpening adaptativo para realzar contornos de dedos
+    if aplicar_sharpening:
+        out = cv2.filter2D(out, -1, _KERNEL_SHARPEN)
+        out = np.clip(out, 0, 255).astype(np.uint8)
 
     return out
 
@@ -170,9 +214,11 @@ class ExtractorLandmarks:
         self.filtro_pose = OneEuroFilter3D(min_cutoff=0.6, beta=0.02)
         
         self.prev_coords_manos: Dict[str, np.ndarray] = {}
+        self.conteo_frames_perdidos: Dict[str, int] = {"Right": 0, "Left": 0}
+        self.pose_wrist_prev: Dict[str, np.ndarray] = {}
 
     def _extraer_mano_holistic(
-        self, hand_lms, label: str, alto: int, ancho: int, timestamp: float
+        self, hand_lms, label: str, alto: int, ancho: int, timestamp: float, pose_anchors: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """Extrae datos de una mano detectada por Holistic o Hands fallback."""
         if hand_lms is None:
@@ -200,14 +246,18 @@ class ExtractorLandmarks:
 
         self.prev_coords_manos[label] = coords.copy()
 
-        # Extracción del vector articular canónico optimizado (105D)
-        vector_articular, ext_estados = self.extraer_descriptor_articular(coords)
+        # Extracción del vector articular canónico (105D) y multimodal con hombros (109D)
+        vector_105d, ext_estados = self.extraer_descriptor_articular(coords)
+        vector_109d, spatial_dict = self.extraer_descriptor_multimodal(coords, pose_anchors)
         muneca = tuple(coords[0])
 
         return {
             "tipo": label,
             "landmarks_raw": coords,
-            "vector_normalizado": vector_articular,
+            "vector_normalizado": vector_109d,
+            "vector_105d": vector_105d,
+            "vector_109d": vector_109d,
+            "spatial_coords": spatial_dict,
             "finger_extensions": ext_estados,
             "muneca": muneca,
             "velocidad": velocidad_desplazamiento,
@@ -268,7 +318,7 @@ class ExtractorLandmarks:
         # Nota: en Holistic, "Right" y "Left" están desde la perspectiva del usuario (espejado)
         for label, hand_lms in [("Right", res_holistic.right_hand_landmarks),
                                  ("Left", res_holistic.left_hand_landmarks)]:
-            info = self._extraer_mano_holistic(hand_lms, label, alto, ancho, timestamp)
+            info = self._extraer_mano_holistic(hand_lms, label, alto, ancho, timestamp, pose_anchors)
             if info is not None:
                 manos_info.append(info)
                 manos_detectadas.add(label)
@@ -281,17 +331,69 @@ class ExtractorLandmarks:
                     label = "Right"
                     if res_hands.multi_handedness and len(res_hands.multi_handedness) > idx:
                         label = res_hands.multi_handedness[idx].classification[0].label
-                    info = self._extraer_mano_holistic(hand_lms, label, alto, ancho, timestamp)
+                    info = self._extraer_mano_holistic(hand_lms, label, alto, ancho, timestamp, pose_anchors)
                     if info is not None:
                         manos_info.append(info)
                         manos_detectadas.add(label)
 
-        # Resetear filtros para manos que desaparecieron del frame
+        # 6. Recuperación Cinemática por Pose en Movimientos Bruscos
+        # Si la mano se movió muy rápido y los detectores globales fallaron:
+        if not manos_info and res_holistic.pose_landmarks:
+            plm = res_holistic.pose_landmarks.landmark
+            for label, w_idx in [("Right", 16), ("Left", 15)]:
+                w_lm = plm[w_idx]
+                vis = getattr(w_lm, "visibility", 1.0)
+                if vis > 0.35:
+                    w_px = int(w_lm.x * ancho)
+                    w_py = int(w_lm.y * alto)
+
+                    # Intentar crop centrado en la muñeca (alta densidad)
+                    tam_crop = int(min(alto, ancho) * 0.40)
+                    x1 = max(0, w_px - tam_crop // 2)
+                    y1 = max(0, w_py - tam_crop // 2)
+                    x2 = min(ancho, x1 + tam_crop)
+                    y2 = min(alto, y1 + tam_crop)
+
+                    crop = frame_rgb[y1:y2, x1:x2]
+                    if crop.shape[0] > 40 and crop.shape[1] > 40:
+                        res_crop = self.hands_fallback.process(crop)
+                        if res_crop.multi_hand_landmarks:
+                            hand_crop = res_crop.multi_hand_landmarks[0]
+                            coords_full = np.zeros((21, 3), dtype=np.float32)
+                            crop_h, crop_w = crop.shape[:2]
+                            for idx_pt, pt in enumerate(hand_crop.landmark):
+                                coords_full[idx_pt] = [
+                                    (x1 + pt.x * crop_w) / ancho,
+                                    (y1 + pt.y * crop_h) / alto,
+                                    pt.z,
+                                ]
+                            vec_105d, ext_est = self.extraer_descriptor_articular(coords_full)
+                            vec_109d, spatial_dict = self.extraer_descriptor_multimodal(coords_full, pose_anchors)
+                            manos_info.append({
+                                "tipo": label,
+                                "landmarks_raw": coords_full,
+                                "vector_normalizado": vec_109d,
+                                "vector_105d": vec_105d,
+                                "vector_109d": vec_109d,
+                                "spatial_coords": spatial_dict,
+                                "finger_extensions": ext_est,
+                                "muneca": tuple(coords_full[0]),
+                                "velocidad": 0.05,
+                                "es_estable": False,  # Flag de movimiento rápido activo
+                                "recuperado_inercial": True,
+                            })
+                            manos_detectadas.add(label)
+
+        # 7. Gestión de Histéresis Anti-Pérdida (No resetear filtros bruscamente)
         for lbl in list(self.filtros_manos.keys()):
             if lbl not in manos_detectadas:
-                self.filtros_manos[lbl].reset()
-                if lbl in self.prev_coords_manos:
-                    del self.prev_coords_manos[lbl]
+                self.conteo_frames_perdidos[lbl] = self.conteo_frames_perdidos.get(lbl, 0) + 1
+                if self.conteo_frames_perdidos[lbl] >= 6:
+                    self.filtros_manos[lbl].reset()
+                    if lbl in self.prev_coords_manos:
+                        del self.prev_coords_manos[lbl]
+            else:
+                self.conteo_frames_perdidos[lbl] = 0
 
         return {
             "hay_manos": len(manos_info) > 0,
@@ -420,6 +522,106 @@ class ExtractorLandmarks:
         ]).astype(np.float32)
 
         return descriptor_total, ext_dedos
+
+    @classmethod
+    def extraer_descriptor_multimodal(
+        cls,
+        coords: np.ndarray,
+        pose_anchors: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[np.ndarray, Dict[str, float]]:
+        """
+        Calcula el descriptor multimodal de 109 dimensiones:
+        - 105 dims: cinemática articular canónica de la mano (invariante a escala y rotación).
+        - 4 dims: anclaje espacial corporal relativo a hombros de Pose (invariante a censura facial).
+        """
+        vec_105d, _ = cls.extraer_descriptor_articular(coords)
+        p0 = coords[0]  # Muñeca [x, y, z]
+
+        if pose_anchors and "hombro_izq" in pose_anchors and "hombro_der" in pose_anchors:
+            h_izq = np.array(pose_anchors["hombro_izq"], dtype=np.float32)
+            h_der = np.array(pose_anchors["hombro_der"], dtype=np.float32)
+            c_h = 0.5 * (h_izq + h_der)
+            w_h = max(float(np.linalg.norm(h_izq[:2] - h_der[:2])), 0.10)
+
+            dx = float((p0[0] - c_h[0]) / w_h)
+            dy = float((p0[1] - c_h[1]) / w_h)
+            dz = float((p0[2] - c_h[2]) / w_h)
+        else:
+            # Fallback centrado si hombros no están en cuadro (plano cerrado)
+            dx = float((p0[0] - 0.5) * 2.0)
+            dy = float((p0[1] - 0.5) * 2.0)
+            dz = float(p0[2])
+
+        dist_cuerpo = float(np.sqrt(dx * dx + dy * dy + dz * dz))
+        # Ponderación calibrada para que las 4 coordenadas espaciales separen de forma inequívoca señas homónimas
+        cuerpo_coords = np.array([dx, dy, dz, dist_cuerpo], dtype=np.float32) * 2.5
+        vec_109d = np.concatenate([vec_105d, cuerpo_coords]).astype(np.float32)
+
+        info_zonas = cls.extraer_zonas_corporales_pose(coords, pose_anchors)
+
+        spatial_dict = {
+            "dx": dx,
+            "dy": dy,
+            "dz": dz,
+            "dist": dist_cuerpo,
+            "zona": info_zonas["zona"] if info_zonas else "PECHO_TORSO",
+            "info_zonas": info_zonas
+        }
+        return vec_109d, spatial_dict
+
+    @classmethod
+    def extraer_zonas_corporales_pose(
+        cls, coords: np.ndarray, pose_anchors: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcula el descriptor de ubicación fonológico (TAB) relativo al cuerpo
+        a partir de landmarks de Pose y centroide de la mano.
+        """
+        p0 = coords[0]
+        centroide_mano = np.mean(coords, axis=0)
+        p_mano = 0.4 * p0 + 0.6 * centroide_mano
+
+        if pose_anchors and "hombro_izq" in pose_anchors and "hombro_der" in pose_anchors:
+            h_izq = np.array(pose_anchors["hombro_izq"], dtype=np.float32)
+            h_der = np.array(pose_anchors["hombro_der"], dtype=np.float32)
+            c_h = 0.5 * (h_izq + h_der)
+            w_h = max(float(np.linalg.norm(h_izq[:2] - h_der[:2])), 0.10)
+            c_nariz = np.array(pose_anchors["nariz"], dtype=np.float32) if "nariz" in pose_anchors else None
+        else:
+            c_h = np.array([0.50, 0.68, 0.0], dtype=np.float32)
+            w_h = 0.38
+            c_nariz = None
+
+        c_cabeza = c_nariz if c_nariz is not None else np.array([c_h[0], c_h[1] - 0.70 * w_h, c_h[2]], dtype=np.float32)
+        c_cuello = np.array([c_h[0], c_h[1] - 0.15 * w_h, c_h[2]], dtype=np.float32)
+        c_pecho = np.array([c_h[0], c_h[1] + 0.35 * w_h, c_h[2]], dtype=np.float32)
+        c_abdomen = np.array([c_h[0], c_h[1] + 0.85 * w_h, c_h[2]], dtype=np.float32)
+
+        dx = float((p0[0] - c_h[0]) / w_h)
+        dy = float((p0[1] - c_h[1]) / w_h)
+        dz = float((p0[2] - c_h[2]) / w_h)
+
+        if dy < -0.22:
+            zona = "CABEZA_ROSTRO"
+        elif -0.22 <= dy <= 0.12:
+            zona = "CUELLO_GARGANTA" if abs(dx) <= 0.65 else "CABEZA_ROSTRO"
+        elif 0.12 < dy <= 0.70:
+            zona = "PECHO_TORSO" if abs(dx) <= 0.55 else "ESPACIO_CENTRAL"
+        elif 0.70 < dy <= 1.45:
+            zona = "ABDOMEN_CADERA"
+        else:
+            zona = "LATERAL_BAJO"
+
+        return {
+            "dx": dx,
+            "dy": dy,
+            "dz": dz,
+            "zona": zona,
+            "dist_cabeza": float(np.linalg.norm(p_mano - c_cabeza) / w_h),
+            "dist_cuello": float(np.linalg.norm(p_mano - c_cuello) / w_h),
+            "dist_pecho": float(np.linalg.norm(p_mano - c_pecho) / w_h),
+            "dist_abdomen": float(np.linalg.norm(p_mano - c_abdomen) / w_h),
+        }
 
     # Mantener compatibilidad con llamadas directas
     @classmethod

@@ -1,0 +1,12 @@
+venv*
+.venv*
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.gemini
+*.log
+.pytest_cache
+datasets/LSC70/LSC70AN*

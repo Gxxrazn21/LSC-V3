@@ -39,4 +39,6 @@ resultados/*.txt
 
 # Misc
 *.log
+*.apk
+*.aab
 .claude/

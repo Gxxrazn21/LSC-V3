@@ -300,7 +300,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                           Icon(Icons.cloud_sync, color: Color(0xFF00E5FF), size: 26),
                           SizedBox(width: 10),
                           Text(
-                            'Actualización & Nube LSC',
+                            'Actualización & Nube LSC v5.3.0',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -334,8 +334,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                         Expanded(
                           child: Text(
                             _hasDownloadedAssets
-                                ? 'Versión Nube descargada en almacenamiento local'
-                                : 'Ejecutando versión embebida de la APK',
+                                ? 'Versión Nube IA v5.3.0 (Ubicación TAB activa)'
+                                : 'Ejecutando versión embebida de la APK (IA v5.3.0)',
                             style: const TextStyle(fontSize: 12, color: Colors.white70),
                           ),
                         ),
@@ -389,9 +389,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
                                 _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
                                 messenger.showSnackBar(
                                   const SnackBar(
-                                    content: Text('✅ ¡Modelo actualizado con éxito desde la nube!'),
+                                    content: Text('✅ ¡Modelo actualizado con éxito a IA v5.3.0 (Ubicación TAB)!'),
                                     backgroundColor: Colors.green,
-                                    duration: Duration(seconds: 3),
+                                    duration: Duration(seconds: 4),
                                   ),
                                 );
                               } else {
