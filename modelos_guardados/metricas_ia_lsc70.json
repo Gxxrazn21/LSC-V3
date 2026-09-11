@@ -1,0 +1,116 @@
+{
+  "fecha": "2026-09-11 14:05:54",
+  "total_muestras": 4940,
+  "precision_global": 0.9870445344129555,
+  "precision_cv_media": 0.8613360323886639,
+  "f1_score": 0.9871374944615915,
+  "clases": [
+    "A\u00d1OS",
+    "BUENAS",
+    "DIAS",
+    "GRACIAS",
+    "GUSTAR",
+    "HOLA",
+    "LICOR",
+    "NOCHES",
+    "NOMBRE",
+    "REPOSO",
+    "TARDES",
+    "TRANSICION",
+    "YO"
+  ],
+  "arquitectura": [
+    109,
+    512,
+    256,
+    128,
+    13
+  ],
+  "cv_scores": [
+    0.868421052631579,
+    0.8643724696356275,
+    0.8552631578947368,
+    0.8491902834008097,
+    0.8694331983805668
+  ],
+  "metricas_por_clase": {
+    "A\u00d1OS": {
+      "precision": 0.9844559585492227,
+      "recall": 1.0,
+      "f1": 0.9921671018276762,
+      "support": 380
+    },
+    "BUENAS": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 380
+    },
+    "DIAS": {
+      "precision": 0.9947643979057592,
+      "recall": 1.0,
+      "f1": 0.9973753280839895,
+      "support": 380
+    },
+    "GRACIAS": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 380
+    },
+    "GUSTAR": {
+      "precision": 1.0,
+      "recall": 0.9657894736842105,
+      "f1": 0.9825970548862115,
+      "support": 380
+    },
+    "HOLA": {
+      "precision": 1.0,
+      "recall": 0.9289473684210526,
+      "f1": 0.9631650750341064,
+      "support": 380
+    },
+    "LICOR": {
+      "precision": 0.9947643979057592,
+      "recall": 1.0,
+      "f1": 0.9973753280839895,
+      "support": 380
+    },
+    "NOCHES": {
+      "precision": 1.0,
+      "recall": 0.9736842105263158,
+      "f1": 0.9866666666666667,
+      "support": 380
+    },
+    "NOMBRE": {
+      "precision": 0.9973753280839895,
+      "recall": 1.0,
+      "f1": 0.9986859395532195,
+      "support": 380
+    },
+    "REPOSO": {
+      "precision": 0.9946524064171123,
+      "recall": 0.9789473684210527,
+      "f1": 0.986737400530504,
+      "support": 380
+    },
+    "TARDES": {
+      "precision": 0.9768041237113402,
+      "recall": 0.9973684210526316,
+      "f1": 0.9869791666666666,
+      "support": 380
+    },
+    "TRANSICION": {
+      "precision": 0.8995215311004785,
+      "recall": 0.9894736842105263,
+      "f1": 0.9423558897243107,
+      "support": 380
+    },
+    "YO": {
+      "precision": 1.0,
+      "recall": 0.9973684210526316,
+      "f1": 0.9986824769433466,
+      "support": 380
+    }
+  }
+}

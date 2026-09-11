@@ -1,0 +1,63 @@
+{
+  "exactitud_test_signer_independent": 75.1497005988024,
+  "exactitud_val_signer_independent": 76.81,
+  "clases": [
+    "ANNOS",
+    "BUENAS",
+    "DIAS",
+    "GRACIAS",
+    "GUSTAR",
+    "HOLA",
+    "LICOR",
+    "NOCHES",
+    "NOMBRE",
+    "REPOSO",
+    "TARDES",
+    "TRANSICION",
+    "YO"
+  ],
+  "pares_evaluados": {
+    "HOLA_vs_DIAS": {
+      "sena_a": "HOLA",
+      "sena_b": "DIAS",
+      "confusion_a_en_b_pct": 0.0,
+      "confusion_b_en_a_pct": 0.0,
+      "estado": "EXCELENTE"
+    },
+    "BUENAS_vs_TARDES": {
+      "sena_a": "BUENAS",
+      "sena_b": "TARDES",
+      "confusion_a_en_b_pct": 0.0,
+      "confusion_b_en_a_pct": 0.0,
+      "estado": "EXCELENTE"
+    },
+    "YO_vs_GUSTAR": {
+      "sena_a": "YO",
+      "sena_b": "GUSTAR",
+      "confusion_a_en_b_pct": 4.761904761904762,
+      "confusion_b_en_a_pct": 0.0,
+      "estado": "EXCELENTE"
+    },
+    "GRACIAS_vs_LICOR": {
+      "sena_a": "GRACIAS",
+      "sena_b": "LICOR",
+      "confusion_a_en_b_pct": 0.0,
+      "confusion_b_en_a_pct": 0.0,
+      "estado": "EXCELENTE"
+    },
+    "NOMBRE_vs_ANNOS": {
+      "sena_a": "NOMBRE",
+      "sena_b": "ANNOS",
+      "confusion_a_en_b_pct": 0.0,
+      "confusion_b_en_a_pct": 0.0,
+      "estado": "EXCELENTE"
+    },
+    "NOCHES_vs_TARDES": {
+      "sena_a": "NOCHES",
+      "sena_b": "TARDES",
+      "confusion_a_en_b_pct": 0.0,
+      "confusion_b_en_a_pct": 30.0,
+      "estado": "ALERTA"
+    }
+  }
+}

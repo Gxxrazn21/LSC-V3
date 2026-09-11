@@ -1,0 +1,50 @@
+{
+  "version": "3.0",
+  "clases": [
+    "BUENAS_NOCHES",
+    "BUENAS_TARDES",
+    "BUENOS_DIAS",
+    "GRACIAS",
+    "HOLA"
+  ],
+  "total_vectores": 15,
+  "estrategia": "mixto",
+  "umbral": 0.72,
+  "resultados": {
+    "BUENAS_NOCHES": {
+      "muestras": 5,
+      "registrados": 3,
+      "similitud_intra": 0.8334174156188965,
+      "similitud_inter_max": 0.0,
+      "varianza": 0.3081611394882202
+    },
+    "BUENAS_TARDES": {
+      "muestras": 5,
+      "registrados": 3,
+      "similitud_intra": 0.9298382997512817,
+      "similitud_inter_max": 0.9671312570571899,
+      "varianza": 0.0785837173461914
+    },
+    "BUENOS_DIAS": {
+      "muestras": 5,
+      "registrados": 3,
+      "similitud_intra": 0.8506559133529663,
+      "similitud_inter_max": 0.9752478003501892,
+      "varianza": 0.19064030051231384
+    },
+    "GRACIAS": {
+      "muestras": 3,
+      "registrados": 3,
+      "similitud_intra": 0.6801865100860596,
+      "similitud_inter_max": 0.933260977268219,
+      "varianza": 0.16094841063022614
+    },
+    "HOLA": {
+      "muestras": 5,
+      "registrados": 3,
+      "similitud_intra": 0.9970321655273438,
+      "similitud_inter_max": 0.9990295171737671,
+      "varianza": 0.0029314858838915825
+    }
+  }
+}

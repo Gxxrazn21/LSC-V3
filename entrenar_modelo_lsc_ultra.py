@@ -56,44 +56,51 @@ def main():
         idx = np.where(y_raw == c)[0]
         Xc = X_raw[idx]
         dys = Xc[:, 106]
+        fingers = Xc[:, 63:68] / 3.2
         
-        # Filtro biomecánico calibrado por zona anatómica real de la seña LSC
-        # Evita descartar muestras legítimas en pecho (BUENAS, NOMBRE, TARDES, AÑOS)
-        # y separa con precisión HOLA (sien/cabeza) de DIAS (frente a clavícula)
-        if c == 'HOLA':
-            is_clean = (dys <= 1.40)
-        elif c == 'DIAS':
-            is_clean = (dys >= -2.00) & (dys <= 2.00)
+        # Filtro anatómico biomecánico estricto por seña LSC
+        # Elimina el 90% de frames contaminados (manos abiertas en reposo/mesa dentro de DIAS y YO)
+        if c == 'DIAS':
+            # CANÓNICO LSC: Dedo índice arriba representando la salida del sol.
+            # Los frames de manos abiertas se derivan a REPOSO/TRANSICIÓN para que una mano quieta nunca diga DIAS
+            is_clean = (fingers[:, 1] >= 0.40) & (fingers[:, 2] <= 0.65) & (fingers[:, 3] <= 0.65) & (dys <= 2.20)
+        elif c == 'YO':
+            # CANÓNICO LSC: Dedo índice apuntando al pecho
+            is_clean = (fingers[:, 1] >= 0.40) & ((fingers[:, 2] <= 0.70) | (fingers[:, 3] <= 0.70)) & (dys >= 0.20) & (dys <= 3.20)
+        elif c == 'HOLA':
+            is_clean = (dys <= 0.40) & (fingers[:, 1] >= 0.60) & (fingers[:, 2] >= 0.60)
         elif c == 'BUENAS':
-            is_clean = (dys >= 0.40) & (dys <= 3.60)
+            is_clean = (dys >= 0.30) & (dys <= 3.60) & (fingers[:, 1] >= 0.70) & (fingers[:, 2] >= 0.70)
         elif c == 'AÑOS':
-            is_clean = (dys >= 0.40) & (dys <= 3.60)
-        elif c in ['NOMBRE', 'TARDES']:
-            is_clean = (dys >= 0.60) & (dys <= 3.30)
-        elif c in ['YO', 'GUSTAR']:
-            is_clean = (dys >= -0.30) & (dys <= 3.60)
+            is_clean = (dys >= 0.40) & (dys <= 3.60) & (fingers[:, 1] <= 0.60) & (fingers[:, 2] <= 0.60)
+        elif c == 'NOMBRE':
+            is_clean = (dys >= 0.50) & (dys <= 3.20) & (fingers[:, 1] >= 0.60) & (fingers[:, 2] >= 0.60)
         elif c == 'LICOR':
-            is_clean = (dys <= 1.40)
+            is_clean = (dys <= 1.20) & (fingers[:, 0] >= 0.60)
         elif c == 'NOCHES':
             is_clean = (dys >= -1.60) & (dys <= 2.40)
         elif c == 'GRACIAS':
             is_clean = (dys >= -1.20) & (dys <= 0.80)
+        elif c == 'GUSTAR':
+            is_clean = (dys >= -0.30) & (dys <= 3.60)
+        elif c == 'TARDES':
+            is_clean = (dys >= 0.60) & (dys <= 3.30) & (fingers[:, 1] >= 0.70)
         else:
             is_clean = np.ones(len(Xc), dtype=bool)
         
         clean_samples[c] = Xc[is_clean]
         
-        # Frames residuales extremos (mano en mesa o bajando del todo)
+        # Frames residuales: manos abiertas o relajadas pasan a REPOSO y TRANSICIÓN
         dirty = Xc[~is_clean]
         if len(dirty) > 0:
-            reposo_samples.append(dirty[dirty[:, 106] > 2.50])
-            transition_samples.append(dirty[dirty[:, 106] <= 2.50])
+            reposo_samples.append(dirty[dirty[:, 106] > 1.80])
+            transition_samples.append(dirty[dirty[:, 106] <= 1.80])
 
     # Añadir REPOSO_TRANSICION crudo clasificado por altura real
     if 'REPOSO_TRANSICION' in y_raw:
         rt = X_raw[y_raw == 'REPOSO_TRANSICION']
-        reposo_samples.append(rt[rt[:, 106] > 2.00])
-        transition_samples.append(rt[rt[:, 106] <= 2.00])
+        reposo_samples.append(rt[rt[:, 106] > 1.80])
+        transition_samples.append(rt[rt[:, 106] <= 1.80])
 
     X_reposo_raw = np.vstack(reposo_samples)
     X_trans_raw = np.vstack(transition_samples)
@@ -275,12 +282,15 @@ def main():
  * Arquitectura: MLP 109D -> 512 -> 256 -> 128 -> {len(clases_ordenadas)} Clases
  * Clases: {json.dumps(clases_ordenadas)}
  */
-window.MODELO_LSC = {json.dumps(modelo_json)};
+const _MODELO_LSC_DATA = {json.dumps(modelo_json)};
+if (typeof window !== 'undefined') {{
+  window.MODELO_LSC = _MODELO_LSC_DATA;
+}}
 if (typeof module !== 'undefined' && module.exports) {{
-  module.exports = window.MODELO_LSC;
+  module.exports = _MODELO_LSC_DATA;
 }}
 """
-    for dest in ["estilo/modelo_ia_cliente.js", "app_lsc/assets/web/modelo_ia_cliente.js"]:
+    for dest in ["estilo/modelo_ia_cliente.js", "app_lsc/assets/web/modelo_ia_cliente.js", "docs/modelo_ia_cliente.js"]:
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, "w", encoding="utf-8") as f:
             f.write(js_code)

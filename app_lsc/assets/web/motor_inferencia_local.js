@@ -704,7 +704,30 @@ function predecirRedNeuronal(vec109, modelo) {
   const top2 = candidatos[1] || { probabilidad: 0 };
   const margen = top1.probabilidad - top2.probabilidad;
 
-  // 5. Filtro de Decisión Anti-Aleatoriedad
+  // 5. Salvaguarda Anatómica Canónica LSC:
+  // Previene falsos positivos si una mano abierta o relajada intenta clasificarse como seña de dedos cerrados
+  const ext_indice = (vec109[64] || 0) / 3.2;
+  const ext_medio = (vec109[65] || 0) / 3.2;
+  const ext_anular = (vec109[66] || 0) / 3.2;
+  const ext_menique = (vec109[67] || 0) / 3.2;
+  const esManoAbierta = (ext_indice > 0.70 && ext_medio > 0.70 && ext_anular > 0.70 && ext_menique > 0.70);
+
+  if (top1.sena === "DIAS" && ext_medio > 0.60) {
+    // En LSC oficial, DÍAS requiere el dedo índice erguido y los demás dedos doblados.
+    // Si el dedo medio está abierto, es mano abierta neutra o reposo, NUNCA DÍAS.
+    top1.sena = esManoAbierta ? "REPOSO" : "TRANSICION";
+    top1.probabilidad = 0.95;
+  } else if (top1.sena === "YO" && esManoAbierta) {
+    // YO requiere apuntar al pecho con el índice, no mano completamente abierta
+    top1.sena = "REPOSO";
+    top1.probabilidad = 0.95;
+  } else if (top1.sena === "AÑOS" && (ext_indice > 0.65 || ext_medio > 0.65)) {
+    // AÑOS requiere puño cerrado en LSC
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.90;
+  }
+
+  // 6. Filtro de Decisión Anti-Aleatoriedad
   let senaFinal = top1.sena;
   let estado = "SEÑA_DETECTADA";
 
@@ -716,7 +739,6 @@ function predecirRedNeuronal(vec109, modelo) {
     senaFinal = "TRANSICIÓN";
   } else if (top1.probabilidad < 0.72 || margen < 0.10) {
     // Umbral calibrado: requiere al menos 72% de confianza y 10% de margen
-    // Evita falsos positivos en reposo pero permite confirmar DÍAS y HOLA con naturalidad
     estado = "TRANSICION";
     senaFinal = "TRANSICIÓN";
   }

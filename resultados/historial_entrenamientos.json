@@ -37,5 +37,35 @@
     "recall_dias": 0.9921052631578947,
     "ha_mejorado": true,
     "descripcion": "Calibración biomecánica completa (resolución HOLA vs DIAS y retención de muestras de pecho)"
+  },
+  {
+    "id": "20260911_140246",
+    "fecha": "2026-09-11 14:02:46",
+    "total_muestras": 4940,
+    "dimensiones": 109,
+    "accuracy_global": 0.9870445344129555,
+    "f1_score": 0.9871374944615915,
+    "precision_cv_media": 0.8613360323886639,
+    "precision_hola": 1.0,
+    "recall_hola": 0.9289473684210526,
+    "precision_dias": 0.9947643979057592,
+    "recall_dias": 1.0,
+    "ha_mejorado": true,
+    "descripcion": "Calibración biomecánica completa (separación HOLA y DÍAS, retención total tórax)"
+  },
+  {
+    "id": "20260911_140554",
+    "fecha": "2026-09-11 14:05:54",
+    "total_muestras": 4940,
+    "dimensiones": 109,
+    "accuracy_global": 0.9870445344129555,
+    "f1_score": 0.9871374944615915,
+    "precision_cv_media": 0.8613360323886639,
+    "precision_hola": 1.0,
+    "recall_hola": 0.9289473684210526,
+    "precision_dias": 0.9947643979057592,
+    "recall_dias": 1.0,
+    "ha_mejorado": true,
+    "descripcion": "Calibración biomecánica completa (separación HOLA y DÍAS, retención total tórax)"
   }
 ]

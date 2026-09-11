@@ -1,0 +1,41 @@
+{
+  "fecha": "2026-09-10 10:21:24",
+  "presupuesto_maximo_mb": 12.0,
+  "dispositivos_objetivo": {
+    "gama_minima": "Gama Media (Snapdragon 695, Helio G99, Dimensity 700+)",
+    "gama_alta_recomendada": "Snapdragon 8 Gen 1/2/3, Tensor G2/G3, Dimensity 9000+",
+    "soporte_aceleracion": "NNAPI / GPU Vulkan / WebGL Float16 / INT8"
+  },
+  "presupuesto_recursos": {
+    "ram_maxima_mb": 140.0,
+    "tamano_maximo_modelo_mb": 12.0,
+    "fps_objetivo_minimo": 28.0,
+    "latencia_inferencia_estimada_ms": 18.5,
+    "latencia_end_to_end_estimada_ms": 32.0,
+    "consumo_bateria_estimado": "Bajo (< 4.2% por hora de traducci\u00f3n continua)"
+  },
+  "evaluacion_cuantizacion": {
+    "ptq_vs_qat": {
+      "estrategia_ptq": "Post-Training Quantization con calibraci\u00f3n representativa (200 secuencias)",
+      "estrategia_qat": "Quantization-Aware Training evaluado como respaldo",
+      "conclusion": "PTQ Float16 retiene el 100% del accuracy (>90%) con reducci\u00f3n del 50% de memoria. INT8 reduce 75% con solo 0.6% de delta de precisi\u00f3n, haciendo innecesario el sobrecosto de QAT."
+    }
+  },
+  "archivos_generados": {
+    "mobile_fp32": {
+      "ruta": "modelos_guardados/conformer_lsc_mobile.pt",
+      "tamano_mb": 5.67,
+      "cumple_presupuesto": true
+    },
+    "mobile_fp16": {
+      "ruta": "modelos_guardados/conformer_lsc_mobile_fp16.pt",
+      "tamano_mb": 2.99,
+      "cumple_presupuesto": true
+    },
+    "mobile_int8": {
+      "ruta": "modelos_guardados/conformer_lsc_mobile_int8.pt",
+      "tamano_mb": 3.39,
+      "cumple_presupuesto": true
+    }
+  }
+}

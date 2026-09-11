@@ -1370,7 +1370,8 @@
     let timestampUltimoReposo = 0;
     let timestampUltimaTransicion = 0;
     let bufferConsenso = [];
-    const VENTANA_CONSENSO = 11; // Requiere ~350ms de estabilidad temporal sostenida
+    const VENTANA_CONSENSO = 7; // Ventana ágil de ~200ms para encadenar señas consecutivas sin retraso
+    const UMBRAL_CONSENSO = 5;  // Requiere 5 de 7 fotogramas concordantes para confirmar
 
     function adjustMirroring() {
       const transformVal = isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
@@ -1685,6 +1686,7 @@
         progressBar.style.width = '25%';
         progressBar.style.background = 'var(--accent-amber)';
         bufferConsenso = [];
+        ultimaSenaPronunciada = ''; // Desbloquear para que al detenerse reconozca la siguiente seña de inmediato
         return;
       }
 
@@ -1697,7 +1699,7 @@
         progressBar.style.width = `${Math.min(pred.confianza * 100, 100)}%`;
         progressBar.style.background = 'linear-gradient(90deg, var(--accent-cyan), var(--accent-green))';
 
-        // Filtro de Consenso Temporal Anti-Falsos Positivos (8 de 11 fotogramas)
+        // Filtro de Consenso Temporal Anti-Falsos Positivos (5 de 7 fotogramas ~160ms)
         bufferConsenso.push(pred.sena);
         if (bufferConsenso.length > VENTANA_CONSENSO) bufferConsenso.shift();
 
@@ -1705,15 +1707,16 @@
         bufferConsenso.forEach(s => conteo[s] = (conteo[s] || 0) + 1);
         const [masFrecuente, cant] = Object.entries(conteo).sort((a, b) => b[1] - a[1])[0];
 
-        if (cant >= 8 && masFrecuente !== 'REPOSO' && masFrecuente !== 'TRANSICION' && masFrecuente !== 'TRANSICIÓN') {
+        if (cant >= UMBRAL_CONSENSO && masFrecuente !== 'REPOSO' && masFrecuente !== 'TRANSICION' && masFrecuente !== 'TRANSICIÓN') {
           const now = Date.now();
-          const tiempoDesdeUltima = now - timestampUltimaPronunciada;
           const esMismaSena = (masFrecuente === ultimaSenaPronunciada);
 
-          // Pronunciar si es nueva seña, o si han pasado más de 1.4s de la misma
-          if (!esMismaSena || tiempoDesdeUltima > 1400) {
+          // Si es una seña nueva en la secuencia: emitir y agregar de inmediato
+          // (NO se repite periódicamente si la mano se queda inmóvil)
+          if (!esMismaSena) {
             ultimaSenaPronunciada = masFrecuente;
             timestampUltimaPronunciada = now;
+            bufferConsenso = []; // Limpiar para que la siguiente seña consecutiva no arrastre votos viejos
             agregarPalabraAOracion(masFrecuente);
             emitirFeedback(masFrecuente, { vibrar: true, hablar: true });
           }
@@ -1726,12 +1729,8 @@
         predConfidence.textContent = `${Math.round(pred.confianza * 100)}%`;
         progressBar.style.width = '0%';
         bufferConsenso = [];
-
-        // Al descansar, desbloquear para poder repetir la misma seña si el usuario quiere
-        if (Date.now() - timestampUltimoReposo > 180) {
-          ultimaSenaPronunciada = '';
-        }
-        timestampUltimoReposo = Date.now();
+        // Al descansar la mano, desbloquear para poder repetir la misma seña si el usuario lo desea
+        ultimaSenaPronunciada = '';
       } else {
         // MODO TRANSICIÓN / MOVIMIENTO
         stateBadge.textContent = 'EN MOVIMIENTO';
@@ -1742,11 +1741,8 @@
         progressBar.style.width = '25%';
         progressBar.style.background = 'var(--accent-amber)';
         bufferConsenso = [];
-
-        if (Date.now() - timestampUltimaTransicion > 220) {
-          ultimaSenaPronunciada = '';
-        }
-        timestampUltimaTransicion = Date.now();
+        // Durante el movimiento entre señas, desbloquear para permitir encadenar señas consecutivas
+        ultimaSenaPronunciada = '';
       }
     }
 
