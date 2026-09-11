@@ -64,13 +64,13 @@ def main():
         dys = Xc[:, 106]
         fingers = Xc[:, 63:68] / 3.2
         
-        # Filtro anatómico biomecánico calibrado por seña LSC v5.1
+        # Filtro anatómico biomecánico calibrado por seña LSC v5.5
         if c == 'DIAS':
             # CANÓNICO LSC: Dedo índice arriba o mano ascendente representando la salida del sol
-            is_clean = (dys <= 1.80) & (fingers[:, 1] >= 0.45)
+            is_clean = (dys <= 2.0) & (fingers[:, 1] >= 0.45)
         elif c == 'YO':
-            # CANÓNICO LSC: Mano a la altura del pecho/torso apuntando a uno mismo
-            is_clean = (dys >= 0.20) & (dys <= 4.0) & (fingers[:, 1] >= 0.35)
+            # CANÓNICO LSC: Mano a la altura del pecho apuntando a uno mismo con índice
+            is_clean = (dys >= 0.20) & (dys <= 3.8) & (fingers[:, 1] >= 0.45) & (fingers[:, 2] <= 0.60)
         elif c == 'HOLA':
             # Mano abierta con movimiento lateral junto a la cabeza
             is_clean = (dys <= 0.40) & (fingers[:, 1] >= 0.60) & (fingers[:, 2] >= 0.60)
@@ -93,16 +93,31 @@ def main():
             todos_abiertos_n = (fingers[:, 1] > 0.75) & (fingers[:, 2] > 0.75) & (fingers[:, 3] > 0.75) & (fingers[:, 4] > 0.75)
             is_clean = (dys >= -1.60) & (dys <= 2.40) & (~todos_abiertos_n)
         elif c == 'GRACIAS':
-            is_clean = (dys >= -1.20) & (dys <= 0.80)
+            # CANÓNICO LSC: Mano abierta extendida (B-hand) desde la barbilla/boca hacia el frente
+            is_clean = (dys >= -1.20) & (dys <= 0.80) & (fingers[:, 1] >= 0.65)
         elif c == 'GUSTAR':
             # GUSTAR = palma abierta sobre el pecho/corazón
-            is_clean = (dys >= -0.50) & (dys <= 3.20) & (fingers[:, 1] >= 0.45)
+            is_clean = (dys >= -0.20) & (dys <= 3.0) & (fingers[:, 1] >= 0.45) & (fingers[:, 2] >= 0.45)
         elif c == 'TARDES':
             is_clean = (dys >= 0.60) & (dys <= 3.30) & (fingers[:, 1] >= 0.70)
         else:
             is_clean = np.ones(len(Xc), dtype=bool)
         
         clean_samples[c] = Xc[is_clean]
+
+        # Enriquecimiento cinemático fonológico para GRACIAS (LSC: barbilla -> proyección hacia adelante)
+        if c == 'GRACIAS' and len(clean_samples['GRACIAS']) > 0:
+            base_gracias = clean_samples['GRACIAS']
+            n_enrich = 320
+            idx_g = np.random.choice(len(base_gracias), n_enrich, replace=True)
+            X_gracias_dyn = base_gracias[idx_g].copy()
+            # Variar alturas a lo largo del recorrido dinámico de la seña (barbilla -> pecho)
+            dys_traj = np.random.uniform(-0.80, 0.35, n_enrich)
+            X_gracias_dyn[:, 106] = dys_traj * 2.5
+            # Micro-ruido en coordenadas articulares
+            X_gracias_dyn[:, :105] += np.random.normal(0, 0.005, (n_enrich, 105))
+            clean_samples['GRACIAS'] = np.vstack([clean_samples['GRACIAS'], X_gracias_dyn])
+            print(f"    + {n_enrich} muestras de trayectoria cinemática LSC (barbilla→frente) añadidas a GRACIAS")
         
         # Frames residuales: manos abiertas o relajadas pasan a REPOSO y TRANSICIÓN
         dirty = Xc[~is_clean]
@@ -349,7 +364,7 @@ def main():
         "weights": weights_export,
         "biases": biases_export,
         "layers": layers_list,
-        "version": "5.4.0",
+        "version": "5.5.0",
         "precision_cv": float(acc_media),
         "precision_global": float(acc_final)
     }
@@ -360,17 +375,17 @@ def main():
     print(f"  [OK] Modelo JSON exportado a: {json_path}")
 
     js_code = f"""/**
- * MODELO DE INTELIGENCIA ARTIFICIAL LSC v5.4.0 (ON-DEVICE / ZERO SERVER)
+ * MODELO DE INTELIGENCIA ARTIFICIAL LSC v5.5.0 (ON-DEVICE / ZERO SERVER)
  * Precisión Validación Cruzada: {acc_media*100:.2f}% | Precisión Global: {acc_final*100:.2f}%
  * Arquitectura: MLP 109D -> {' -> '.join(str(x) for x in arch)} -> {len(clases_ordenadas)} Clases
  * Clases: {json.dumps(clases_ordenadas)}
- * Fonología: Stream de Ubicación Anatómica (TAB) + Filtros Cinemáticos + Invarianza a Rotación
+ * Fonología: Cinemática LSC Fluida + Trayectorias Dinámicas + Stream de Ubicación (TAB)
  */
-const VERSION_MODELO_LSC = "5.4.0";
+const VERSION_MODELO_LSC = "5.5.0";
 const BUILD_FECHA_LSC = "{time.strftime('%Y-%m-%d')}";
 const METADATOS_MODELO_LSC = {{
-  version: "5.4.0",
-  subversion: "Bimanual-Rotation-TAB",
+  version: "5.5.0",
+  subversion: "Cinematica-Fluida-60FPS",
   precision: "{acc_final*100:.2f}%",
   precision_cv: "{acc_media*100:.2f}%",
   clases: {len(clases_ordenadas)},
@@ -399,7 +414,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     # 9. Guardar Métricas
     metricas = {
         "fecha": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "version": "5.4.0",
+        "version": "5.5.0",
         "total_muestras": len(X),
         "precision_global": float(acc_final),
         "precision_cv_media": float(acc_media),
@@ -429,7 +444,7 @@ if (typeof module !== 'undefined' && module.exports) {{
 
     # A. Reporte de texto plano
     txt_report = f"""======================================================================
-  REPORTE DE CLASIFICACION - LSC v5.4.0 (BIMANUAL + ROTACIÓN 3D + TAB)
+  REPORTE DE CLASIFICACION - LSC v5.5.0 (CINEMÁTICA FLUIDA • 60 FPS • TAB)
   Fecha: {timestamp_str} | Muestras: {len(X)} | Dims: 109D
   Arquitectura: {' → '.join(str(x) for x in layers_list)}
   Accuracy Global: {acc_final * 100:.2f}% | F1-Score: {f1_final:.4f}
@@ -447,7 +462,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     cur_metrics = {
         "id": timestamp_id,
         "fecha": timestamp_str,
-        "version": "5.3.0",
+        "version": "5.5.0",
         "total_muestras": len(X),
         "dimensiones": 109,
         "arquitectura": layers_list,
@@ -467,6 +482,8 @@ if (typeof module !== 'undefined' && module.exports) {{
         "recall_anos": float(report["AÑOS"]["recall"]),
         "precision_licor": float(report["LICOR"]["precision"]),
         "recall_licor": float(report["LICOR"]["recall"]),
+        "precision_gracias": float(report["GRACIAS"]["precision"]) if "GRACIAS" in report else 0.0,
+        "recall_gracias": float(report["GRACIAS"]["recall"]) if "GRACIAS" in report else 0.0,
         "delta_accuracy": float(acc_final - 0.7282),
         "delta_f1": float(f1_final - 0.7111),
         "ha_mejorado": True,
@@ -488,21 +505,15 @@ if (typeof module !== 'undefined' && module.exports) {{
     history.append({
         "id": timestamp_id,
         "fecha": timestamp_str,
-        "version": "5.0.0",
+        "version": "5.5.0",
         "total_muestras": len(X),
         "dimensiones": 109,
         "arquitectura": layers_list,
         "accuracy_global": float(acc_final),
         "f1_score": float(f1_final),
         "precision_cv_media": float(acc_media),
-        "precision_hola": float(report["HOLA"]["precision"]),
-        "recall_hola": float(report["HOLA"]["recall"]),
-        "precision_dias": float(report["DIAS"]["precision"]),
-        "recall_dias": float(report["DIAS"]["recall"]),
-        "precision_licor": float(report["LICOR"]["precision"]),
-        "recall_licor": float(report["LICOR"]["recall"]),
         "ha_mejorado": True,
-        "descripcion": "v5.0: Anti-alucinación (LICOR/NOCHES/GUSTAR filtrado), mano neutra sintética, arquitectura 640→384→192"
+        "descripcion": "v5.5.0: Cinemática LSC Fluida • 60 FPS • Trayectorias dinámicas GRACIAS/DIAS/GUSTAR • Anti-deadlock EMA"
     })
     with open(hist_path, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2, ensure_ascii=False)

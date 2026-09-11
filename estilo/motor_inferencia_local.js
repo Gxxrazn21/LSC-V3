@@ -52,7 +52,7 @@ const Vec3 = {
  * Elimina el temblor en reposo y responde instantáneamente en movimientos bruscos (cero lag).
  */
 class OneEuroFilter {
-  constructor(minCutoff = 1.2, beta = 20.0, dCutoff = 5.0) {
+  constructor(minCutoff = 1.2, beta = 60.0, dCutoff = 5.0) {
     this.minCutoff = minCutoff;
     this.beta = beta;
     this.dCutoff = dCutoff;
@@ -99,7 +99,7 @@ class OneEuroFilter {
 /**
  * Estabilizador cinemático de mano completa (21 puntos 3D)
  * con soporte para OCLUSIÓN (cuando una mano se ubica detrás de la otra)
- * y persistencia inercial ante desenfoque de movimiento.
+ * y persistencia inercial reactiva sin arrastre ni teleportación.
  */
 class LandmarkStabilizer {
   constructor(slotId = 0) {
@@ -107,16 +107,16 @@ class LandmarkStabilizer {
     this.filters = [];
     for (let i = 0; i < 21; i++) {
       this.filters.push([
-        new OneEuroFilter(1.2, 20.0, 5.0), // X
-        new OneEuroFilter(1.2, 20.0, 5.0), // Y
-        new OneEuroFilter(1.2, 20.0, 5.0), // Z
+        new OneEuroFilter(1.2, 60.0, 5.0), // X
+        new OneEuroFilter(1.2, 60.0, 5.0), // Y
+        new OneEuroFilter(1.2, 60.0, 5.0), // Z
       ]);
     }
     this.lastFiltered = null;
     this.lastTimestamp = null;
     this.framesMissing = 0;
-    this.framesVisible = 0; // Contador de persistencia temporal para evitar predicciones prematuras
-    this.maxGraceFrames = 6; // Persistencia ante motion blur y giros de palma
+    this.framesVisible = 0; // Contador de persistencia temporal
+    this.maxGraceFrames = 4; // Persistencia ante motion blur
     this.maxOcclusionFrames = 45; // Persistencia extendida cuando una mano está detrás (~1.5s)
     this.currentVelocity = [0, 0, 0];
     this.isOccluded = false;
@@ -128,12 +128,13 @@ class LandmarkStabilizer {
 
     if (!rawCoords || rawCoords.length < 21) {
       this.framesMissing++;
-      // Decrementar suavemente para no trabar la inferencia en preparación ante giros
       this.framesVisible = Math.max(0, this.framesVisible - 1);
-      if (this.framesMissing <= this.maxGraceFrames && this.lastFiltered) {
-        // Extrapolación inercial suave
-        const dt = Math.min((now - (this.lastTimestamp || now)) / 1000.0, 0.05) || 0.033;
-        const decay = Math.pow(0.75, this.framesMissing);
+      const speed = Vec3.norm(this.currentVelocity);
+      const maxGrace = speed > 0.35 ? 2 : 4;
+      if (this.framesMissing <= maxGrace && this.lastFiltered) {
+        // Extrapolación inercial suave y continua
+        const dt = Math.min((now - (this.lastTimestamp || now)) / 1000.0, 0.04) || 0.033;
+        const decay = Math.pow(0.88, this.framesMissing);
         const predicted = [];
 
         for (let i = 0; i < 21; i++) {
@@ -150,7 +151,6 @@ class LandmarkStabilizer {
 
         this.lastFiltered = predicted;
         this.lastTimestamp = now;
-        const speed = Vec3.norm(this.currentVelocity);
         return {
           coords: predicted,
           isPredicted: true,
@@ -174,6 +174,19 @@ class LandmarkStabilizer {
         (rawCoords[0][1] - this.lastFiltered[0][1]) / dt,
         (rawCoords[0][2] - this.lastFiltered[0][2]) / dt,
       ];
+
+      // Anti-Teleportación: si se perdieron fotogramas y la mano se desplazó significativamente,
+      // sincronizar de inmediato la referencia interna para no arrastrar la mano hacia atrás
+      if (this.framesMissing > 0) {
+        const jumpDist = Vec3.dist(rawCoords[0], this.lastFiltered[0]);
+        if (jumpDist > 0.05) {
+          for (let i = 0; i < 21; i++) {
+            this.filters[i][0].xPrev = rawCoords[i][0];
+            this.filters[i][1].xPrev = rawCoords[i][1];
+            this.filters[i][2].xPrev = rawCoords[i][2];
+          }
+        }
+      }
     }
 
     this.framesMissing = 0;
@@ -191,7 +204,6 @@ class LandmarkStabilizer {
     this.lastFiltered = smoothed;
     const speed = Vec3.norm(this.currentVelocity);
     const wrist = smoothed[0];
-    // Detección de proximidad al borde de la pantalla (mano incompleta / entrando)
     const isNearBoundary = (wrist[0] < 0.06 || wrist[0] > 0.94 || wrist[1] < 0.05 || wrist[1] > 0.92);
 
     return {
@@ -987,6 +999,132 @@ const _motionGateSlot1 = new MotionGate();
 
 /**
  * ============================================================================
+ * ACUMULADOR LEAKY EMA DE PROBABILIDADES LSC (v5.5.0)
+ * ============================================================================
+ * - Acumula la distribución de probabilidades continua mediante Exponential Moving Average (EMA).
+ * - S_t(c) = 0.65 * S_{t-1}(c) + 0.35 * P_t(c)
+ * - Captura fluidamente señas en movimiento dinámico (HOLA, DIAS, TARDES, GRACIAS, NOCHES, GUSTAR)
+ *   así como señas estáticas (YO, LICOR) sin requerir posturas inmóviles ni bloquearse en bucles.
+ * - Elimina falsos positivos transitorios sin causar atascos (deadlocks).
+ */
+class AcumuladorProbabilidadesLSC {
+  constructor(options = {}) {
+    this.decay = options.decay || 0.65; // Factor de retención
+    this.threshold = options.threshold || 0.58; // Puntuación EMA requerida (58%)
+    this.minMargin = options.minMargin || 0.10; // Margen de separación sobre el segundo
+    this.minConsecutive = options.minConsecutive || 3; // 3 ticks sucesivos (~80-100ms a 30-40 FPS)
+    this.cooldownMs = options.cooldownMs || 900; // Enfriamiento entre misma seña
+
+    this.scores = {};
+    this.candidate = null;
+    this.consecutiveCount = 0;
+    this.lastEmitted = '';
+    this.lastEmittedTime = 0;
+  }
+
+  update(prediction, timestamp) {
+    const now = timestamp || performance.now();
+
+    if (!prediction || !prediction.candidatos || prediction.candidatos.length === 0) {
+      this.decayAll();
+      return { emitir: false, scores: this.scores, top: null, score: 0 };
+    }
+
+    const alpha = 1.0 - this.decay;
+    const currentProbs = {};
+    for (const c of prediction.candidatos) {
+      currentProbs[c.sena] = c.probabilidad;
+    }
+
+    // Actualizar scores de clases conocidas
+    for (const sena in this.scores) {
+      const p = currentProbs[sena] || 0.0;
+      this.scores[sena] = this.decay * this.scores[sena] + alpha * p;
+    }
+    // Agregar nuevas clases
+    for (const c of prediction.candidatos) {
+      if (!(c.sena in this.scores)) {
+        this.scores[c.sena] = alpha * c.probabilidad;
+      }
+    }
+
+    // Ordenar scores
+    let top1Sena = null, top1Score = -1;
+    let top2Score = -1;
+    for (const [sena, score] of Object.entries(this.scores)) {
+      if (score > top1Score) {
+        top2Score = top1Score;
+        top1Score = score;
+        top1Sena = sena;
+      } else if (score > top2Score) {
+        top2Score = score;
+      }
+    }
+
+    const margin = top1Score - (top2Score > 0 ? top2Score : 0);
+    const isSign = top1Sena && top1Sena !== 'REPOSO' && top1Sena !== 'TRANSICION' && top1Sena !== 'TRANSICIÓN';
+
+    if (isSign && top1Score >= this.threshold && margin >= this.minMargin) {
+      if (this.candidate === top1Sena) {
+        this.consecutiveCount++;
+      } else {
+        this.candidate = top1Sena;
+        this.consecutiveCount = 1;
+      }
+    } else {
+      this.candidate = null;
+      this.consecutiveCount = 0;
+    }
+
+    const timeSinceLast = now - this.lastEmittedTime;
+    const isSameSign = (top1Sena === this.lastEmitted);
+    const cooldownOk = isSameSign ? (timeSinceLast > this.cooldownMs) : (timeSinceLast > 350);
+
+    if (isSign && this.consecutiveCount >= this.minConsecutive && cooldownOk) {
+      this.lastEmitted = top1Sena;
+      this.lastEmittedTime = now;
+      this.consecutiveCount = 0;
+      // Drenar el score de la seña emitida para evitar eco
+      this.scores[top1Sena] *= 0.25;
+
+      return {
+        emitir: true,
+        sena: top1Sena,
+        score: top1Score,
+        margen: margin,
+        top: top1Sena
+      };
+    }
+
+    return {
+      emitir: false,
+      sena: top1Sena,
+      score: top1Score,
+      margen: margin,
+      top: top1Sena,
+      isSign: isSign
+    };
+  }
+
+  decayAll() {
+    for (const s in this.scores) {
+      this.scores[s] *= this.decay;
+    }
+    this.candidate = null;
+    this.consecutiveCount = 0;
+  }
+
+  reset() {
+    this.scores = {};
+    this.candidate = null;
+    this.consecutiveCount = 0;
+    this.lastEmitted = '';
+    this.lastEmittedTime = 0;
+  }
+}
+
+/**
+ * ============================================================================
  * HISTÉRESIS Y DEBOUNCE TEMPORAL (CONTROL DE EMISIÓN ROBUSTA) - v5.2
  * ============================================================================
  * - Exige estabilidad temporal mediante ventana de votación (K de N frames).
@@ -1081,9 +1219,8 @@ class HysteresisDebounce {
 /**
  * Realiza la inferencia de la Red Neuronal MLP On-Device.
  * - Clasifica entre las 13 clases del modelo ultra-preciso.
+ * - Soporta gestos cinemáticos dinámicos y estáticos en LSC.
  * - Detecta explícitamente REPOSO y TRANSICION.
- * - Bloquea predicciones si la mano está neutra/tendida (v5.0).
- * - Requiere confianza >= 75% y margen >= 12% para confirmar una seña activa.
  */
 function predecirRedNeuronal(vec109, modelo, handMeta) {
   if (!modelo) {
@@ -1095,15 +1232,17 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
 
   const { scaler_mean, scaler_scale, clases } = modelo;
 
-  // 0. COMPUERTA CINEMÁTICA DE MOVIMIENTO (MOTION-GATED INFERENCE v5.2)
-  // Si la mano está estática/inmóvil sin movimiento activo de seña, abstenerse de predecir texto
+  // 0. COMPUERTA CINEMÁTICA DE MOVIMIENTO ADAPTATIVA (v5.5.0)
+  // Solo aplicar compuerta estricta si la mano está abajo en zona de descanso (dy > 2.0)
+  // En la zona torácica / facial / neutral, permitimos que la red clasifique normalmente
   const slotIdx = (handMeta && handMeta.slot !== undefined) ? handMeta.slot : 0;
   const motionGate = slotIdx === 1 ? _motionGateSlot1 : _motionGateSlot0;
   const wristPos = (handMeta && handMeta.coords) ? handMeta.coords[0] : null;
   const tips = (handMeta && handMeta.coords) ? [handMeta.coords[4], handMeta.coords[8], handMeta.coords[12], handMeta.coords[16], handMeta.coords[20]] : null;
   const gateRes = motionGate.update(wristPos, tips, performance.now());
+  const dyRelativo = (vec109[106] || 0) / 2.5;
 
-  if (!gateRes.isOpen) {
+  if (!gateRes.isOpen && dyRelativo > 2.2) {
     return {
       sena: "REPOSO",
       rawSena: "REPOSO",
@@ -1184,16 +1323,14 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const top2 = candidatos[1] || { probabilidad: 0 };
   const margen = top1.probabilidad - top2.probabilidad;
 
-  // 4b. Medición de Entropía y Blindaje Anti-Adivinanzas (v5.4.0)
-  // Si la distribución de probabilidad es difusa o el modelo está dudando entre varias señas
-  // se clasifica inmediatamente como TRANSICIÓN para evitar "adivinanzas" espurias
+  // 4b. Medición de Entropía y Blindaje Anti-Adivinanzas (v5.5.0)
   let entropia = 0;
   for (let j = 0; j < num_clases; j++) {
     const p = probs[j];
     if (p > 1e-6) entropia -= p * Math.log2(p);
   }
 
-  const estaAdivinando = (entropia > 1.30 && top1.probabilidad < 0.80) || (margen < 0.12 && top1.probabilidad < 0.82);
+  const estaAdivinando = (entropia > 1.85 && top1.probabilidad < 0.55) || (margen < 0.08 && top1.probabilidad < 0.50);
   if (estaAdivinando && top1.sena !== 'REPOSO') {
     return {
       sena: 'TRANSICION',
@@ -1508,6 +1645,7 @@ if (typeof module !== 'undefined' && module.exports) {
     NeutralHandDetector,
     MotionGate,
     HysteresisDebounce,
+    AcumuladorProbabilidadesLSC,
     MejoradorVideoOnDevice,
     DecodificadorContinuoCTC,
     INDICES_FACIALES_NMM_64,
@@ -1525,6 +1663,7 @@ if (typeof module !== 'undefined' && module.exports) {
     NeutralHandDetector,
     MotionGate,
     HysteresisDebounce,
+    AcumuladorProbabilidadesLSC,
     MejoradorVideoOnDevice,
     DecodificadorContinuoCTC,
     INDICES_FACIALES_NMM_64,
