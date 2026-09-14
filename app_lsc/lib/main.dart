@@ -22,7 +22,7 @@ class LSCApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gestual',
+      title: 'Gestual Vision AI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF070913),
@@ -48,7 +48,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
   HttpServer? _server;
   late final WebViewController _controller;
   bool _serverReady = false;
-  String _statusMessage = 'Iniciando motor LSC...';
+  String _statusMessage = 'Iniciando Gestual Vision AI v6.0...';
 
   // Gestión de Live Sync y Recursos OTA
   String _pcHost = '192.168.1.15:8000';
@@ -391,13 +391,13 @@ class _LSCHomePageState extends State<LSCHomePage> {
                                 nav.pop();
                                 await _controller.clearCache();
                                 _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('✅ ¡Modelo actualizado con éxito a IA v5.4.0 (Robustez Bimanual & Rotación)!'),
-                                    backgroundColor: Colors.green,
-                                    duration: Duration(seconds: 4),
-                                  ),
-                                );
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text('✅ ¡Modelo actualizado con éxito a Gestual Vision AI v6.0 (Cámara Limpia Cinemática)!'),
+                                      backgroundColor: Colors.green,
+                                      duration: Duration(seconds: 4),
+                                    ),
+                                  );
                               } else {
                                 messenger.showSnackBar(
                                   const SnackBar(

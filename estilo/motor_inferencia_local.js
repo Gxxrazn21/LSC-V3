@@ -107,9 +107,9 @@ class LandmarkStabilizer {
     this.filters = [];
     for (let i = 0; i < 21; i++) {
       this.filters.push([
-        new OneEuroFilter(1.2, 60.0, 5.0), // X
-        new OneEuroFilter(1.2, 60.0, 5.0), // Y
-        new OneEuroFilter(1.2, 60.0, 5.0), // Z
+        new OneEuroFilter(1.0, 85.0, 10.0), // X: reactivo a velocidad alta sin lag
+        new OneEuroFilter(1.0, 85.0, 10.0), // Y: reactivo a velocidad alta sin lag
+        new OneEuroFilter(1.0, 85.0, 10.0), // Z: reactivo a velocidad alta sin lag
       ]);
     }
     this.lastFiltered = null;
@@ -175,16 +175,15 @@ class LandmarkStabilizer {
         (rawCoords[0][2] - this.lastFiltered[0][2]) / dt,
       ];
 
-      // Anti-Teleportación: si se perdieron fotogramas y la mano se desplazó significativamente,
-      // sincronizar de inmediato la referencia interna para no arrastrar la mano hacia atrás
-      if (this.framesMissing > 0) {
-        const jumpDist = Vec3.dist(rawCoords[0], this.lastFiltered[0]);
-        if (jumpDist > 0.05) {
-          for (let i = 0; i < 21; i++) {
-            this.filters[i][0].xPrev = rawCoords[i][0];
-            this.filters[i][1].xPrev = rawCoords[i][1];
-            this.filters[i][2].xPrev = rawCoords[i][2];
-          }
+      // Anti-Teleportación y Snap Instantáneo ante movimientos bruscos y rápidos:
+      // Si la mano se desplazó súbitamente (salto rápido > 0.07) o se perdieron fotogramas,
+      // sincronizar de inmediato la referencia interna para anular arrastre o elasticidad
+      const jumpDist = Vec3.dist(rawCoords[0], this.lastFiltered[0]);
+      if (jumpDist > 0.07 || (this.framesMissing > 0 && jumpDist > 0.04)) {
+        for (let i = 0; i < 21; i++) {
+          this.filters[i][0].xPrev = rawCoords[i][0];
+          this.filters[i][1].xPrev = rawCoords[i][1];
+          this.filters[i][2].xPrev = rawCoords[i][2];
         }
       }
     }
@@ -1013,7 +1012,7 @@ class AcumuladorProbabilidadesLSC {
     this.threshold = options.threshold || 0.58; // Puntuación EMA requerida (58%)
     this.minMargin = options.minMargin || 0.10; // Margen de separación sobre el segundo
     this.minConsecutive = options.minConsecutive || 3; // 3 ticks sucesivos (~80-100ms a 30-40 FPS)
-    this.cooldownMs = options.cooldownMs || 900; // Enfriamiento entre misma seña
+    this.cooldownMs = options.cooldownMs || 750; // Enfriamiento entre misma seña (más reactivo)
 
     this.scores = {};
     this.candidate = null;
@@ -1068,6 +1067,10 @@ class AcumuladorProbabilidadesLSC {
       if (this.candidate === top1Sena) {
         this.consecutiveCount++;
       } else {
+        // Transición ágil entre múltiples señas: atenuar fuertemente memoria de señas previas
+        for (const s in this.scores) {
+          if (s !== top1Sena) this.scores[s] *= 0.20;
+        }
         this.candidate = top1Sena;
         this.consecutiveCount = 1;
       }
@@ -1078,9 +1081,11 @@ class AcumuladorProbabilidadesLSC {
 
     const timeSinceLast = now - this.lastEmittedTime;
     const isSameSign = (top1Sena === this.lastEmitted);
-    const cooldownOk = isSameSign ? (timeSinceLast > this.cooldownMs) : (timeSinceLast > 350);
+    const cooldownOk = isSameSign ? (timeSinceLast > this.cooldownMs) : (timeSinceLast > 280);
+    // Si la confianza es alta (>82%), bastan 2 fotogramas para confirmación ultrarrápida
+    const reqConsecutive = (top1Score >= 0.82) ? 2 : this.minConsecutive;
 
-    if (isSign && this.consecutiveCount >= this.minConsecutive && cooldownOk) {
+    if (isSign && this.consecutiveCount >= reqConsecutive && cooldownOk) {
       this.lastEmitted = top1Sena;
       this.lastEmittedTime = now;
       this.consecutiveCount = 0;
