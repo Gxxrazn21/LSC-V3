@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Gestual Vision AI v6.0 | Reconocimiento LSC en Tiempo Real (Cámara Limpia)</title>
+  <title>Gestual Vision AI v6.1 | Reconocimiento LSC Bimanual (Cámara Limpia & Spring Motion)</title>
   <link rel="icon" type="image/png" href="logo_simbolo.png">
   
   <!-- Tipografía Moderna Accesible -->
@@ -36,9 +36,14 @@
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.35);
-      --glow-green: 0 0 20px rgba(0, 255, 157, 0.40);
+      --glow-green: 0 0 24px rgba(0, 255, 157, 0.45);
       --glow-amber: 0 0 20px rgba(255, 184, 0, 0.35);
       --glow-purple: 0 0 20px rgba(240, 0, 255, 0.35);
+      
+      /* Físicas de Resorte y Animaciones Estilo Framer Motion (ui-ux-pro-max) */
+      --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --spring-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+      --spring-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     * {
@@ -204,17 +209,61 @@
       gap: 10px;
     }
 
-    /* Viewport Cámara Futurista con HUD */
+    /* Viewport Cámara Futurista con HUD y Físicas de Resorte Framer Motion */
     .viewport-card {
       position: relative;
       width: 100%;
       aspect-ratio: 4/3;
       max-height: 48vh;
-      border-radius: 22px;
+      border-radius: 24px;
       overflow: hidden;
       background: #02040a;
-      border: 1px solid rgba(0, 240, 255, 0.25);
+      border: 1.5px solid rgba(0, 240, 255, 0.28);
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), inset 0 0 20px rgba(0, 240, 255, 0.05);
+      animation: ambientBreath 4.5s ease-in-out infinite;
+      transition: transform 0.4s var(--spring-bounce), border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .viewport-card.pulse-confirmed {
+      animation: pulseConfirmed 0.65s var(--spring-bounce) forwards;
+    }
+
+    @keyframes ambientBreath {
+      0%, 100% {
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 240, 255, 0.10), inset 0 0 15px rgba(0, 240, 255, 0.05);
+        border-color: rgba(0, 240, 255, 0.25);
+      }
+      50% {
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 240, 255, 0.25), inset 0 0 22px rgba(0, 240, 255, 0.12);
+        border-color: rgba(0, 240, 255, 0.55);
+      }
+    }
+
+    @keyframes pulseConfirmed {
+      0% {
+        transform: scale(0.97);
+        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.8);
+        border-color: var(--accent-green);
+      }
+      45% {
+        transform: scale(1.025);
+        box-shadow: 0 0 50px 12px rgba(0, 255, 157, 0.55);
+        border-color: var(--accent-green);
+      }
+      100% {
+        transform: scale(1.0);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 255, 157, 0.25);
+        border-color: rgba(0, 255, 157, 0.45);
+      }
+    }
+
+    .spring-pop {
+      animation: springPop 0.42s var(--spring-bounce) forwards;
+    }
+    @keyframes springPop {
+      0% { transform: scale(0.82); opacity: 0; }
+      55% { transform: scale(1.08); }
+      100% { transform: scale(1.0); opacity: 1; }
     }
 
     #videoElement {
@@ -1681,9 +1730,10 @@
       let mejorDesc = null;
 
       activeHands.forEach(hand => {
-        const desc = MotorLSCLocal.extraerDescriptorMultimodal(hand.coords, ultimosHombros);
+        const isLeftHand = hand.isLeft || false;
+        const desc = MotorLSCLocal.extraerDescriptorMultimodal(hand.coords, ultimosHombros, isLeftHand);
         // Metadata de la mano para detector de velocidad y lateralidad
-        const handMeta = { slot: hand.slot, speed: hand.speed || 0, coords: hand.coords };
+        const handMeta = { slot: hand.slot, speed: hand.speed || 0, coords: hand.coords, isLeft: isLeftHand };
         const pred = MotorLSCLocal.predecirRedNeuronal(desc.vec109, window.MODELO_LSC, handMeta);
         hand.desc = desc;
         hand.pred = pred;
@@ -1758,47 +1808,66 @@
         return;
       }
 
-      // Procesamiento a través del Acumulador EMA LSC (v5.5.0)
+      // Procesamiento a través del Acumulador EMA LSC (v6.1.0)
       const resAcum = acumuladorLSC.update(pred, performance.now());
 
       if (resAcum.emitir) {
         stateBadge.textContent = `SEÑA CONFIRMADA`;
-        stateBadge.className = 'pred-state-badge state-detected';
+        stateBadge.className = 'pred-state-badge state-detected spring-pop';
         predTitle.textContent = resAcum.sena.replace(/_/g, ' ');
         predTitle.style.color = 'var(--accent-green)';
+        predTitle.className = 'pred-title spring-pop';
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = '100%';
         progressBar.style.background = 'linear-gradient(90deg, var(--accent-cyan), var(--accent-green))';
+
+        // Pulso elástico estilo Framer Motion en el visor de cámara
+        const vpCard = document.querySelector('.viewport-card');
+        if (vpCard) {
+          vpCard.classList.remove('pulse-confirmed');
+          void vpCard.offsetWidth; // force reflow
+          vpCard.classList.add('pulse-confirmed');
+          setTimeout(() => vpCard.classList.remove('pulse-confirmed'), 700);
+        }
 
         agregarPalabraAOracion(resAcum.sena);
         emitirFeedback(resAcum.sena, { vibrar: true, hablar: true });
         return;
       }
 
-      if (resAcum.isSign && resAcum.score >= 0.38) {
+      // ESTADO DE CALMA: Mano quieta, en reposo o sin movimiento intencional
+      // NUNCA forzar predicción cuando no se está haciendo nada
+      if (pred && (pred.estado === 'REPOSO' || pred.isNeutralHand || pred.isMotionGated)) {
+        stateBadge.textContent = '🤚 EN ESPERA • MANO LIBRE';
+        stateBadge.className = 'pred-state-badge state-reposo';
+        predTitle.textContent = '---';
+        predTitle.className = 'pred-title';
+        predTitle.style.color = '#64748b';
+        predConfidence.textContent = '0%';
+        progressBar.style.width = '0%';
+        if (typeof acumuladorLSC !== 'undefined') acumuladorLSC.decayAll();
+        return;
+      }
+
+      if (resAcum.isSign && resAcum.score >= 0.50) {
         stateBadge.textContent = `RECONOCIENDO SEÑA...`;
         stateBadge.className = 'pred-state-badge state-detected';
         predTitle.textContent = resAcum.sena.replace(/_/g, ' ');
+        predTitle.className = 'pred-title';
         predTitle.style.color = 'var(--accent-cyan)';
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = `${Math.min(resAcum.score * 100, 100)}%`;
         progressBar.style.background = 'linear-gradient(90deg, var(--accent-cyan), var(--accent-green))';
-      } else if (pred && pred.estado === 'REPOSO') {
-        stateBadge.textContent = 'MANO EN REPOSO';
-        stateBadge.className = 'pred-state-badge state-reposo';
-        predTitle.textContent = '[REPOSO / SIN SEÑA]';
-        predTitle.style.color = '#64748b';
-        predConfidence.textContent = '---';
-        progressBar.style.width = '0%';
       } else {
         stateBadge.textContent = 'EN MOVIMIENTO';
         stateBadge.className = 'pred-state-badge state-transicion';
         predTitle.textContent = (pred && pred.sena && pred.sena !== 'TRANSICION' && pred.sena !== 'REPOSO')
           ? pred.sena.replace(/_/g, ' ')
           : '[TRANSICIÓN]';
+        predTitle.className = 'pred-title';
         predTitle.style.color = 'var(--accent-amber)';
         predConfidence.textContent = pred ? `${Math.round((pred.confianza || 0) * 100)}%` : '---';
-        progressBar.style.width = '25%';
+        progressBar.style.width = '20%';
         progressBar.style.background = 'var(--accent-amber)';
       }
     }

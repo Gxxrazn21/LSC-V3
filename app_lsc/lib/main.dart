@@ -48,7 +48,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
   HttpServer? _server;
   late final WebViewController _controller;
   bool _serverReady = false;
-  String _statusMessage = 'Iniciando Gestual Vision AI v6.0...';
+  String _statusMessage = 'Iniciando Gestual Vision AI v6.1...';
 
   // Gestión de Live Sync y Recursos OTA
   String _pcHost = '192.168.1.15:8000';

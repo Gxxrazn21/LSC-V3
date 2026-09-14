@@ -394,12 +394,14 @@ class DualHandTracker {
         otherSlot.reset();
       }
 
+      const isLeftActive = (activeLabel === 'Mano Izquierda' || det.label === 'Left');
       const res = [];
       if (upActive) {
         res.push({
           ...upActive,
           slot: isSlot0 ? 0 : 1,
           label: activeLabel,
+          isLeft: isLeftActive,
           colorScheme: isSlot0 ? 'cyan' : 'purple',
           isOccluded: false,
           isBehind: false
@@ -411,6 +413,7 @@ class DualHandTracker {
           ...upOther,
           slot: isSlot0 ? 1 : 0,
           label: `${otherLabel} (Trasera)`,
+          isLeft: !isLeftActive,
           colorScheme: isSlot0 ? 'purple' : 'cyan',
           isOccluded: true,
           isBehind: true
@@ -467,6 +470,7 @@ class DualHandTracker {
         ...up0,
         slot: 0,
         label: 'Mano Derecha',
+        isLeft: false,
         colorScheme: 'cyan',
         isOccluded: false,
         isBehind: rightIsBehind,
@@ -479,6 +483,7 @@ class DualHandTracker {
         ...up1,
         slot: 1,
         label: 'Mano Izquierda',
+        isLeft: true,
         colorScheme: 'purple',
         isOccluded: false,
         isBehind: leftIsBehind,
@@ -499,17 +504,27 @@ class DualHandTracker {
 /**
  * Extrae el descriptor articular canónico de 105 dimensiones
  * a partir de las 21 coordenadas 3D de la mano.
+ * Soporta INVARIANZA BIMANUAL (isLeft = true): si el usuario signa con la mano
+ * izquierda, refleja el eje X para que la geometría anatómica coincida al 100%
+ * con la representación canónica aprendida por la red neuronal.
  */
-function extraerDescriptorArticular(coords) {
-  const p0 = coords[0];
-  const rel = coords.map(c => Vec3.sub(c, p0));
+function extraerDescriptorArticular(coords, isLeft = false) {
+  let c = coords;
+  if (isLeft && coords && coords.length >= 21) {
+    // Reflejo bimanual respecto a la muñeca p0 para simetría anatómica idéntica
+    const p0x = coords[0][0];
+    c = coords.map(pt => [2 * p0x - pt[0], pt[1], pt[2] || 0]);
+  }
+
+  const p0 = c[0];
+  const rel = c.map(pt => Vec3.sub(pt, p0));
 
   // Base canónica orientada por la palma
-  const v_mcp_medio = Vec3.sub(coords[9], p0);
+  const v_mcp_medio = Vec3.sub(c[9], p0);
   const d_palma = Math.max(Vec3.norm(v_mcp_medio), 1e-4);
   const uy = Vec3.scale(v_mcp_medio, 1.0 / d_palma);
 
-  const v_base = Vec3.sub(coords[17], coords[5]);
+  const v_base = Vec3.sub(c[17], c[5]);
   let uz = Vec3.cross(uy, v_base);
   const n_uz = Vec3.norm(uz);
   if (n_uz < 1e-4) {
@@ -634,7 +649,7 @@ function extraerDescriptorArticular(coords) {
  *
  * Requisito: Cero segmentación visual por cámara (eficiente para mobile O(1)).
  */
-function extraerZonasCorporalesPose(handCoords, poseAnchors) {
+function extraerZonasCorporalesPose(handCoords, poseAnchors, isLeft = false) {
   if (!handCoords || handCoords.length === 0) return null;
 
   // Centroide de la mano y muñeca (p0)
@@ -688,6 +703,9 @@ function extraerZonasCorporalesPose(handCoords, poseAnchors) {
   const dy = (p0[1] - c_h[1]) / w_h;
   const dz = ((p0[2] || 0.0) - c_h[2]) / w_h;
   const dist_cuerpo = Math.hypot(dx, dy, dz);
+
+  // Invarianza bimanual horizontal (dx reflejado si es mano izquierda)
+  const dx_norm = isLeft ? -dx : dx;
 
   // Distancias Euclidianas normalizadas a cada centro anatómico
   const distCabeza = Math.hypot((pMano[0] - centroCabeza[0]) / w_h, (pMano[1] - centroCabeza[1]) / w_h, (pMano[2] - centroCabeza[2]) / w_h);
@@ -747,7 +765,7 @@ function extraerZonasCorporalesPose(handCoords, poseAnchors) {
   const afinidades = expScores.map(e => e / sumExp);
 
   return {
-    dx,
+    dx: dx_norm,
     dy,
     dz,
     dist_cuerpo,
@@ -770,17 +788,18 @@ function extraerZonasCorporalesPose(handCoords, poseAnchors) {
     zona,
     labelZona,
     emojiZona,
-    cuerpo_coords: [dx * 2.5, dy * 2.5, dz * 2.5, dist_cuerpo * 2.5]
+    cuerpo_coords: [dx_norm * 2.5, dy * 2.5, dz * 2.5, dist_cuerpo * 2.5]
   };
 }
 
 /**
  * Descriptor multimodal 109D combinando cinemática de mano
  * con el stream fonológico de ubicación anatómica (TAB).
+ * Soporta invarianza bimanual simétrica (isLeft).
  */
-function extraerDescriptorMultimodal(handCoords, poseAnchors) {
-  const { vec105, ext_dedos, p_canon } = extraerDescriptorArticular(handCoords);
-  const infoZonas = extraerZonasCorporalesPose(handCoords, poseAnchors);
+function extraerDescriptorMultimodal(handCoords, poseAnchors, isLeft = false) {
+  const { vec105, ext_dedos, p_canon } = extraerDescriptorArticular(handCoords, isLeft);
+  const infoZonas = extraerZonasCorporalesPose(handCoords, poseAnchors, isLeft);
 
   const cuerpo_coords = infoZonas.cuerpo_coords;
   const vec109 = vec105.concat(cuerpo_coords);
@@ -818,12 +837,13 @@ class NeutralHandDetector {
     this.isCurrentlyNeutral = false;
     this.neutralDurationMs = 0;
     this.framesNeutral = 0;
-    this.MIN_NEUTRAL_DURATION = 350; // ms antes de confirmar neutralidad
-    this.MIN_NEUTRAL_FRAMES = 6;     // frames mínimos (~200ms)
+    this.noiseGrace = 0;
+    this.MIN_NEUTRAL_DURATION = 160; // ms antes de confirmar neutralidad (~5 frames)
+    this.MIN_NEUTRAL_FRAMES = 4;     // frames mínimos
   }
 
   /**
-   * Evalúa si el frame actual muestra una mano neutra/tendida.
+   * Evalúa si el frame actual muestra una mano neutra/tendida/estática en cualquier altura.
    * @param {number[]} extDedos - Array de 5 extensiones [pulgar, índice, medio, anular, meñique] (0-1)
    * @param {number} speed - Velocidad cinemática de la muñeca
    * @param {number[]} wristPos - Posición [x, y, z] de la muñeca
@@ -833,10 +853,10 @@ class NeutralHandDetector {
   evaluate(extDedos, speed, wristPos, timestamp) {
     const now = timestamp || performance.now();
 
-    // Contar dedos extendidos (umbral 0.55 para capturar manos semi-abiertas)
-    const dedosAbiertos = extDedos.filter(e => e > 0.55).length;
-    const todosAbiertos = dedosAbiertos >= 4;
-    const velocidadBaja = speed < 0.12;
+    // Contar dedos extendidos (umbral 0.48 para capturar manos abiertas y semi-relajadas)
+    const dedosAbiertos = extDedos.filter(e => e > 0.48).length;
+    const esManoPasiva = dedosAbiertos >= 3; // 3 o más dedos abiertos = mano no empuñada
+    const velocidadBaja = speed < 0.040;
 
     // Calcular micro-movimiento acumulado (temblor natural ≠ seña)
     let microMovimiento = 0;
@@ -850,27 +870,32 @@ class NeutralHandDetector {
     this.lastPosition = wristPos ? [...wristPos] : null;
 
     // ¿Cumple criterios de neutralidad en este frame?
-    const esNeutralFrame = todosAbiertos && velocidadBaja && microMovimiento < 0.025;
+    const esNeutralFrame = esManoPasiva && velocidadBaja && microMovimiento < 0.032;
 
     if (esNeutralFrame) {
       this.framesNeutral++;
+      this.noiseGrace = 2; // Margen de gracia de 2 frames ante ruido sensor webcam
       if (!this.neutralStartTime) {
         this.neutralStartTime = now;
       }
       this.neutralDurationMs = now - this.neutralStartTime;
       this.isCurrentlyNeutral = (this.neutralDurationMs >= this.MIN_NEUTRAL_DURATION && 
                                   this.framesNeutral >= this.MIN_NEUTRAL_FRAMES);
+    } else if (this.noiseGrace > 0 && this.isCurrentlyNeutral) {
+      this.noiseGrace--;
+      // Mantener neutralidad durante el fotograma de ruido espurio
     } else {
-      // Movimiento detectado → resetear neutralidad
+      // Movimiento intencional real detectado → resetear neutralidad
       this.neutralStartTime = null;
       this.neutralDurationMs = 0;
       this.framesNeutral = 0;
+      this.noiseGrace = 0;
       this.isCurrentlyNeutral = false;
     }
 
-    // Confianza: cuánto más tiempo lleva neutral, mayor certeza
+    // Confianza: certeza alta desde el momento que se confirma reposo
     const confidence = this.isCurrentlyNeutral 
-      ? Math.min(0.99, 0.70 + (this.neutralDurationMs / 3000) * 0.29)
+      ? Math.min(0.99, 0.85 + (this.neutralDurationMs / 2000) * 0.14)
       : 0;
 
     return {
@@ -889,6 +914,7 @@ class NeutralHandDetector {
     this.isCurrentlyNeutral = false;
     this.neutralDurationMs = 0;
     this.framesNeutral = 0;
+    this.noiseGrace = 0;
   }
 }
 
@@ -1237,17 +1263,24 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
 
   const { scaler_mean, scaler_scale, clases } = modelo;
 
-  // 0. COMPUERTA CINEMÁTICA DE MOVIMIENTO ADAPTATIVA (v5.5.0)
-  // Solo aplicar compuerta estricta si la mano está abajo en zona de descanso (dy > 2.0)
-  // En la zona torácica / facial / neutral, permitimos que la red clasifique normalmente
+  // 0. COMPUERTA CINEMÁTICA DE MOVIMIENTO ADAPTATIVA (v6.1.0)
+  // Blindaje Anti-Forzado: Si la mano está quieta (inmóvil / en descanso / libre)
+  // en CUALQUIER altura, o si está abierta sin movimiento, es REPOSO absoluto.
   const slotIdx = (handMeta && handMeta.slot !== undefined) ? handMeta.slot : 0;
   const motionGate = slotIdx === 1 ? _motionGateSlot1 : _motionGateSlot0;
   const wristPos = (handMeta && handMeta.coords) ? handMeta.coords[0] : null;
   const tips = (handMeta && handMeta.coords) ? [handMeta.coords[4], handMeta.coords[8], handMeta.coords[12], handMeta.coords[16], handMeta.coords[20]] : null;
   const gateRes = motionGate.update(wristPos, tips, performance.now());
   const dyRelativo = (vec109[106] || 0) / 2.5;
+  const speed = (handMeta && handMeta.speed !== undefined) ? handMeta.speed : gateRes.speed;
 
-  if (!gateRes.isOpen && dyRelativo > 2.2) {
+  // Extracción rápida de extensiones de dedos para detector de reposo
+  const ext_idx_pre = (vec109[64] || 0) / 3.2;
+  const ext_med_pre = (vec109[65] || 0) / 3.2;
+  const esManoAbiertaPre = (ext_idx_pre > 0.48 && ext_med_pre > 0.48);
+
+  // Si la mano está quieta con palma abierta/relajada en CUALQUIER altura, o en zona baja:
+  if ((!gateRes.isOpen && dyRelativo > 1.8) || (speed < 0.026 && esManoAbiertaPre && (!gateRes.isOpen || gateRes.speed < 0.030))) {
     return {
       sena: "REPOSO",
       rawSena: "REPOSO",
@@ -1256,8 +1289,8 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
       estado: "REPOSO",
       candidatos: [{ sena: "REPOSO", probabilidad: 0.99 }],
       isMotionGated: true,
-      gateSpeed: gateRes.speed,
-      gateState: gateRes.state
+      gateSpeed: speed,
+      gateState: 'MANO_EN_REPOSO'
     };
   }
 
@@ -1360,29 +1393,24 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const esManoAbierta = (ext_indice > 0.65 && ext_medio > 0.65 && ext_anular > 0.65 && ext_menique > 0.65);
   const esManoSemiAbierta = (ext_indice > 0.55 && ext_medio > 0.55 && ext_anular > 0.50);
 
-  // 5a. DETECTOR DE MANO NEUTRA (v5.0) — Bloqueo preventivo total
-  // Si la mano está tendida/abierta y estática, forzar REPOSO independientemente del modelo
+  // 5a. DETECTOR DE MANO NEUTRA / REPOSO ACTIVO (v6.1.0) — Blindaje Anti-Forzado Total
+  // Si la mano está tendida/abierta y estática, forzar REPOSO independientemente de la clase predicha.
+  // En LSC ninguna seña consiste en mantener una mano abierta quieta sin movimiento alguno.
   const neutralDetector = slotIdx === 1 ? _neutralDetectorSlot1 : _neutralDetectorSlot0;
-  const speed = (handMeta && handMeta.speed !== undefined) ? handMeta.speed : 0;
-
   const neutralResult = neutralDetector.evaluate(extDedos, speed, wristPos, performance.now());
 
-  // Si la mano está confirmada como neutra Y la predicción no es una seña válida con mano abierta
-  if (neutralResult.isNeutral && neutralResult.framesNeutral >= 8) {
-    // HOLA, BUENAS, TARDES y GUSTAR son señas LSC compatibles con mano abierta
-    const esSenaConManoAbiertaValida = (top1.sena === 'HOLA' || top1.sena === 'BUENAS' || top1.sena === 'TARDES' || top1.sena === 'GUSTAR');
-    if (!esSenaConManoAbiertaValida || neutralResult.durationMs > 900) {
-      return {
-        sena: 'REPOSO',
-        rawSena: top1.sena,
-        confianza: neutralResult.confidence,
-        margen: 0,
-        estado: 'REPOSO',
-        candidatos: candidatos.slice(0, 3),
-        isNeutralHand: true,
-        neutralDurationMs: neutralResult.durationMs
-      };
-    }
+  // Si la mano está confirmada como neutra O está quieta con mano abierta/semi-abierta:
+  if (neutralResult.isNeutral || (esManoAbierta && speed < 0.035) || (esManoSemiAbierta && speed < 0.022)) {
+    return {
+      sena: 'REPOSO',
+      rawSena: top1.sena,
+      confianza: neutralResult.confidence || 0.99,
+      margen: 0,
+      estado: 'REPOSO',
+      candidatos: [{ sena: 'REPOSO', probabilidad: 0.99 }],
+      isNeutralHand: true,
+      neutralDurationMs: neutralResult.durationMs
+    };
   }
 
   // 5b. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v5.1):
