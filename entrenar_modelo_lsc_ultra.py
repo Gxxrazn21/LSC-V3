@@ -64,42 +64,40 @@ def main():
         dys = Xc[:, 106]
         fingers = Xc[:, 63:68] / 3.2
         
-        # Filtro anatómico biomecánico calibrado por seña LSC v5.5
-        if c == 'DIAS':
-            # CANÓNICO LSC: Dedo índice arriba o mano ascendente representando la salida del sol
-            is_clean = (dys <= 2.0) & (fingers[:, 1] >= 0.45)
-        elif c == 'YO':
-            # CANÓNICO LSC: Mano a la altura del pecho apuntando a uno mismo con índice
-            is_clean = (dys >= 0.20) & (dys <= 3.8) & (fingers[:, 1] >= 0.45) & (fingers[:, 2] <= 0.60)
-        elif c == 'HOLA':
-            # Mano abierta con movimiento lateral junto a la cabeza
-            is_clean = (dys <= 0.40) & (fingers[:, 1] >= 0.60) & (fingers[:, 2] >= 0.60)
+        # Filtro anatómico biomecánico calibrado por seña LSC v6.2 (100% Cobertura Real)
+        if c == 'AÑOS':
+            # Puño cerrado o semi-cerrado en mejilla (dedo índice y medio recogidos)
+            is_clean = (fingers[:, 1] <= 0.65) & (fingers[:, 2] <= 0.65)
         elif c == 'BUENAS':
-            # Saludo con mano abierta desde la frente
-            is_clean = (dys >= 0.30) & (dys <= 3.60) & (fingers[:, 1] >= 0.70) & (fingers[:, 2] >= 0.70)
-        elif c == 'AÑOS':
-            # Puño cerrado acariciando mejilla — dedos cerrados obligatorio
-            is_clean = (dys >= 0.40) & (dys <= 3.60) & (fingers[:, 1] <= 0.60) & (fingers[:, 2] <= 0.60)
-        elif c == 'NOMBRE':
-            # Configuración H o dedos selectivos, NO mano completamente abierta
-            todos_abiertos = (fingers[:, 1] > 0.75) & (fingers[:, 2] > 0.75) & (fingers[:, 3] > 0.75) & (fingers[:, 4] > 0.75)
-            is_clean = (dys >= 0.50) & (dys <= 3.20) & (fingers[:, 1] >= 0.50) & (~todos_abiertos)
-        elif c == 'LICOR':
-            # LICOR = pulgar extendido hacia la garganta, mano a la altura del cuello/mentón
-            todos_abiertos_l = (fingers[:, 1] > 0.75) & (fingers[:, 2] > 0.75) & (fingers[:, 3] > 0.75)
-            is_clean = (dys <= 1.20) & (fingers[:, 0] >= 0.50) & (~todos_abiertos_l)
-        elif c == 'NOCHES':
-            # NOCHES = manos descendiendo
-            todos_abiertos_n = (fingers[:, 1] > 0.75) & (fingers[:, 2] > 0.75) & (fingers[:, 3] > 0.75) & (fingers[:, 4] > 0.75)
-            is_clean = (dys >= -1.60) & (dys <= 2.40) & (~todos_abiertos_n)
+            # Mano extendida en frente/pecho
+            is_clean = (fingers[:, 1] >= 0.60) & (fingers[:, 2] >= 0.60) & (dys <= 3.8)
+        elif c == 'DIAS':
+            # Mano en arco frontal ascendente
+            is_clean = (fingers[:, 1] >= 0.50) & (dys <= 3.2)
+        elif c == 'HOLA':
+            # Saludo lateral a la cabeza
+            is_clean = (fingers[:, 1] >= 0.55) & (fingers[:, 2] >= 0.55) & (dys <= 1.2)
         elif c == 'GRACIAS':
-            # CANÓNICO LSC: Mano abierta extendida (B-hand) desde la barbilla/boca hacia el frente
-            is_clean = (dys >= -1.20) & (dys <= 0.80) & (fingers[:, 1] >= 0.65)
+            # Barbilla / boca hacia adelante (seleccionar las 10 muestras con mano plana, descartar puño)
+            is_clean = (fingers[:, 1] >= 0.70) & (fingers[:, 2] >= 0.70)
         elif c == 'GUSTAR':
-            # GUSTAR = palma abierta sobre el pecho/corazón
-            is_clean = (dys >= -0.20) & (dys <= 3.0) & (fingers[:, 1] >= 0.45) & (fingers[:, 2] >= 0.45)
+            # Palma sobre el pecho (zona cardiaca)
+            is_clean = (dys >= -0.50) & (dys <= 4.0) & (fingers[:, 1] >= 0.40)
+        elif c == 'LICOR':
+            # Pulgar al cuello/mentón
+            is_clean = (fingers[:, 0] >= 0.45) & (dys <= 2.2)
+        elif c == 'NOCHES':
+            # Manos descendiendo frente al torso
+            is_clean = (dys >= -1.80) & (dys <= 3.0)
+        elif c == 'NOMBRE':
+            # Dedos índice y medio extendidos (configuración H/U)
+            is_clean = (fingers[:, 1] >= 0.55) & (fingers[:, 2] >= 0.55)
         elif c == 'TARDES':
-            is_clean = (dys >= 0.60) & (dys <= 3.30) & (fingers[:, 1] >= 0.70)
+            # Mano en espacio medio frontal
+            is_clean = (fingers[:, 1] >= 0.55) & (dys >= 0.20)
+        elif c == 'YO':
+            # Índice apuntando al pecho
+            is_clean = (fingers[:, 1] >= 0.40) & (dys >= 0.0) & (dys <= 4.2)
         else:
             is_clean = np.ones(len(Xc), dtype=bool)
         
@@ -108,13 +106,18 @@ def main():
         # Enriquecimiento cinemático fonológico para GRACIAS (LSC: barbilla -> proyección hacia adelante)
         if c == 'GRACIAS' and len(clean_samples['GRACIAS']) > 0:
             base_gracias = clean_samples['GRACIAS']
-            n_enrich = 320
+            n_enrich = 450
             idx_g = np.random.choice(len(base_gracias), n_enrich, replace=True)
             X_gracias_dyn = base_gracias[idx_g].copy()
-            # Variar alturas a lo largo del recorrido dinámico de la seña (barbilla -> pecho)
-            dys_traj = np.random.uniform(-0.80, 0.35, n_enrich)
+            # Trayectoria LSC: barbilla (dy ~ -0.25) -> proyección hacia adelante (dy ~ -0.10 a +0.10, dz avanzando)
+            dys_traj = np.random.uniform(-0.35, 0.15, n_enrich)
+            dzs_traj = np.random.uniform(-0.25, 0.20, n_enrich)
+            dxs_traj = np.random.uniform(0.05, 0.22, n_enrich)
+            X_gracias_dyn[:, 105] = dxs_traj * 2.5
             X_gracias_dyn[:, 106] = dys_traj * 2.5
-            # Micro-ruido en coordenadas articulares
+            X_gracias_dyn[:, 107] = dzs_traj * 2.5
+            # Dinámica de avance
+            X_gracias_dyn[:, 90] = np.random.uniform(0.04, 0.15, n_enrich)
             X_gracias_dyn[:, :105] += np.random.normal(0, 0.005, (n_enrich, 105))
             clean_samples['GRACIAS'] = np.vstack([clean_samples['GRACIAS'], X_gracias_dyn])
             print(f"    + {n_enrich} muestras de trayectoria cinemática LSC (barbilla→frente) añadidas a GRACIAS")
@@ -196,7 +199,7 @@ def main():
     np.random.seed(42)
     X_final_list = []
     y_final_list = []
-    target_por_clase = 500  # 500 muestras balanceadas por clase para máxima generalización
+    target_por_clase = 600  # 600 muestras balanceadas por clase para máxima generalización (7,800 total)
 
     def aplicar_rotacion_3d(X_in, max_grados=18.0):
         """Aplica rotación 3D estocástica alrededor del eje Y canónico a las 21 articulaciones y normal."""
@@ -401,7 +404,7 @@ def main():
         "weights": weights_export,
         "biases": biases_export,
         "layers": layers_list,
-        "version": "6.1.0",
+        "version": "6.2.0",
         "precision_cv": float(acc_media),
         "precision_global": float(acc_final)
     }
@@ -412,17 +415,17 @@ def main():
     print(f"  [OK] Modelo JSON exportado a: {json_path}")
 
     js_code = f"""/**
- * MODELO DE INTELIGENCIA ARTIFICIAL LSC v6.1.0 (ON-DEVICE / ZERO SERVER)
+ * MODELO DE INTELIGENCIA ARTIFICIAL LSC v6.2.0 (ON-DEVICE / ZERO SERVER)
  * Precisión Validación Cruzada: {acc_media*100:.2f}% | Precisión Global: {acc_final*100:.2f}%
  * Arquitectura: MLP 109D -> {' -> '.join(str(x) for x in arch)} -> {len(clases_ordenadas)} Clases
  * Clases: {json.dumps(clases_ordenadas)}
- * Fonología: Invarianza Bimanual (Izquierda/Derecha) + Tolerancia Vertical TAB + Reposo Activo
+ * Fonología: Cobertura Total 13 Clases + Invarianza Bimanual + Reposo Activo
  */
-const VERSION_MODELO_LSC = "6.1.0";
+const VERSION_MODELO_LSC = "6.2.0";
 const BUILD_FECHA_LSC = "{time.strftime('%Y-%m-%d')}";
 const METADATOS_MODELO_LSC = {{
-  version: "6.1.0",
-  subversion: "Bimanual-ToleranciaVertical-ReposoActivo",
+  version: "6.2.0",
+  subversion: "Maestro-CoberturaTotal-13Clases",
   precision: "{acc_final*100:.2f}%",
   precision_cv: "{acc_media*100:.2f}%",
   clases: {len(clases_ordenadas)},
@@ -451,7 +454,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     # 9. Guardar Métricas
     metricas = {
         "fecha": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "version": "6.1.0",
+        "version": "6.2.0",
         "total_muestras": len(X),
         "precision_global": float(acc_final),
         "precision_cv_media": float(acc_media),
@@ -481,7 +484,7 @@ if (typeof module !== 'undefined' && module.exports) {{
 
     # A. Reporte de texto plano
     txt_report = f"""======================================================================
-  REPORTE DE CLASIFICACION - LSC v6.1.0 (BIMANUAL • TOLERANCIA VERTICAL • REPOSO ACTIVO)
+  REPORTE DE CLASIFICACION - LSC v6.2.0 (MAESTRO • COBERTURA TOTAL 13 CLASES)
   Fecha: {timestamp_str} | Muestras: {len(X)} | Dims: 109D
   Arquitectura: {' → '.join(str(x) for x in layers_list)}
   Accuracy Global: {acc_final * 100:.2f}% | F1-Score: {f1_final:.4f}
@@ -499,7 +502,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     cur_metrics = {
         "id": timestamp_id,
         "fecha": timestamp_str,
-        "version": "6.1.0",
+        "version": "6.2.0",
         "total_muestras": len(X),
         "dimensiones": 109,
         "arquitectura": layers_list,
@@ -542,7 +545,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     history.append({
         "id": timestamp_id,
         "fecha": timestamp_str,
-        "version": "5.5.0",
+        "version": "6.2.0",
         "total_muestras": len(X),
         "dimensiones": 109,
         "arquitectura": layers_list,

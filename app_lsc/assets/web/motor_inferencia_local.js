@@ -1035,10 +1035,10 @@ const _motionGateSlot1 = new MotionGate();
 class AcumuladorProbabilidadesLSC {
   constructor(options = {}) {
     this.decay = options.decay || 0.65; // Factor de retención
-    this.threshold = options.threshold || 0.58; // Puntuación EMA requerida (58%)
-    this.minMargin = options.minMargin || 0.10; // Margen de separación sobre el segundo
+    this.threshold = options.threshold || 0.52; // Puntuación EMA requerida (52%)
+    this.minMargin = options.minMargin || 0.08; // Margen de separación sobre el segundo
     this.minConsecutive = options.minConsecutive || 3; // 3 ticks sucesivos (~80-100ms a 30-40 FPS)
-    this.cooldownMs = options.cooldownMs || 750; // Enfriamiento entre misma seña (más reactivo)
+    this.cooldownMs = options.cooldownMs || 650; // Enfriamiento entre misma seña (más reactivo)
 
     this.scores = {};
     this.candidate = null;
@@ -1108,8 +1108,8 @@ class AcumuladorProbabilidadesLSC {
     const timeSinceLast = now - this.lastEmittedTime;
     const isSameSign = (top1Sena === this.lastEmitted);
     const cooldownOk = isSameSign ? (timeSinceLast > this.cooldownMs) : (timeSinceLast > 280);
-    // Si la confianza es alta (>82%), bastan 2 fotogramas para confirmación ultrarrápida
-    const reqConsecutive = (top1Score >= 0.82) ? 2 : this.minConsecutive;
+    // Si la confianza es alta (>=72%), bastan 2 fotogramas para confirmación ultrarrápida
+    const reqConsecutive = (top1Score >= 0.72) ? 2 : this.minConsecutive;
 
     if (isSign && this.consecutiveCount >= reqConsecutive && cooldownOk) {
       this.lastEmitted = top1Sena;
@@ -1413,43 +1413,29 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     };
   }
 
-  // 5b. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v5.1):
-  // dy normalizado respecto a hombros (dy > 0 es hacia abajo/abdomen, dy < 0 hacia arriba/cabeza)
+  // 5b. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v6.2):
+  // dy normalizado respecto a hombros (dy > 0 hacia abajo/abdomen, dy < 0 hacia arriba/cabeza)
   const dy = (vec109[106] || 0) / 2.5;
 
-  if (top1.sena === "DIAS" && dy > 0.50) {
-    // DÍAS se realiza en la mitad superior del cuerpo (salida del sol), no en abdomen/cadera
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.90;
-  } else if (top1.sena === "LICOR" && (esManoAbierta || (ext_indice > 0.75 && ext_medio > 0.75 && ext_anular > 0.75))) {
-    // LICOR: pulgar al cuello. Si todos los dedos están extendidos como saludo, es mano abierta/HOLA, no LICOR
+  if (top1.sena === "LICOR" && (esManoAbierta || (ext_indice > 0.85 && ext_medio > 0.85 && ext_anular > 0.85))) {
+    // LICOR: pulgar al cuello. Si los 4 dedos están extendidos como saludo, es mano abierta/HOLA, no LICOR
     top1.sena = esManoAbierta ? "REPOSO" : "TRANSICION";
-    top1.probabilidad = 0.93;
-  } else if (top1.sena === "YO" && dy < -0.30) {
-    // YO: índice al pecho/esternón, no arriba en la cabeza
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.92;
-  } else if (top1.sena === "AÑOS" && (ext_indice > 0.70 || ext_medio > 0.70)) {
-    // AÑOS: puño cerrado acariciando mejilla
-    top1.sena = "TRANSICION";
     top1.probabilidad = 0.90;
-  } else if (top1.sena === "NOCHES" && esManoAbierta && speed < 0.08) {
-    // NOCHES: manos descendiendo
-    top1.sena = "REPOSO";
-    top1.probabilidad = 0.92;
-  } else if (top1.sena === "GUSTAR" && dy < -0.35) {
-    // GUSTAR: palma sobre el corazón/pecho, no arriba en la cabeza
+  } else if (top1.sena === "AÑOS" && (ext_indice > 0.85 && ext_medio > 0.85)) {
+    // AÑOS: puño cerrado acariciando mejilla; mano totalmente abierta no es AÑOS
     top1.sena = "TRANSICION";
-    top1.probabilidad = 0.90;
-  } else if (top1.sena === "NOMBRE" && esManoAbierta && speed < 0.08) {
+    top1.probabilidad = 0.88;
+  } else if (top1.sena === "YO" && dy < -0.70) {
+    // YO: índice al pecho/esternón; no arriba en el techo/sobre la cabeza
     top1.sena = "TRANSICION";
-    top1.probabilidad = 0.90;
-  } else if (top1.sena === "GRACIAS" && esManoAbierta && speed < 0.08) {
+    top1.probabilidad = 0.88;
+  } else if (top1.sena === "DIAS" && dy > 1.60) {
+    // DÍAS: arco ascendente en torso/cabeza, no abajo en el regazo
     top1.sena = "TRANSICION";
-    top1.probabilidad = 0.90;
+    top1.probabilidad = 0.88;
   }
 
-  // 6. Filtro de Decisión Anti-Aleatoriedad
+  // 6. Filtro de Decisión Anti-Aleatoriedad Calibrado LSC v6.2
   let senaFinal = top1.sena;
   let estado = "SEÑA_DETECTADA";
 
@@ -1459,8 +1445,9 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   } else if (top1.sena === "TRANSICION") {
     estado = "TRANSICION";
     senaFinal = "TRANSICIÓN";
-  } else if (top1.probabilidad < 0.75 || margen < 0.12) {
-    // Umbral calibrado v5.0: 75% confianza mínima y 12% de margen
+  } else if (top1.probabilidad < 0.55 || margen < 0.08) {
+    // Umbral calibrado v6.2: 55% de confianza mínima y 8% de margen
+    // Permite que todas las señas auténticas sean detectadas sin bloqueos artificiales
     estado = "TRANSICION";
     senaFinal = "TRANSICIÓN";
   }

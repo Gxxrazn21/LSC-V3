@@ -230,5 +230,24 @@
     "precision_cv_media": 0.8856923076923078,
     "ha_mejorado": true,
     "descripcion": "v5.5.0: Cinemática LSC Fluida • 60 FPS • Trayectorias dinámicas GRACIAS/DIAS/GUSTAR • Anti-deadlock EMA"
+  },
+  {
+    "id": "20260914_211537",
+    "fecha": "2026-09-14 21:15:37",
+    "version": "6.2.0",
+    "total_muestras": 7800,
+    "dimensiones": 109,
+    "arquitectura": [
+      109,
+      640,
+      384,
+      192,
+      13
+    ],
+    "accuracy_global": 0.9793589743589743,
+    "f1_score": 0.9790176678301902,
+    "precision_cv_media": 0.8312820512820513,
+    "ha_mejorado": true,
+    "descripcion": "v5.5.0: Cinemática LSC Fluida • 60 FPS • Trayectorias dinámicas GRACIAS/DIAS/GUSTAR • Anti-deadlock EMA"
   }
 ]
