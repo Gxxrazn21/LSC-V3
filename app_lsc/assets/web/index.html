@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Gestual Vision AI | Reconocimiento LSC Maestro v6.2</title>
+  <title>Gestual Vision AI | Reconocimiento LSC Colombia v6.2</title>
   <link rel="icon" type="image/png" href="logo_simbolo.png">
 
   <!-- Tipografía Moderna de Alto Impacto (UI/UX Pro Max) -->
@@ -22,25 +22,39 @@
 
   <style>
     /* ==========================================================================
-       SISTEMA DE DISEÑO CINEMÁTICO & PROFESIONAL (UI/UX PRO MAX)
-       Paleta: Deep Obsidian, Slate refinado, Zafiro Eléctrico & Esmeralda
+       SISTEMA DE DISEÑO COLOMBIA CINEMÁTICO (UI/UX PRO MAX)
+       Identidad: Deep Obsidian con Acentos Tricolor Colombiano (Amarillo, Azul y Rojo)
        ========================================================================== */
     :root {
       --bg-canvas: #070a13;
       --bg-surface: #0f172a;
       --bg-surface-elevated: #1e293b;
-      --card-glass: rgba(15, 23, 42, 0.78);
-      --card-glass-hover: rgba(30, 41, 59, 0.85);
+      --card-glass: rgba(15, 23, 42, 0.82);
+      --card-glass-hover: rgba(30, 41, 59, 0.9);
       --card-border: rgba(255, 255, 255, 0.08);
-      --card-border-active: rgba(59, 130, 246, 0.35);
+      --card-border-active: rgba(245, 158, 11, 0.4);
 
-      /* Acentos Profesionales */
-      --color-primary: #3b82f6;
-      --color-primary-glow: rgba(59, 130, 246, 0.28);
-      --color-accent: #60a5fa;
+      /* Identidad Tricolor Colombiana */
+      --col-yellow: #f59e0b;
+      --col-yellow-light: #fbbf24;
+      --col-yellow-glow: rgba(245, 158, 11, 0.35);
+      --col-blue: #2563eb;
+      --col-blue-light: #60a5fa;
+      --col-blue-glow: rgba(37, 99, 235, 0.35);
+      --col-red: #e11d48;
+      --col-red-light: #f43f5e;
+      --col-red-glow: rgba(225, 29, 72, 0.35);
+
+      /* Gradientes Oficiales Colombia */
+      --tricolor-flag: linear-gradient(90deg, #f59e0b 0%, #f59e0b 50%, #2563eb 50%, #2563eb 75%, #e11d48 75%, #e11d48 100%);
+      --tricolor-smooth: linear-gradient(90deg, #f59e0b 0%, #2563eb 50%, #e11d48 100%);
+
+      /* Acentos Funcionales */
+      --color-primary: var(--col-blue);
+      --color-accent: var(--col-yellow-light);
       --color-success: #10b981;
       --color-success-glow: rgba(16, 185, 129, 0.35);
-      --color-warning: #f59e0b;
+      --color-warning: var(--col-yellow);
       --color-idle: #64748b;
 
       /* Tipografía */
@@ -51,7 +65,7 @@
       --font-body: 'Inter', -apple-system, sans-serif;
       --font-mono: 'Space Grotesk', monospace;
 
-      /* Curvas de Movimiento Suaves (Inspiradas en Framer Motion) */
+      /* Físicas de Resorte Fluidas (Framer Motion style) */
       --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
       --ease-out: cubic-bezier(0, 0, 0.2, 1);
@@ -68,8 +82,9 @@
     body {
       background: var(--bg-canvas);
       background-image: 
-        radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-        radial-gradient(circle at 100% 60%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+        radial-gradient(circle at 50% -15%, rgba(245, 158, 11, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 95% 65%, rgba(37, 99, 235, 0.10) 0%, transparent 40%),
+        radial-gradient(circle at 5% 90%, rgba(225, 29, 72, 0.08) 0%, transparent 35%);
       color: var(--text-main);
       font-family: var(--font-body);
       min-height: 100vh;
@@ -78,12 +93,23 @@
       flex-direction: column;
     }
 
-    /* Flash Perimetral de Confirmación Accesible (Para personas sordas) */
+    /* Línea sutil tricolor superior que enmarca la app */
+    .tricolor-stripe {
+      height: 3px;
+      width: 100%;
+      background: var(--tricolor-flag);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 10px rgba(245, 158, 11, 0.3);
+    }
+
+    /* Flash Perimetral de Confirmación Accesible */
     .screen-flash {
       position: fixed;
       inset: 0;
-      border: 4px solid var(--color-success);
-      box-shadow: inset 0 0 45px rgba(16, 185, 129, 0.45);
+      border: 4px solid var(--col-yellow-light);
+      box-shadow: inset 0 0 50px var(--col-yellow-glow);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.15s ease-out;
@@ -94,13 +120,15 @@
     }
 
     /* ==========================================================================
-       PANTALLA DE ENTRADA / SPLASH SCREEN ANIMADO
+       PANTALLA DE ENTRADA / SPLASH SCREEN ANIMADO COLOMBIA
        ========================================================================== */
     .splash-screen {
       position: fixed;
       inset: 0;
       background: #070a13;
-      background-image: radial-gradient(circle at 50% 40%, rgba(59, 130, 246, 0.18) 0%, #070a13 70%);
+      background-image: 
+        radial-gradient(circle at 50% 35%, rgba(245, 158, 11, 0.18) 0%, transparent 55%),
+        radial-gradient(circle at 50% 80%, rgba(37, 99, 235, 0.12) 0%, #070a13 70%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -125,16 +153,16 @@
     }
 
     .splash-logo-wrap {
-      width: 104px;
-      height: 104px;
+      width: 110px;
+      height: 110px;
       border-radius: 28px;
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
-      border: 1.5px solid rgba(59, 130, 246, 0.35);
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+      border: 1.5px solid rgba(245, 158, 11, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 14px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 35px rgba(59, 130, 246, 0.25);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 35px rgba(245, 158, 11, 0.25);
       animation: logoFloat 3.5s ease-in-out infinite;
     }
 
@@ -150,7 +178,7 @@
       font-size: 28px;
       font-weight: 800;
       letter-spacing: -0.6px;
-      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+      background: linear-gradient(135deg, #ffffff 40%, #fde047 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -162,22 +190,22 @@
       margin-top: -8px;
     }
 
-    .splash-version-tag {
+    .splash-colombia-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(59, 130, 246, 0.12);
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      padding: 5px 12px;
+      gap: 7px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 5px 14px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 700;
-      color: var(--color-accent);
+      color: #fde047;
       margin-top: 4px;
     }
 
     .splash-loader-bar {
-      width: 180px;
+      width: 190px;
       height: 4px;
       background: rgba(255, 255, 255, 0.08);
       border-radius: 999px;
@@ -192,7 +220,7 @@
       left: 0;
       height: 100%;
       width: 45%;
-      background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+      background: var(--tricolor-smooth);
       border-radius: 999px;
       animation: loaderSlide 1.6s ease-in-out infinite;
     }
@@ -221,17 +249,17 @@
     }
 
     /* ==========================================================================
-       CABECERA SUPERIOR ELEGANTE
+       CABECERA SUPERIOR COLOMBIA
        ========================================================================== */
     header {
-      padding: 12px 18px;
+      padding: 10px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(7, 10, 19, 0.85);
+      background: rgba(7, 10, 19, 0.88);
       border-bottom: 1px solid var(--card-border);
       position: sticky;
-      top: 0;
+      top: 3px;
       z-index: 50;
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -245,16 +273,16 @@
     }
 
     .brand-logo-wrap {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
       background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      border: 1px solid rgba(245, 158, 11, 0.35);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 4px;
-      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.18);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
     }
 
     .brand-logo-img {
@@ -274,7 +302,7 @@
 
     .brand-meta span {
       font-size: 11px;
-      color: var(--color-success);
+      color: #fde047;
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -282,12 +310,8 @@
     }
 
     .brand-meta span::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--color-success);
-      box-shadow: 0 0 8px var(--color-success);
+      content: '🇨🇴';
+      font-size: 10px;
     }
 
     .header-actions {
@@ -314,25 +338,25 @@
 
     .btn-header:active {
       transform: scale(0.96);
-      background: rgba(59, 130, 246, 0.15);
-      border-color: var(--color-primary);
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--col-yellow);
     }
 
     .btn-cloud-sync {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
-      border-color: rgba(59, 130, 246, 0.35);
-      color: #93c5fd;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(37, 99, 235, 0.18));
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fde047;
     }
 
     .btn-cloud-sync:hover {
-      border-color: var(--color-primary);
-      box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+      border-color: var(--col-yellow-light);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
     }
 
     /* Pestañas Segmentadas */
     .tabs-bar {
       display: flex;
-      background: rgba(15, 23, 42, 0.65);
+      background: rgba(15, 23, 42, 0.7);
       padding: 4px;
       margin: 10px 16px 0 16px;
       border-radius: 14px;
@@ -362,7 +386,7 @@
     .tab-btn.active {
       background: rgba(30, 41, 59, 0.95);
       color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     }
 
@@ -381,7 +405,7 @@
     }
 
     /* ==========================================================================
-       VIEWPORT DE CÁMARA ULTRA-LIMPIO Y CINEMÁTICO (Cero Sobrecarga)
+       VIEWPORT DE CÁMARA ULTRA-LIMPIO Y CINEMÁTICO
        ========================================================================== */
     .viewport-card {
       position: relative;
@@ -401,8 +425,8 @@
     }
 
     @keyframes pulseConfirmed {
-      0% { transform: scale(0.98); border-color: var(--color-success); }
-      45% { transform: scale(1.02); box-shadow: 0 0 35px rgba(16, 185, 129, 0.4); border-color: var(--color-success); }
+      0% { transform: scale(0.98); border-color: var(--col-yellow-light); }
+      45% { transform: scale(1.02); box-shadow: 0 0 35px rgba(245, 158, 11, 0.4); border-color: var(--col-yellow-light); }
       100% { transform: scale(1.0); border-color: rgba(255, 255, 255, 0.08); }
     }
 
@@ -425,12 +449,12 @@
       transform: scaleX(-1);
     }
 
-    /* Único Pill Flotante de Estado de Cámara (Minimalista) */
+    /* Pill Flotante Minimalista de Cámara */
     .camera-status-pill {
       position: absolute;
       top: 12px;
       left: 12px;
-      background: rgba(7, 10, 19, 0.72);
+      background: rgba(7, 10, 19, 0.75);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -456,25 +480,25 @@
     }
 
     .status-dot.active {
-      background: var(--color-success);
-      box-shadow: 0 0 10px var(--color-success);
+      background: var(--col-yellow-light);
+      box-shadow: 0 0 10px var(--col-yellow);
     }
 
-    /* Mensaje Inferior Flotante NO Invasivo (Solo si no hay manos) */
+    /* Sugerencia Flotante No Invasiva */
     .camera-hint-pill {
       position: absolute;
       bottom: 12px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(7, 10, 19, 0.82);
+      background: rgba(7, 10, 19, 0.85);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.2);
       padding: 7px 16px;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      color: #e2e8f0;
+      color: #fde047;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -520,11 +544,11 @@
 
     .btn-cam-circle:active {
       transform: scale(0.92);
-      background: var(--color-primary);
+      background: var(--col-blue);
     }
 
     /* ==========================================================================
-       TARJETA HERO DE INTERPRETACIÓN (Limpia, de Alto Contraste)
+       TARJETA HERO DE INTERPRETACIÓN (Limpia y Sofisticada)
        ========================================================================== */
     .hero-card {
       background: var(--card-glass);
@@ -551,7 +575,7 @@
       font-weight: 700;
       letter-spacing: 0.4px;
       text-transform: uppercase;
-      padding: 5px 11px;
+      padding: 5px 12px;
       border-radius: 999px;
       display: inline-flex;
       align-items: center;
@@ -566,23 +590,23 @@
     }
 
     .state-pill.state-interpreting {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      box-shadow: 0 0 14px rgba(59, 130, 246, 0.2);
+      background: rgba(245, 158, 11, 0.15);
+      color: #fde047;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.2);
     }
 
     .state-pill.state-confirmed {
-      background: rgba(16, 185, 129, 0.16);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+      background: rgba(37, 99, 235, 0.2);
+      color: #93c5fd;
+      border: 1px solid rgba(37, 99, 235, 0.5);
+      box-shadow: 0 0 16px rgba(37, 99, 235, 0.3);
     }
 
     .state-pill.state-transition {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(225, 29, 72, 0.15);
+      color: #fda4af;
+      border: 1px solid rgba(225, 29, 72, 0.35);
     }
 
     .zone-indicator {
@@ -612,7 +636,8 @@
     }
 
     .word-hero.confirmed {
-      color: var(--color-success);
+      color: #fde047;
+      text-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
       animation: wordPop 0.4s var(--ease-bounce) forwards;
     }
 
@@ -640,7 +665,7 @@
     .meter-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+      background: var(--tricolor-smooth);
       border-radius: 999px;
       transition: width 0.16s var(--ease-out), background 0.2s;
     }
@@ -691,9 +716,9 @@
     }
 
     .word-chip {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(30, 41, 59, 0.7));
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      color: #93c5fd;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(245, 158, 11, 0.12));
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fde047;
       font-weight: 700;
       font-size: 13px;
       padding: 6px 12px;
@@ -708,8 +733,8 @@
 
     .word-chip:active {
       transform: scale(0.95);
-      background: var(--color-primary);
-      color: #ffffff;
+      background: var(--col-yellow);
+      color: #070a13;
     }
 
     .sentence-actions {
@@ -734,9 +759,10 @@
     }
 
     .btn-speak-all {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
       color: #ffffff;
       box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }
 
     .btn-speak-all:active {
@@ -795,8 +821,8 @@
 
     .quick-card:active {
       transform: scale(0.97);
-      border-color: var(--color-primary);
-      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--col-yellow);
+      background: rgba(245, 158, 11, 0.15);
     }
 
     .quick-card-icon {
@@ -828,7 +854,7 @@
     }
 
     .custom-input:focus {
-      border-color: var(--color-primary);
+      border-color: var(--col-yellow);
     }
 
     /* Pantalla Gigante para Persona Sorda */
@@ -894,7 +920,7 @@
 
     .modal-card {
       background: #0f172a;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
       border-radius: 24px;
       padding: 22px;
       max-width: 440px;
@@ -947,7 +973,7 @@
 
     .drawer-content {
       background: #0b1120;
-      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 1px solid rgba(245, 158, 11, 0.25);
       border-radius: 26px 26px 0 0;
       padding: 20px 20px 36px 20px;
       max-height: 80vh;
@@ -1009,7 +1035,7 @@
     }
 
     .toggle-switch.active {
-      background: var(--color-success);
+      background: var(--col-yellow);
     }
 
     .toggle-knob {
@@ -1058,9 +1084,9 @@
     }
 
     .btn-sign-play {
-      background: rgba(59, 130, 246, 0.15);
-      color: #93c5fd;
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: rgba(245, 158, 11, 0.15);
+      color: #fde047;
+      border: 1px solid rgba(245, 158, 11, 0.3);
       border-radius: 10px;
       padding: 6px 12px;
       font-size: 13px;
@@ -1071,10 +1097,13 @@
 </head>
 <body>
 
+  <!-- Línea Tricolor Colombiana Superior -->
+  <div class="tricolor-stripe"></div>
+
   <!-- Flash de Confirmación Luminoso -->
   <div class="screen-flash" id="screenFlash"></div>
 
-  <!-- PANTALLA SPLASH DE ENTRADA CON ANIMACIÓN -->
+  <!-- PANTALLA SPLASH DE ENTRADA CON ANIMACIÓN Y COLORES COLOMBIA -->
   <div class="splash-screen" id="splashScreen">
     <div class="splash-brand">
       <div class="splash-logo-wrap">
@@ -1084,8 +1113,8 @@
         <h1 class="splash-title">Gestual Vision</h1>
         <p class="splash-subtitle">Traductor de Lengua de Señas Colombiana</p>
       </div>
-      <div class="splash-version-tag">
-        <span>✨</span> Inferencia Neuronal On-Device v6.2
+      <div class="splash-colombia-badge">
+        <span>🇨🇴</span> Lengua de Señas Colombiana • v6.2
       </div>
       <div class="splash-loader-bar">
         <div class="splash-loader-progress"></div>
@@ -1102,7 +1131,7 @@
       </div>
       <div class="brand-meta">
         <h1>Gestual Vision</h1>
-        <span id="headerLiveStatus">IA Activa • v6.2</span>
+        <span id="headerLiveStatus">LSC Colombia • v6.2</span>
       </div>
     </div>
     <div class="header-actions">
@@ -1122,7 +1151,7 @@
   <!-- PESTAÑAS DE MODO -->
   <div class="tabs-bar">
     <button class="tab-btn active" id="tabTranslate">
-      <span>🖐️</span> Traductor
+      <span>🖐️</span> Traductor LSC
     </button>
     <button class="tab-btn" id="tabSentence">
       <span>💬</span> Oración
@@ -1186,7 +1215,7 @@
     <div class="sentence-card">
       <div class="sentence-header">
         <span>Frase Construida</span>
-        <span style="color: var(--color-accent);" id="wordCountBadge">0 palabras</span>
+        <span style="color: #fde047;" id="wordCountBadge">0 palabras</span>
       </div>
       <div class="sentence-display" id="sentenceDisplay">
         <span class="empty-hint" id="emptySentenceHint">
@@ -1265,10 +1294,10 @@
         <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseCloudModal">✕</span>
       </div>
       <div class="modal-body">
-        <p>Esta función descarga e instala la última versión de la interfaz, modelo neuronal y calibraciones directamente desde la nube sin tener que reinstalar la APK.</p>
+        <p>Descarga e instala la última versión de la interfaz, modelo neuronal y calibraciones directamente desde la nube sin reinstalar la APK.</p>
         <div style="margin-top: 14px; background: rgba(255,255,255,0.04); padding: 12px; border-radius: 12px; border: 1px solid var(--card-border);">
           <div style="font-weight: 700; color: #fff;">Gestual Vision v6.2 Maestro</div>
-          <div style="font-size: 12px; color: var(--color-success); margin-top: 3px;">● Listo para sincronizar desde GitHub</div>
+          <div style="font-size: 12px; color: #fde047; margin-top: 3px;">● Listo para sincronizar desde GitHub</div>
         </div>
       </div>
       <button class="btn-action btn-speak-all" id="btnTriggerCloudDownload" style="width: 100%; margin-top: 6px;">
@@ -1318,7 +1347,7 @@
       <div class="setting-row">
         <div>
           <div class="setting-label">⚡ Flash Perimetral</div>
-          <div class="setting-desc">Borde verde brillante para personas sordas</div>
+          <div class="setting-desc">Borde luminoso para personas sordas</div>
         </div>
         <div class="toggle-switch active" id="toggleFlash">
           <div class="toggle-knob"></div>
@@ -1335,8 +1364,8 @@
         </div>
       </div>
 
-      <div style="margin-top: 10px; padding: 14px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 14px;">
-        <div style="font-weight: 700; color: #93c5fd; font-size: 13px;">Actualización Directa desde la Nube</div>
+      <div style="margin-top: 10px; padding: 14px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 14px;">
+        <div style="font-weight: 700; color: #fde047; font-size: 13px;">Actualización Directa desde la Nube</div>
         <p style="font-size: 11px; color: var(--text-muted); margin: 4px 0 10px 0;">Recibe mejoras continuas de IA sin transferir APKs.</p>
         <button class="btn-action btn-secondary" id="btnDrawerSync" style="width: 100%; font-size: 12px; padding: 9px;">
           <span>☁️</span> Abrir Gestor de Nube
@@ -1365,10 +1394,9 @@
     let hapticEnabled = true;
     let chimeEnabled = true;
     let visualFlashEnabled = true;
-    let cleanVisionMode = true; // Cámara limpia cinemática activa por defecto
+    let cleanVisionMode = true;
 
     function emitirFeedback(texto, opciones = {}) {
-      // Vibración háptica
       if (hapticEnabled && opciones.vibrar !== false) {
         if (window.NativeBridge) {
           window.NativeBridge.postMessage(JSON.stringify({ action: 'vibrate', duration: opciones.duracionVib || 45 }));
@@ -1377,7 +1405,6 @@
         }
       }
 
-      // Pronunciación de voz TTS
       if (autoVoiceEnabled && texto && opciones.hablar !== false) {
         let frase = texto.replace(/_/g, ' ').toLowerCase();
         if (frase.includes('annos')) frase = frase.replace(/annos/g, 'años');
@@ -1394,12 +1421,10 @@
         }
       }
 
-      // Chime sonoro sintético
       if (chimeEnabled && opciones.chime !== false) {
         reproducirChimeConfirmacion();
       }
 
-      // Flash visual perimetral
       if (visualFlashEnabled) {
         activarFlashVisual();
       }
@@ -1597,7 +1622,7 @@
       row.innerHTML = `
         <div class="sign-info">
           <h4>${item.sena.replace(/_/g, ' ')}</h4>
-          <p>${item.desc} · <b style="color: var(--color-accent);">${item.zona}</b></p>
+          <p>${item.desc} · <b style="color: #fde047;">${item.zona}</b></p>
         </div>
         <button class="btn-sign-play" data-sena="${item.sena}">🔊</button>
       `;
@@ -1619,7 +1644,6 @@
 
     function abrirModalSincronizacion() {
       if (window.NativeBridge) {
-        // Invoca directamente el diálogo de actualización nativa en Flutter
         window.NativeBridge.postMessage(JSON.stringify({ action: 'showSyncModal' }));
       } else {
         modalCloudSync.classList.add('active');
@@ -1717,10 +1741,9 @@
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           adjustMirroring();
-          camStatusText.textContent = 'En vivo • 60 FPS';
+          camStatusText.textContent = '🇨🇴 En vivo • 60 FPS';
           camStatusDot.classList.add('active');
 
-          // Ocultar splash screen con transición suave
           if (!hasDismissedSplash) {
             hasDismissedSplash = true;
             setTimeout(() => {
@@ -1741,7 +1764,7 @@
     let pose = null;
     let ultimosHombros = null;
     const handTracker = new MotorLSCLocal.DualHandTracker();
-    let maxManosConfiguradas = 2; // Bimanual nativo
+    let maxManosConfiguradas = 2;
 
     function initMediaPipe() {
       if (typeof Hands === 'undefined') {
@@ -1834,7 +1857,7 @@
       if (activeHands.length === 0) {
         cameraHintPill.classList.remove('hidden');
         camStatusDot.classList.remove('active');
-        camStatusText.textContent = `En vivo • ${currentFps} FPS`;
+        camStatusText.textContent = `🇨🇴 En vivo • ${currentFps} FPS`;
 
         statePill.className = 'state-pill state-idle';
         statePillText.textContent = 'LISTO PARA SEÑAS';
@@ -1848,10 +1871,10 @@
         return;
       }
 
-      // MANOS DETECTADAS: Ocultar sugerencia
+      // MANOS DETECTADAS
       cameraHintPill.classList.add('hidden');
       camStatusDot.classList.add('active');
-      camStatusText.textContent = `${activeHands.length === 2 ? '2 Manos' : '1 Mano'} • ${currentFps} FPS`;
+      camStatusText.textContent = `🇨🇴 ${activeHands.length === 2 ? '2 Manos' : '1 Mano'} • ${currentFps} FPS`;
 
       let mejorPrediccion = null;
       let mejorDesc = null;
@@ -1867,7 +1890,6 @@
         const isBehind = hand.isOccluded || hand.isBehind;
         dibujarFeedbackVisual(hand.coords, hand.colorScheme, isBehind);
 
-        // Selección de la seña activa predominante
         const manoActualVisible = !hand.isOccluded && !hand.isBehind;
         const mejorActualVisible = mejorPrediccion ? !mejorPrediccion._isBehind : false;
 
@@ -1901,7 +1923,7 @@
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = '---';
         progressBar.style.width = '15%';
-        progressBar.style.background = 'var(--color-warning)';
+        progressBar.style.background = 'var(--col-red)';
         if (typeof acumuladorLSC !== 'undefined') acumuladorLSC.decayAll();
         return;
       }
@@ -1916,9 +1938,8 @@
         predTitle.classList.add('confirmed');
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = '100%';
-        progressBar.style.background = 'linear-gradient(90deg, var(--color-primary), var(--color-success))';
+        progressBar.style.background = 'var(--tricolor-smooth)';
 
-        // Pulso háptico visual en el marco de cámara
         const vpCard = document.querySelector('.viewport-card');
         if (vpCard) {
           vpCard.classList.remove('pulse-confirmed');
@@ -1952,7 +1973,7 @@
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = `${Math.min(resAcum.score * 100, 100)}%`;
-        progressBar.style.background = 'linear-gradient(90deg, var(--color-primary), var(--color-success))';
+        progressBar.style.background = 'var(--tricolor-smooth)';
       } else {
         statePill.className = 'state-pill state-transition';
         statePillText.textContent = 'MOVIMIENTO';
@@ -1962,14 +1983,13 @@
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = pred ? `${Math.round((pred.confianza || 0) * 100)}%` : '---';
         progressBar.style.width = '20%';
-        progressBar.style.background = 'var(--color-warning)';
+        progressBar.style.background = 'var(--col-yellow)';
       }
     }
 
-    // DIBUJO CINEMÁTICO: Ultra limpio en cleanVisionMode (solo punto focal sutil)
+    // DIBUJO CINEMÁTICO COLOMBIA
     function dibujarFeedbackVisual(pts, colorScheme, isBehind) {
       if (cleanVisionMode) {
-        // Solo un punto focal suave en la palma para confirmar foco sin tapar los dedos
         const w = canvas.width;
         const h = canvas.height;
         const palmX = pts[9][0] * w;
@@ -1978,13 +1998,13 @@
         ctx.save();
         ctx.beginPath();
         ctx.arc(palmX, palmY, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = 'rgba(59, 130, 246, 0.45)';
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.55)';
         ctx.fill();
         ctx.restore();
         return;
       }
 
-      // Modo Esqueleto Completo (Solo si el usuario lo activa en Ajustes)
+      // Modo Esqueleto (si el usuario lo activa en Ajustes)
       const w = canvas.width;
       const h = canvas.height;
       const conexiones = [
@@ -1997,7 +2017,7 @@
       ];
 
       ctx.save();
-      ctx.strokeStyle = isBehind ? 'rgba(245, 158, 11, 0.6)' : 'rgba(59, 130, 246, 0.7)';
+      ctx.strokeStyle = isBehind ? 'rgba(225, 29, 72, 0.6)' : 'rgba(245, 158, 11, 0.75)';
       ctx.lineWidth = 2.5;
       conexiones.forEach(([a, b]) => {
         ctx.beginPath();
