@@ -604,64 +604,6 @@ class _LSCHomePageState extends State<LSCHomePage> {
                   ),
                 ),
               ),
-            // CHIP FLOTANTE DE SINCRONIZACIÓN WI-FI / LIVE SYNC
-            Positioned(
-              top: 10,
-              right: 12,
-              child: GestureDetector(
-                onTap: _showSyncModal,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _isLiveMode
-                        ? const Color(0xFF00E5FF).withValues(alpha: 0.25)
-                        : (_hasDownloadedAssets
-                            ? const Color(0xFF00FF9D).withValues(alpha: 0.20)
-                            : Colors.black.withValues(alpha: 0.55)),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _isLiveMode
-                          ? const Color(0xFF00E5FF)
-                          : (_hasDownloadedAssets ? const Color(0xFF00FF9D) : Colors.white24),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _isLiveMode ? Icons.bolt : Icons.sync,
-                        size: 14,
-                        color: _isLiveMode
-                            ? const Color(0xFF00E5FF)
-                            : (_hasDownloadedAssets ? const Color(0xFF00FF9D) : Colors.white70),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        _isLiveMode
-                            ? 'EN VIVO'
-                            : (_hasDownloadedAssets ? 'OTA CACHE' : 'SYNC'),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: _isLiveMode
-                              ? const Color(0xFF00E5FF)
-                              : (_hasDownloadedAssets ? const Color(0xFF00FF9D) : Colors.white70),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),

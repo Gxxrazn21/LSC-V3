@@ -838,8 +838,8 @@ class NeutralHandDetector {
     this.neutralDurationMs = 0;
     this.framesNeutral = 0;
     this.noiseGrace = 0;
-    this.MIN_NEUTRAL_DURATION = 160; // ms antes de confirmar neutralidad (~5 frames)
-    this.MIN_NEUTRAL_FRAMES = 4;     // frames mínimos
+    this.MIN_NEUTRAL_DURATION = 800; // ms antes de confirmar neutralidad (~24 frames a 30fps)
+    this.MIN_NEUTRAL_FRAMES = 10;    // frames mínimos consecutivos de inactividad
   }
 
   /**
@@ -851,7 +851,7 @@ class NeutralHandDetector {
    * @returns {{ isNeutral: boolean, confidence: number, durationMs: number }}
    */
   evaluate(extDedos, speed, wristPos, timestamp) {
-    const now = timestamp || performance.now();
+    const now = (typeof timestamp === 'number') ? timestamp : performance.now();
 
     // Contar dedos extendidos (umbral 0.48 para capturar manos abiertas y semi-relajadas)
     const dedosAbiertos = extDedos.filter(e => e > 0.48).length;
@@ -948,7 +948,7 @@ class MotionGate {
   }
 
   update(wristPos, fingerTips, timestamp) {
-    const now = timestamp || performance.now();
+    const now = (typeof timestamp === 'number') ? timestamp : performance.now();
     
     if (!wristPos) {
       this.reset();
@@ -1048,7 +1048,7 @@ class AcumuladorProbabilidadesLSC {
   }
 
   update(prediction, timestamp) {
-    const now = timestamp || performance.now();
+    const now = (typeof timestamp === 'number') ? timestamp : performance.now();
 
     if (!prediction || !prediction.candidatos || prediction.candidatos.length === 0) {
       this.decayAll();
@@ -1393,14 +1393,33 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const esManoAbierta = (ext_indice > 0.65 && ext_medio > 0.65 && ext_anular > 0.65 && ext_menique > 0.65);
   const esManoSemiAbierta = (ext_indice > 0.55 && ext_medio > 0.55 && ext_anular > 0.50);
 
-  // 5a. DETECTOR DE MANO NEUTRA / REPOSO ACTIVO (v6.1.0) — Blindaje Anti-Forzado Total
-  // Si la mano está tendida/abierta y estática, forzar REPOSO independientemente de la clase predicha.
-  // En LSC ninguna seña consiste en mantener una mano abierta quieta sin movimiento alguno.
+  // 5a. Posición anatómica corporal dy (normalizado respecto a hombros)
+  const dy = (vec109[106] || 0) / 2.5;
+  const esManoEnRegazo = dy > 1.35 || (wristPos && wristPos[1] > 0.75);
+
+  // 5b. DETECTOR DE MANO NEUTRA / REPOSO ACTIVO (v6.2.1)
+  // Evalúa si la mano permanece inactiva sin intencionalidad de seña
   const neutralDetector = slotIdx === 1 ? _neutralDetectorSlot1 : _neutralDetectorSlot0;
   const neutralResult = neutralDetector.evaluate(extDedos, speed, wristPos, performance.now());
 
-  // Si la mano está confirmada como neutra O está quieta con mano abierta/semi-abierta:
-  if (neutralResult.isNeutral || (esManoAbierta && speed < 0.035) || (esManoSemiAbierta && speed < 0.022)) {
+  // ¿Es una seña genuina de mano abierta en su zona articular correspondiente?
+  const esSenaManoAbiertaValida = (
+    (top1.sena === 'HOLA' && dy < 0.25 && top1.probabilidad >= 0.52) ||
+    (top1.sena === 'BUENAS' && dy < 1.15 && top1.probabilidad >= 0.52) ||
+    (top1.sena === 'GUSTAR' && dy < 1.15 && top1.probabilidad >= 0.52) ||
+    (top1.sena === 'TARDES' && dy >= 0.15 && dy <= 1.35 && top1.probabilidad >= 0.52) ||
+    (top1.sena === 'GRACIAS' && dy < 0.40 && top1.probabilidad >= 0.52)
+  );
+
+  // Solo declarar REPOSO si:
+  // 1. La mano está descansando en el regazo / espacio inferior (dy > 1.35)
+  // 2. O la mano ha estado inmóvil por tiempo sostenido (>800ms) Y NO coincide con una seña activa en su zona
+  // 3. O la red neuronal clasificó directamente como REPOSO
+  const debeForzarReposo = (esManoEnRegazo && (speed < 0.035 || neutralResult.isNeutral)) ||
+                           (neutralResult.isNeutral && !esSenaManoAbiertaValida && neutralResult.durationMs >= 800) ||
+                           (top1.sena === 'REPOSO' && (esManoEnRegazo || neutralResult.durationMs >= 500));
+
+  if (debeForzarReposo) {
     return {
       sena: 'REPOSO',
       rawSena: top1.sena,
@@ -1413,14 +1432,11 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     };
   }
 
-  // 5b. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v6.2):
-  // dy normalizado respecto a hombros (dy > 0 hacia abajo/abdomen, dy < 0 hacia arriba/cabeza)
-  const dy = (vec109[106] || 0) / 2.5;
-
+  // 5c. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v6.2.1):
   if (top1.sena === "LICOR" && (esManoAbierta || (ext_indice > 0.85 && ext_medio > 0.85 && ext_anular > 0.85))) {
     // LICOR: pulgar al cuello. Si los 4 dedos están extendidos como saludo, es mano abierta/HOLA, no LICOR
-    top1.sena = esManoAbierta ? "REPOSO" : "TRANSICION";
-    top1.probabilidad = 0.90;
+    top1.sena = esManoAbierta ? (dy < 0.2 ? "HOLA" : "TRANSICION") : "TRANSICION";
+    top1.probabilidad = 0.88;
   } else if (top1.sena === "AÑOS" && (ext_indice > 0.85 && ext_medio > 0.85)) {
     // AÑOS: puño cerrado acariciando mejilla; mano totalmente abierta no es AÑOS
     top1.sena = "TRANSICION";

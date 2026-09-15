@@ -97,7 +97,7 @@ def main():
             is_clean = (fingers[:, 1] >= 0.55) & (dys >= 0.20)
         elif c == 'YO':
             # Índice apuntando al pecho
-            is_clean = (fingers[:, 1] >= 0.40) & (dys >= 0.0) & (dys <= 4.2)
+            is_clean = (fingers[:, 1] >= 0.25) & (dys <= 5.5)
         else:
             is_clean = np.ones(len(Xc), dtype=bool)
         
@@ -121,18 +121,13 @@ def main():
             X_gracias_dyn[:, :105] += np.random.normal(0, 0.005, (n_enrich, 105))
             clean_samples['GRACIAS'] = np.vstack([clean_samples['GRACIAS'], X_gracias_dyn])
             print(f"    + {n_enrich} muestras de trayectoria cinemática LSC (barbilla→frente) añadidas a GRACIAS")
-        
-        # Frames residuales: manos abiertas o relajadas pasan a REPOSO y TRANSICIÓN
-        dirty = Xc[~is_clean]
-        if len(dirty) > 0:
-            reposo_samples.append(dirty[dirty[:, 106] > 1.80])
-            transition_samples.append(dirty[dirty[:, 106] <= 1.80])
 
     # Añadir REPOSO_TRANSICION crudo clasificado por altura real
+    # (Los frames residuales de señas descartadas se omiten para NO contaminar TRANSICION con poses de señas)
     if 'REPOSO_TRANSICION' in y_raw:
         rt = X_raw[y_raw == 'REPOSO_TRANSICION']
-        reposo_samples.append(rt[rt[:, 106] > 1.80])
-        transition_samples.append(rt[rt[:, 106] <= 1.80])
+        reposo_samples.append(rt[rt[:, 106] > 1.80 * 2.5])
+        transition_samples.append(rt[rt[:, 106] <= 1.80 * 2.5])
 
     X_reposo_raw = np.vstack(reposo_samples)
     X_trans_raw = np.vstack(transition_samples)
@@ -160,16 +155,13 @@ def main():
         idx_synth = np.random.choice(len(X_neutras), n_synth, replace=True)
         X_synth = X_neutras[idx_synth].copy()
         
-        # Distribución de alturas para REPOSO cubriendo todo el cuerpo y espacio neutro:
-        # - Regazo / descanso bajo (dy in [2.0, 4.5]) -> 40%
-        # - Pecho / torso (dy in [0.2, 1.2]) -> 25%
-        # - Cuello / mentón (dy in [-0.3, 0.3]) -> 15%
-        # - Rostro / lateral (dy in [-1.0, -0.2]) -> 20%
+        # Distribución de alturas canónicas para REPOSO (zona de descanso bajo, regazo y espacio inferior neutro):
+        # - Regazo bajo y descanso inferior (dy in [2.0, 4.5]) -> 70%
+        # - Abdomen inferior y descanso neutro (dy in [1.6, 2.3]) -> 30%
+        # (NUNCA generar reposo en cabeza/mentón donde residen HOLA, GRACIAS y BUENAS)
         alturas_dist = np.concatenate([
-            np.random.uniform(2.0, 4.5, int(n_synth * 0.40)),
-            np.random.uniform(0.2, 1.2, int(n_synth * 0.25)),
-            np.random.uniform(-0.3, 0.3, int(n_synth * 0.15)),
-            np.random.uniform(-1.0, -0.2, n_synth - int(n_synth * 0.40) - int(n_synth * 0.25) - int(n_synth * 0.15))
+            np.random.uniform(2.0, 4.5, int(n_synth * 0.70)),
+            np.random.uniform(1.6, 2.3, n_synth - int(n_synth * 0.70))
         ])
         np.random.shuffle(alturas_dist)
         X_synth[:, 106] = alturas_dist * 2.5

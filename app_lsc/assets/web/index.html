@@ -752,7 +752,7 @@
 
     .sentence-actions {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-columns: 1.3fr 1fr 1fr 1fr;
       gap: 8px;
     }
 
@@ -1163,13 +1163,10 @@
     </div>
   </header>
 
-  <!-- PESTAÑAS DE MODO -->
+  <!-- PESTAÑAS DE MODO (DOS MODOS LIMPIOS Y CLAROS) -->
   <div class="tabs-bar">
     <button class="tab-btn active" id="tabTranslate">
       <span>🖐️</span> Traductor LSC
-    </button>
-    <button class="tab-btn" id="tabSentence">
-      <span>💬</span> Oración
     </button>
     <button class="tab-btn" id="tabBidi">
       <span>🗣️</span> Oyente ➔ Sordo
@@ -1238,14 +1235,17 @@
         </span>
       </div>
       <div class="sentence-actions">
-        <button class="btn-action btn-speak-all" id="btnSpeakAll">
-          <span>🔊</span> Hablar Frase
+        <button class="btn-action btn-speak-all" id="btnSpeakAll" title="Pronunciar frase">
+          <span>🔊</span> Hablar
         </button>
-        <button class="btn-action btn-secondary" id="btnCopySentence">
+        <button class="btn-action btn-secondary" id="btnCopySentence" title="Copiar al portapapeles">
           <span>📋</span> Copiar
         </button>
-        <button class="btn-action btn-secondary" id="btnBackspace">
+        <button class="btn-action btn-secondary" id="btnBackspace" title="Borrar última palabra">
           <span>⌫</span> Borrar
+        </button>
+        <button class="btn-action btn-secondary" id="btnClearAll" title="Limpiar toda la oración">
+          <span>🗑️</span> Limpiar
         </button>
       </div>
     </div>
@@ -1478,6 +1478,7 @@
     const btnSpeakAll = document.getElementById('btnSpeakAll');
     const btnCopySentence = document.getElementById('btnCopySentence');
     const btnBackspace = document.getElementById('btnBackspace');
+    const btnClearAll = document.getElementById('btnClearAll');
 
     function agregarPalabraAOracion(palabra) {
       oracionTokens.push(palabra);
@@ -1507,6 +1508,8 @@
     btnSpeakAll.addEventListener('click', () => {
       if (oracionTokens.length === 0) return;
       const textoCompleto = oracionTokens.join(' ').replace(/_/g, ' ');
+      btnSpeakAll.style.opacity = '0.7';
+      setTimeout(() => btnSpeakAll.style.opacity = '1', 1000);
       emitirFeedback(textoCompleto, { vibrar: true, hablar: true, duracionVib: 70 });
     });
 
@@ -1514,9 +1517,9 @@
       if (oracionTokens.length === 0) return;
       const textoCompleto = oracionTokens.join(' ').replace(/_/g, ' ');
       navigator.clipboard?.writeText(textoCompleto);
-      btnCopySentence.textContent = '¡Copiado! ✓';
-      setTimeout(() => btnCopySentence.innerHTML = '<span>📋</span> Copiar', 1500);
-      emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 25 });
+      btnCopySentence.innerHTML = '<span>✓</span> ¡Copiado!';
+      setTimeout(() => btnCopySentence.innerHTML = '<span>📋</span> Copiar', 1600);
+      emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 35 });
     });
 
     btnBackspace.addEventListener('click', () => {
@@ -1526,6 +1529,16 @@
         emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 25 });
       }
     });
+
+    if (btnClearAll) {
+      btnClearAll.addEventListener('click', () => {
+        if (oracionTokens.length > 0) {
+          oracionTokens = [];
+          renderizarOracion();
+          emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 40 });
+        }
+      });
+    }
 
     // 3. COMUNICACIÓN BIDIRECCIONAL (OYENTE ➔ SORDO)
     const fullscreenModal = document.getElementById('fullscreenModal');
@@ -1559,32 +1572,29 @@
       fullscreenModal.classList.remove('active');
     });
 
-    // 4. PESTAÑAS Y NAVEGACIÓN
+    // 4. PESTAÑAS Y NAVEGACIÓN (2 MODOS LIMPIOS)
     const tabTranslate = document.getElementById('tabTranslate');
-    const tabSentence = document.getElementById('tabSentence');
     const tabBidi = document.getElementById('tabBidi');
     const viewTranslator = document.getElementById('viewTranslator');
     const viewBidi = document.getElementById('viewBidi');
+    const sentenceCard = document.querySelector('.sentence-card');
 
     function setActiveTab(tab) {
-      [tabTranslate, tabSentence, tabBidi].forEach(t => t.classList.remove('active'));
+      [tabTranslate, tabBidi].forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
 
       if (tab === tabTranslate) {
         viewTranslator.style.display = 'flex';
+        if (sentenceCard) sentenceCard.style.display = 'flex';
         viewBidi.classList.remove('active');
-      } else if (tab === tabSentence) {
-        viewTranslator.style.display = 'flex';
-        viewBidi.classList.remove('active');
-        document.querySelector('.sentence-card').scrollIntoView({ behavior: 'smooth' });
       } else if (tab === tabBidi) {
         viewTranslator.style.display = 'none';
+        if (sentenceCard) sentenceCard.style.display = 'none';
         viewBidi.classList.add('active');
       }
     }
 
     tabTranslate.addEventListener('click', () => setActiveTab(tabTranslate));
-    tabSentence.addEventListener('click', () => setActiveTab(tabSentence));
     tabBidi.addEventListener('click', () => setActiveTab(tabBidi));
 
     // 5. CAJÓN DE AJUSTES & DICCIONARIO
@@ -1649,6 +1659,15 @@
 
     btnOpenDictionary.addEventListener('click', () => drawerDictionary.classList.add('active'));
     btnCloseDictionary.addEventListener('click', () => drawerDictionary.classList.remove('active'));
+
+    const btnBrandHeader = document.getElementById('btnBrandHeader');
+    if (btnBrandHeader) {
+      btnBrandHeader.style.cursor = 'pointer';
+      btnBrandHeader.addEventListener('click', () => {
+        drawerDictionary.classList.add('active');
+        emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 25 });
+      });
+    }
 
     // 6. GESTIÓN DE ACTUALIZACIÓN DESDE LA NUBE (OTA LIVE SYNC)
     const btnCloudSync = document.getElementById('btnCloudSync');
