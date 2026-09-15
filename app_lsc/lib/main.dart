@@ -129,6 +129,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
               } else if (action == 'vibrate') {
                 final duration = data['duration'] as int? ?? 45;
                 await _nativeChannel.invokeMethod('vibrate', {'duration': duration});
+              } else if (action == 'showSyncModal' || action == 'openSync') {
+                _showSyncModal();
               }
             } catch (e) {
               debugPrint('Error en NativeBridge: $e');
@@ -304,7 +306,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                           Icon(Icons.cloud_sync, color: Color(0xFF00E5FF), size: 26),
                           SizedBox(width: 10),
                           Text(
-                            'Actualización & Nube LSC v5.3.0',
+                            'Actualización & Nube LSC v6.2',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -338,8 +340,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                         Expanded(
                           child: Text(
                             _hasDownloadedAssets
-                                ? 'Versión Nube IA v5.4.0 (Bimanual & Rotación activa)'
-                                : 'Ejecutando versión embebida de la APK (IA v5.4.0)',
+                                ? 'Versión Nube IA v6.2 Maestro (Cámara Limpia & UI Fluida)'
+                                : 'Ejecutando versión embebida de la APK (IA v6.2)',
                             style: const TextStyle(fontSize: 12, color: Colors.white70),
                           ),
                         ),
@@ -393,7 +395,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                                 _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
                                   messenger.showSnackBar(
                                     const SnackBar(
-                                      content: Text('✅ ¡Modelo actualizado con éxito a Gestual Vision AI v6.0 (Cámara Limpia Cinemática)!'),
+                                      content: Text('✅ ¡Interfaz y modelo actualizados a Gestual Vision AI v6.2 Maestro!'),
                                       backgroundColor: Colors.green,
                                       duration: Duration(seconds: 4),
                                     ),

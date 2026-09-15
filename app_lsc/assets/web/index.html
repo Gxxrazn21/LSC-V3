@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Gestual Vision AI v6.2 | Reconocimiento LSC Maestro (13 Clases • Cobertura Total)</title>
+  <title>Gestual Vision AI | Reconocimiento LSC Maestro v6.2</title>
   <link rel="icon" type="image/png" href="logo_simbolo.png">
-  
-  <!-- Tipografía Moderna Accesible -->
+
+  <!-- Tipografía Moderna de Alto Impacto (UI/UX Pro Max) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 
   <!-- MediaPipe CDN (Ejecución GPU local vía WebGL/Wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -21,29 +21,40 @@
   <script src="motor_inferencia_local.js"></script>
 
   <style>
+    /* ==========================================================================
+       SISTEMA DE DISEÑO CINEMÁTICO & PROFESIONAL (UI/UX PRO MAX)
+       Paleta: Deep Obsidian, Slate refinado, Zafiro Eléctrico & Esmeralda
+       ========================================================================== */
     :root {
-      --bg-dark: #050814;
-      --bg-gradient: radial-gradient(circle at 50% 0%, #101c3d 0%, #050814 75%);
-      --card-bg: rgba(14, 21, 44, 0.78);
-      --card-border: rgba(0, 229, 255, 0.18);
-      --card-border-glow: rgba(0, 229, 255, 0.40);
-      --accent-cyan: #00f0ff;
-      --accent-purple: #f000ff;
-      --accent-blue: #3b82f6;
-      --accent-green: #00ff9d;
-      --accent-amber: #ffb800;
-      --accent-red: #ff3366;
+      --bg-canvas: #070a13;
+      --bg-surface: #0f172a;
+      --bg-surface-elevated: #1e293b;
+      --card-glass: rgba(15, 23, 42, 0.78);
+      --card-glass-hover: rgba(30, 41, 59, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-border-active: rgba(59, 130, 246, 0.35);
+
+      /* Acentos Profesionales */
+      --color-primary: #3b82f6;
+      --color-primary-glow: rgba(59, 130, 246, 0.28);
+      --color-accent: #60a5fa;
+      --color-success: #10b981;
+      --color-success-glow: rgba(16, 185, 129, 0.35);
+      --color-warning: #f59e0b;
+      --color-idle: #64748b;
+
+      /* Tipografía */
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.35);
-      --glow-green: 0 0 24px rgba(0, 255, 157, 0.45);
-      --glow-amber: 0 0 20px rgba(255, 184, 0, 0.35);
-      --glow-purple: 0 0 20px rgba(240, 0, 255, 0.35);
-      
-      /* Físicas de Resorte y Animaciones Estilo Framer Motion (ui-ux-pro-max) */
-      --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --spring-smooth: cubic-bezier(0.16, 1, 0.3, 1);
-      --spring-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+      --text-dim: #64748b;
+      --font-heading: 'Outfit', -apple-system, sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'Space Grotesk', monospace;
+
+      /* Curvas de Movimiento Suaves (Inspiradas en Framer Motion) */
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-out: cubic-bezier(0, 0, 0.2, 1);
     }
 
     * {
@@ -55,39 +66,170 @@
     }
 
     body {
-      background: var(--bg-dark);
-      background-image: var(--bg-gradient);
+      background: var(--bg-canvas);
+      background-image: 
+        radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 100% 60%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
       color: var(--text-main);
-      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: var(--font-body);
       min-height: 100vh;
       overflow-x: hidden;
       display: flex;
       flex-direction: column;
     }
 
-    /* Flash Perimetral de Confirmación (Para personas sordas) */
+    /* Flash Perimetral de Confirmación Accesible (Para personas sordas) */
     .screen-flash {
       position: fixed;
       inset: 0;
-      border: 6px solid var(--accent-green);
-      box-shadow: inset 0 0 50px rgba(0, 255, 157, 0.50);
+      border: 4px solid var(--color-success);
+      box-shadow: inset 0 0 45px rgba(16, 185, 129, 0.45);
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.12s ease-out;
-      z-index: 9999;
+      transition: opacity 0.15s ease-out;
+      z-index: 99999;
     }
     .screen-flash.active {
       opacity: 1;
     }
 
-    /* Header Superior */
+    /* ==========================================================================
+       PANTALLA DE ENTRADA / SPLASH SCREEN ANIMADO
+       ========================================================================== */
+    .splash-screen {
+      position: fixed;
+      inset: 0;
+      background: #070a13;
+      background-image: radial-gradient(circle at 50% 40%, rgba(59, 130, 246, 0.18) 0%, #070a13 70%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      transition: opacity 0.5s var(--ease-spring), transform 0.5s var(--ease-spring);
+    }
+
+    .splash-screen.fade-out {
+      opacity: 0;
+      transform: scale(1.04);
+      pointer-events: none;
+    }
+
+    .splash-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      animation: splashAppear 0.8s var(--ease-spring) forwards;
+    }
+
+    .splash-logo-wrap {
+      width: 104px;
+      height: 104px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
+      border: 1.5px solid rgba(59, 130, 246, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 35px rgba(59, 130, 246, 0.25);
+      animation: logoFloat 3.5s ease-in-out infinite;
+    }
+
+    .splash-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+    }
+
+    .splash-title {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .splash-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: -8px;
+    }
+
+    .splash-version-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-accent);
+      margin-top: 4px;
+    }
+
+    .splash-loader-bar {
+      width: 180px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 24px;
+      position: relative;
+    }
+
+    .splash-loader-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 45%;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+      border-radius: 999px;
+      animation: loaderSlide 1.6s ease-in-out infinite;
+    }
+
+    .splash-loader-text {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    @keyframes splashAppear {
+      0% { opacity: 0; transform: translateY(18px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes loaderSlide {
+      0% { left: -45%; width: 45%; }
+      50% { width: 65%; }
+      100% { left: 100%; width: 45%; }
+    }
+
+    /* ==========================================================================
+       CABECERA SUPERIOR ELEGANTE
+       ========================================================================== */
     header {
-      padding: 10px 16px;
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(5, 8, 20, 0.88);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(7, 10, 19, 0.85);
+      border-bottom: 1px solid var(--card-border);
       position: sticky;
       top: 0;
       z-index: 50;
@@ -98,39 +240,54 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      cursor: pointer;
     }
 
-    .brand-icon, .brand-logo {
-      width: 42px;
-      height: 42px;
+    .brand-logo-wrap {
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
-      object-fit: contain;
-      background: rgba(10, 16, 36, 0.85);
-      border: 1.5px solid rgba(0, 240, 255, 0.40);
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(59, 130, 246, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 18px rgba(0, 240, 255, 0.30);
-      padding: 3px;
+      padding: 4px;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.18);
     }
 
-    .brand-text h1 {
-      font-size: 17px;
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .brand-meta h1 {
+      font-family: var(--font-heading);
+      font-size: 16px;
       font-weight: 800;
-      line-height: 1.1;
+      line-height: 1.15;
       letter-spacing: -0.3px;
-      background: linear-gradient(90deg, #fff, #b8dcff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #ffffff;
     }
 
-    .brand-text span {
-      font-size: 10px;
-      color: var(--accent-cyan);
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
+    .brand-meta span {
+      font-size: 11px;
+      color: var(--color-success);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .brand-meta span::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-success);
+      box-shadow: 0 0 8px var(--color-success);
     }
 
     .header-actions {
@@ -139,47 +296,59 @@
       gap: 8px;
     }
 
-    .btn-header-icon {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+    .btn-header {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
       border-radius: 11px;
-      padding: 7px 12px;
+      padding: 8px 12px;
       color: var(--text-main);
-      font-size: 13px;
+      font-size: 12px;
+      font-family: var(--font-body);
+      font-weight: 600;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-weight: 700;
-      transition: all 0.2s;
+      transition: all 0.2s var(--ease-out);
     }
 
-    .btn-header-icon:active {
-      transform: scale(0.95);
-      background: rgba(0, 240, 255, 0.15);
-      border-color: var(--accent-cyan);
+    .btn-header:active {
+      transform: scale(0.96);
+      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--color-primary);
     }
 
-    /* Pestañas Segmentadas de Navegación */
+    .btn-cloud-sync {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
+      border-color: rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+
+    .btn-cloud-sync:hover {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Pestañas Segmentadas */
     .tabs-bar {
       display: flex;
-      background: rgba(10, 16, 36, 0.7);
+      background: rgba(15, 23, 42, 0.65);
       padding: 4px;
-      margin: 8px 14px 0 14px;
+      margin: 10px 16px 0 16px;
       border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
       gap: 4px;
       backdrop-filter: blur(12px);
     }
 
     .tab-btn {
       flex: 1;
-      padding: 9px 6px;
+      padding: 9px 8px;
       border: none;
       background: transparent;
       color: var(--text-muted);
-      font-family: 'Outfit', sans-serif;
-      font-weight: 700;
+      font-family: var(--font-body);
+      font-weight: 600;
       font-size: 12px;
       border-radius: 10px;
       cursor: pointer;
@@ -187,83 +356,54 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: all 0.2s;
+      transition: all 0.2s var(--ease-spring);
     }
 
     .tab-btn.active {
-      background: linear-gradient(135deg, rgba(0, 240, 255, 0.18), rgba(59, 130, 246, 0.22));
-      color: var(--accent-cyan);
-      border: 1px solid rgba(0, 240, 255, 0.35);
-      box-shadow: 0 2px 12px rgba(0, 240, 255, 0.12);
+      background: rgba(30, 41, 59, 0.95);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     }
 
-    /* Contenedor Principal */
+    /* ==========================================================================
+       CONTENEDOR PRINCIPAL
+       ========================================================================== */
     main {
       flex: 1;
-      padding: 10px 14px;
+      padding: 12px 16px 24px 16px;
       max-width: 520px;
       margin: 0 auto;
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
 
-    /* Viewport Cámara Futurista con HUD y Físicas de Resorte Framer Motion */
+    /* ==========================================================================
+       VIEWPORT DE CÁMARA ULTRA-LIMPIO Y CINEMÁTICO (Cero Sobrecarga)
+       ========================================================================== */
     .viewport-card {
       position: relative;
       width: 100%;
       aspect-ratio: 4/3;
-      max-height: 48vh;
-      border-radius: 24px;
+      max-height: 46vh;
+      border-radius: 22px;
       overflow: hidden;
-      background: #02040a;
-      border: 1.5px solid rgba(0, 240, 255, 0.28);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), inset 0 0 20px rgba(0, 240, 255, 0.05);
-      animation: ambientBreath 4.5s ease-in-out infinite;
-      transition: transform 0.4s var(--spring-bounce), border-color 0.3s, box-shadow 0.3s;
+      background: #020408;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65);
+      transition: transform 0.4s var(--ease-bounce), border-color 0.3s, box-shadow 0.3s;
     }
 
     .viewport-card.pulse-confirmed {
-      animation: pulseConfirmed 0.65s var(--spring-bounce) forwards;
-    }
-
-    @keyframes ambientBreath {
-      0%, 100% {
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 240, 255, 0.10), inset 0 0 15px rgba(0, 240, 255, 0.05);
-        border-color: rgba(0, 240, 255, 0.25);
-      }
-      50% {
-        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 240, 255, 0.25), inset 0 0 22px rgba(0, 240, 255, 0.12);
-        border-color: rgba(0, 240, 255, 0.55);
-      }
+      animation: pulseConfirmed 0.65s var(--ease-bounce) forwards;
     }
 
     @keyframes pulseConfirmed {
-      0% {
-        transform: scale(0.97);
-        box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.8);
-        border-color: var(--accent-green);
-      }
-      45% {
-        transform: scale(1.025);
-        box-shadow: 0 0 50px 12px rgba(0, 255, 157, 0.55);
-        border-color: var(--accent-green);
-      }
-      100% {
-        transform: scale(1.0);
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 255, 157, 0.25);
-        border-color: rgba(0, 255, 157, 0.45);
-      }
-    }
-
-    .spring-pop {
-      animation: springPop 0.42s var(--spring-bounce) forwards;
-    }
-    @keyframes springPop {
-      0% { transform: scale(0.82); opacity: 0; }
-      55% { transform: scale(1.08); }
-      100% { transform: scale(1.0); opacity: 1; }
+      0% { transform: scale(0.98); border-color: var(--color-success); }
+      45% { transform: scale(1.02); box-shadow: 0 0 35px rgba(16, 185, 129, 0.4); border-color: var(--color-success); }
+      100% { transform: scale(1.0); border-color: rgba(255, 255, 255, 0.08); }
     }
 
     #videoElement {
@@ -285,267 +425,240 @@
       transform: scaleX(-1);
     }
 
-    /* Retículas HUD en las 4 esquinas */
-    .hud-reticle {
+    /* Único Pill Flotante de Estado de Cámara (Minimalista) */
+    .camera-status-pill {
       position: absolute;
-      width: 18px;
-      height: 18px;
-      border: 2px solid var(--accent-cyan);
-      pointer-events: none;
-      z-index: 5;
-      opacity: 0.75;
-    }
-    .hud-top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
-    .hud-top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
-    .hud-bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
-    .hud-bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
-
-    /* Badges de Estado del HUD */
-    .hud-top-bar {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
+      top: 12px;
+      left: 12px;
+      background: rgba(7, 10, 19, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-main);
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      gap: 7px;
       z-index: 10;
       pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
-    .hud-badge {
-      background: rgba(5, 8, 20, 0.75);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      padding: 4px 10px;
-      border-radius: 9px;
-      font-size: 11px;
-      font-weight: 700;
-      font-family: 'Space Grotesk', monospace;
-      color: var(--text-main);
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-idle);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .status-dot.active {
+      background: var(--color-success);
+      box-shadow: 0 0 10px var(--color-success);
+    }
+
+    /* Mensaje Inferior Flotante NO Invasivo (Solo si no hay manos) */
+    .camera-hint-pill {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(7, 10, 19, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    }
-
-    .hud-badge.hud-fps {
-      color: var(--accent-cyan);
-      border-color: rgba(0, 240, 255, 0.3);
-    }
-
-    .hud-badge.hud-bimanual {
-      color: var(--accent-green);
-      border-color: rgba(0, 255, 157, 0.4);
-      background: rgba(0, 255, 157, 0.12);
-    }
-
-    .hud-badge.hud-occlusion {
-      color: var(--accent-amber);
-      border-color: rgba(255, 184, 0, 0.4);
-      background: rgba(255, 184, 0, 0.15);
-      animation: pulseAmber 1.5s infinite;
-    }
-
-    .hud-badge.hud-idle {
-      color: #94a3b8;
-      border-color: rgba(255, 255, 255, 0.1);
-    }
-
-    @keyframes pulseAmber {
-      0%, 100% { opacity: 0.85; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.04); }
-    }
-
-    /* Guía Overlay cuando NO hay manos en cámara */
-    .idle-hands-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(2, 4, 10, 0.65);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 6;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
-    }
-
-    .idle-hands-icon {
-      font-size: 46px;
-      filter: drop-shadow(0 0 16px rgba(0, 240, 255, 0.5));
-      animation: floatHand 2.2s ease-in-out infinite;
-      margin-bottom: 8px;
-    }
-
-    @keyframes floatHand {
-      0%, 100% { transform: translateY(0px) scale(1); }
-      50% { transform: translateY(-8px) scale(1.05); }
-    }
-
-    .idle-hands-text {
-      font-size: 14px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.2px;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-    }
-
-    .idle-hands-sub {
-      font-size: 11px;
-      color: var(--accent-cyan);
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 12px;
       font-weight: 600;
-      opacity: 0.9;
-      margin-top: 2px;
-    }
-
-    .camera-controls {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
+      color: #e2e8f0;
       display: flex;
+      align-items: center;
       gap: 8px;
       z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      transition: opacity 0.25s ease, transform 0.25s ease;
     }
 
-    .btn-circle {
-      width: 42px;
-      height: 42px;
+    .camera-hint-pill.hidden {
+      opacity: 0;
+      transform: translateX(-50%) translateY(10px);
+      pointer-events: none;
+    }
+
+    /* Controles de Cámara Flotantes Discretos */
+    .camera-controls {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+      z-index: 12;
+    }
+
+    .btn-cam-circle {
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
-      background: rgba(14, 21, 44, 0.88);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      color: #fff;
-      font-size: 18px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      font-size: 15px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       transition: transform 0.15s, background 0.2s;
     }
 
-    .btn-circle:active {
+    .btn-cam-circle:active {
       transform: scale(0.92);
-      background: var(--accent-cyan);
-      color: #050814;
+      background: var(--color-primary);
     }
 
-    /* Tarjeta de Predicción Actual de Alta Estética */
-    .prediction-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+    /* ==========================================================================
+       TARJETA HERO DE INTERPRETACIÓN (Limpia, de Alto Contraste)
+       ========================================================================== */
+    .hero-card {
+      background: var(--card-glass);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 14px 16px;
+      border-radius: 22px;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      transition: border-color 0.25s, box-shadow 0.25s;
+      gap: 12px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      transition: border-color 0.25s;
     }
 
-    .pred-header {
+    .hero-top-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .pred-state-badge {
+    .state-pill {
       font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.6px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
       text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 8px;
+      padding: 5px 11px;
+      border-radius: 999px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       transition: all 0.25s;
     }
 
-    .state-detected {
-      background: rgba(0, 255, 157, 0.15);
-      color: var(--accent-green);
-      border: 1px solid rgba(0, 255, 157, 0.4);
-      box-shadow: var(--glow-green);
-    }
-
-    .state-transicion {
-      background: rgba(255, 184, 0, 0.15);
-      color: var(--accent-amber);
-      border: 1px solid rgba(255, 184, 0, 0.4);
-    }
-
-    .state-reposo {
+    .state-pill.state-idle {
       background: rgba(100, 116, 139, 0.15);
-      color: #94a3b8;
-      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: var(--text-dim);
+      border: 1px solid rgba(148, 163, 184, 0.18);
     }
 
-    .state-idle {
-      background: rgba(255, 255, 255, 0.05);
-      color: #64748b;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+    .state-pill.state-interpreting {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.2);
     }
 
-    .pred-body {
+    .state-pill.state-confirmed {
+      background: rgba(16, 185, 129, 0.16);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+    }
+
+    .state-pill.state-transition {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .zone-indicator {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hero-main-row {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
+      min-height: 48px;
     }
 
-    .pred-title {
-      font-size: 34px;
-      font-weight: 900;
-      color: var(--accent-green);
-      letter-spacing: -0.6px;
-      line-height: 1.05;
-      text-shadow: 0 0 20px rgba(0, 255, 157, 0.35);
-      transition: color 0.2s;
-    }
-
-    .pred-confidence {
-      font-family: 'Space Grotesk', monospace;
-      font-size: 26px;
+    .word-hero {
+      font-family: var(--font-heading);
+      font-size: 38px;
       font-weight: 800;
-      color: #fff;
-      text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+      letter-spacing: -0.8px;
+      line-height: 1.05;
+      color: #ffffff;
+      transition: color 0.2s, transform 0.2s;
     }
 
-    .progress-bar-bg {
-      height: 7px;
+    .word-hero.confirmed {
+      color: var(--color-success);
+      animation: wordPop 0.4s var(--ease-bounce) forwards;
+    }
+
+    @keyframes wordPop {
+      0% { transform: scale(0.92); }
+      55% { transform: scale(1.08); }
+      100% { transform: scale(1.0); }
+    }
+
+    .confidence-meter-val {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .meter-track {
+      height: 5px;
       width: 100%;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
       overflow: hidden;
     }
 
-    .progress-bar-fill {
+    .meter-fill {
       height: 100%;
       width: 0%;
-      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
-      border-radius: 8px;
-      transition: width 0.18s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+      border-radius: 999px;
+      transition: width 0.16s var(--ease-out), background 0.2s;
     }
 
-    /* Constructor de Oraciones / Frase Acumulada */
+    /* ==========================================================================
+       BANDEJA DE CONSTRUCCIÓN DE ORACIONES (Conversacional)
+       ========================================================================== */
     .sentence-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: var(--card-glass);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 12px 16px;
+      border-radius: 22px;
+      padding: 14px 18px;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     }
 
     .sentence-header {
@@ -553,44 +666,50 @@
       justify-content: space-between;
       align-items: center;
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
       color: var(--text-muted);
-      letter-spacing: 0.6px;
     }
 
     .sentence-display {
-      min-height: 52px;
-      background: rgba(2, 5, 14, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 50px;
+      background: rgba(7, 10, 19, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 14px;
-      padding: 8px 12px;
+      padding: 10px 12px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 6px;
     }
 
-    .word-chip {
-      background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(59, 130, 246, 0.20));
-      border: 1px solid rgba(0, 240, 255, 0.4);
-      color: var(--accent-cyan);
-      font-weight: 800;
+    .empty-hint {
       font-size: 13px;
-      padding: 5px 11px;
-      border-radius: 9px;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .word-chip {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(30, 41, 59, 0.7));
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 10px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 240, 255, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       transition: transform 0.15s, background 0.2s;
     }
 
     .word-chip:active {
-      transform: scale(0.94);
-      background: var(--accent-cyan);
-      color: #050814;
+      transform: scale(0.95);
+      background: var(--color-primary);
+      color: #ffffff;
     }
 
     .sentence-actions {
@@ -602,41 +721,43 @@
     .btn-action {
       border: none;
       border-radius: 12px;
-      padding: 11px 10px;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 800;
+      padding: 11px 12px;
+      font-family: var(--font-body);
+      font-weight: 700;
       font-size: 13px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 7px;
       cursor: pointer;
-      transition: all 0.18s;
+      transition: all 0.2s var(--ease-out);
     }
 
     .btn-speak-all {
-      background: linear-gradient(135deg, var(--accent-cyan), #00b4d8);
-      color: #050814;
-      box-shadow: var(--glow-cyan);
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
     }
 
     .btn-speak-all:active {
-      transform: scale(0.96);
-      filter: brightness(1.15);
+      transform: scale(0.97);
+      filter: brightness(1.1);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
       color: var(--text-main);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--card-border);
     }
 
     .btn-secondary:active {
-      background: rgba(255, 255, 255, 0.18);
-      transform: scale(0.96);
+      background: rgba(255, 255, 255, 0.14);
+      transform: scale(0.97);
     }
 
-    /* Modo Comunicación Bidireccional (Oyente responde a Sordo) */
+    /* ==========================================================================
+       MODO COMUNICACIÓN BIDIRECCIONAL (Oyente ➔ Sordo)
+       ========================================================================== */
     .bidi-panel {
       display: none;
       flex-direction: column;
@@ -648,49 +769,47 @@
     }
 
     .bidi-header {
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--accent-cyan);
-      letter-spacing: -0.2px;
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
     }
 
-    .quick-responses-grid {
+    .quick-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
 
     .quick-card {
-      background: rgba(14, 21, 44, 0.75);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--card-glass);
+      border: 1px solid var(--card-border);
       border-radius: 16px;
-      padding: 14px 12px;
+      padding: 14px 14px;
       display: flex;
       flex-direction: column;
       gap: 6px;
       cursor: pointer;
-      transition: all 0.18s;
+      transition: all 0.2s;
     }
 
     .quick-card:active {
-      transform: scale(0.96);
-      border-color: var(--accent-cyan);
-      background: rgba(0, 240, 255, 0.12);
+      transform: scale(0.97);
+      border-color: var(--color-primary);
+      background: rgba(59, 130, 246, 0.15);
     }
 
     .quick-card-icon {
-      font-size: 26px;
+      font-size: 24px;
     }
 
     .quick-card-text {
-      font-size: 14px;
-      font-weight: 800;
-      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
     }
 
-    .custom-reply-box {
+    .custom-reply-row {
       display: flex;
       gap: 8px;
       margin-top: 4px;
@@ -698,27 +817,26 @@
 
     .custom-input {
       flex: 1;
-      background: rgba(14, 21, 44, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
       padding: 12px 14px;
-      color: #fff;
-      font-family: 'Outfit', sans-serif;
+      color: #ffffff;
+      font-family: var(--font-body);
       font-size: 14px;
       outline: none;
-      transition: border-color 0.2s;
     }
 
     .custom-input:focus {
-      border-color: var(--accent-cyan);
+      border-color: var(--color-primary);
     }
 
-    /* Modal Pantalla Gigante para Persona Sorda (Alto Contraste OLED) */
+    /* Pantalla Gigante para Persona Sorda */
     .fullscreen-modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: #000;
+      background: #000000;
       z-index: 1000;
       flex-direction: column;
       justify-content: center;
@@ -732,35 +850,92 @@
     }
 
     .fullscreen-text {
-      font-size: 44px;
+      font-family: var(--font-heading);
+      font-size: 46px;
       font-weight: 900;
-      color: #ffe600; /* Amarillo Neon Ultra-Legible */
+      color: #ffe600;
       line-height: 1.2;
-      text-shadow: 0 0 30px rgba(255, 230, 0, 0.6);
-      margin-bottom: 28px;
+      text-shadow: 0 0 35px rgba(255, 230, 0, 0.55);
+      margin-bottom: 32px;
       max-width: 90vw;
     }
 
     .fullscreen-close {
-      background: #fff;
-      color: #000;
-      font-size: 16px;
-      font-weight: 800;
+      background: #ffffff;
+      color: #000000;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 700;
       border: none;
-      border-radius: 14px;
-      padding: 14px 30px;
+      border-radius: 12px;
+      padding: 14px 32px;
       cursor: pointer;
-      box-shadow: 0 8px 24px rgba(255, 255, 255, 0.3);
     }
 
-    /* Cajón / Modal de Ajustes y Accesibilidad */
+    /* ==========================================================================
+       MODAL DE ACTUALIZACIÓN NUBE (OTA LIVE SYNC)
+       ========================================================================== */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      padding: 22px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: splashAppear 0.3s var(--ease-spring);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-body {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Cajón / Bottom Sheet de Ajustes y Diccionario */
     .drawer-modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       z-index: 200;
       justify-content: flex-end;
       flex-direction: column;
@@ -771,32 +946,39 @@
     }
 
     .drawer-content {
-      background: #090d1f;
-      border-top: 1px solid var(--card-border);
+      background: #0b1120;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 26px 26px 0 0;
-      padding: 20px 18px 32px 18px;
-      max-height: 82vh;
+      padding: 20px 20px 36px 20px;
+      max-height: 80vh;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 14px;
+      animation: slideUp 0.35s var(--ease-spring);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
     }
 
     .drawer-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       padding-bottom: 12px;
     }
 
     .drawer-title {
+      font-family: var(--font-heading);
       font-size: 18px;
       font-weight: 800;
-      color: var(--accent-cyan);
+      color: #ffffff;
     }
 
-    .setting-item {
+    .setting-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -806,46 +988,47 @@
 
     .setting-label {
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 600;
+      color: #ffffff;
     }
 
     .setting-desc {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       margin-top: 2px;
     }
 
     .toggle-switch {
       position: relative;
-      width: 50px;
-      height: 28px;
+      width: 48px;
+      height: 26px;
       background: rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
+      border-radius: 999px;
       cursor: pointer;
       transition: background 0.2s;
     }
 
     .toggle-switch.active {
-      background: var(--accent-green);
+      background: var(--color-success);
     }
 
     .toggle-knob {
       position: absolute;
       top: 3px;
       left: 3px;
-      width: 22px;
-      height: 22px;
-      background: #fff;
+      width: 20px;
+      height: 20px;
+      background: #ffffff;
       border-radius: 50%;
       transition: transform 0.2s;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
 
     .toggle-switch.active .toggle-knob {
       transform: translateX(22px);
     }
 
-    /* Catálogo de Señas */
+    /* Lista Catálogo de Señas */
     .signs-list {
       display: flex;
       flex-direction: column;
@@ -854,7 +1037,7 @@
 
     .sign-item {
       background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 14px;
       padding: 12px 14px;
       display: flex;
@@ -864,135 +1047,150 @@
 
     .sign-info h4 {
       font-size: 14px;
-      font-weight: 800;
-      color: var(--text-main);
+      font-weight: 700;
+      color: #ffffff;
     }
 
     .sign-info p {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       margin-top: 2px;
     }
 
     .btn-sign-play {
-      background: rgba(0, 240, 255, 0.15);
-      color: var(--accent-cyan);
-      border: 1px solid rgba(0, 240, 255, 0.3);
+      background: rgba(59, 130, 246, 0.15);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.3);
       border-radius: 10px;
       padding: 6px 12px;
       font-size: 13px;
       cursor: pointer;
-      font-weight: 800;
+      font-weight: 700;
     }
   </style>
 </head>
 <body>
 
-  <!-- Flash Luminous de Confirmación -->
+  <!-- Flash de Confirmación Luminoso -->
   <div class="screen-flash" id="screenFlash"></div>
 
-  <!-- Header Superior -->
+  <!-- PANTALLA SPLASH DE ENTRADA CON ANIMACIÓN -->
+  <div class="splash-screen" id="splashScreen">
+    <div class="splash-brand">
+      <div class="splash-logo-wrap">
+        <img src="logo_simbolo.png" alt="Gestual Vision Logo" class="splash-logo-img" />
+      </div>
+      <div>
+        <h1 class="splash-title">Gestual Vision</h1>
+        <p class="splash-subtitle">Traductor de Lengua de Señas Colombiana</p>
+      </div>
+      <div class="splash-version-tag">
+        <span>✨</span> Inferencia Neuronal On-Device v6.2
+      </div>
+      <div class="splash-loader-bar">
+        <div class="splash-loader-progress"></div>
+      </div>
+      <span class="splash-loader-text" id="splashStatusText">Iniciando cámara y visión por IA...</span>
+    </div>
+  </div>
+
+  <!-- CABECERA SUPERIOR -->
   <header>
-    <div class="brand">
-      <img src="data:image/png;base64,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" class="brand-logo" alt="Gestual LSC" />
-      <div class="brand-text">
-        <h1>Gestual Vision AI</h1>
-        <span id="modelStatusTag" style="color: #00ff9d; font-size: 11px; font-weight: 700;">⚡ Gestual Vision AI v6.0 (Cámara Limpia Cinemática • 60 FPS)</span>
+    <div class="brand" id="btnBrandHeader">
+      <div class="brand-logo-wrap">
+        <img src="logo_simbolo.png" alt="Gestual Logo" class="brand-logo-img" />
+      </div>
+      <div class="brand-meta">
+        <h1>Gestual Vision</h1>
+        <span id="headerLiveStatus">IA Activa • v6.2</span>
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn-header-icon" id="btnOpenDictionary" title="Catálogo de Señas">
-        📖 Catálogo
+      <!-- BOTÓN DE ACTUALIZACIÓN DESDE LA NUBE (OTA LIVE SYNC) -->
+      <button class="btn-header btn-cloud-sync" id="btnCloudSync" title="Actualizar desde la Nube sin reinstalar APK">
+        <span>☁️</span> Actualizar
       </button>
-      <button class="btn-header-icon" id="btnOpenSettings" title="Ajustes y Accesibilidad">
-        ⚙️
+      <button class="btn-header" id="btnOpenDictionary" title="Catálogo de Señas">
+        <span>📖</span>
+      </button>
+      <button class="btn-header" id="btnOpenSettings" title="Ajustes">
+        <span>⚙️</span>
       </button>
     </div>
   </header>
 
-  <!-- Barra de Pestañas (Modo de Comunicación) -->
+  <!-- PESTAÑAS DE MODO -->
   <div class="tabs-bar">
     <button class="tab-btn active" id="tabTranslate">
-      🖐️ Traductor LSC
+      <span>🖐️</span> Traductor
     </button>
     <button class="tab-btn" id="tabSentence">
-      💬 Oración Activa
+      <span>💬</span> Oración
     </button>
     <button class="tab-btn" id="tabBidi">
-      🗣️ Oyente ➔ Sordo
+      <span>🗣️</span> Oyente ➔ Sordo
     </button>
   </div>
 
-  <!-- Contenedor Principal -->
+  <!-- CONTENIDO PRINCIPAL -->
   <main>
-    <!-- VISTA 1: TRADUCTOR Y CÁMARA BIMANUAL -->
-    <div id="viewTranslator" style="display: flex; flex-direction: column; gap: 10px;">
-      <!-- Viewport Cámara -->
+    <!-- VISTA 1: TRADUCTOR Y CÁMARA ULTRA-LIMPIA -->
+    <div id="viewTranslator" style="display: flex; flex-direction: column; gap: 12px;">
+      
+      <!-- Viewport de Cámara Limpia -->
       <div class="viewport-card">
         <video id="videoElement" autoplay playsinline muted></video>
         <canvas id="canvasOverlay"></canvas>
 
-        <!-- Retículas HUD -->
-        <div class="hud-reticle hud-top-left"></div>
-        <div class="hud-reticle hud-top-right"></div>
-        <div class="hud-reticle hud-bottom-left"></div>
-        <div class="hud-reticle hud-bottom-right"></div>
-
-        <!-- Barra Superior HUD -->
-        <div class="hud-top-bar">
-          <div style="display: flex; gap: 5px; align-items: center;">
-            <div class="hud-badge hud-fps" id="fpsBadge">0.0 FPS</div>
-            <div class="hud-badge" id="latencyBadge" style="color: var(--accent-cyan); border-color: rgba(0, 240, 255, 0.3);">⚡ <span id="latencyVal">22ms</span></div>
-            <div class="hud-badge" id="modeBadge" style="color: #a78bfa; border-color: rgba(167, 139, 250, 0.3);"><span id="modeVal">FULL</span></div>
-          </div>
-          <div style="display: flex; gap: 6px; align-items: center;">
-            <div class="hud-badge" id="btnCleanVisionBadge" style="cursor: pointer; color: var(--accent-cyan); border-color: rgba(0, 240, 255, 0.4);" title="Alternar entre Cámara Limpia y Modo Esqueleto">✨ CÁMARA LIMPIA</div>
-            <div class="hud-badge" id="btnToggleHandsNum" style="cursor: pointer; color: var(--accent-purple); border-color: rgba(240, 0, 255, 0.4);" title="Tocar para alternar entre 1 mano y 2 manos">🖐️🖐️ 2 MANOS</div>
-            <div class="hud-badge" id="enhanceBadge" style="display: none; color: var(--accent-amber); border-color: rgba(255, 184, 0, 0.4);"><span>✨ ZERO-DCE</span></div>
-            <div class="hud-badge hud-idle" id="handsStatusBadge">⛔ SIN MANOS</div>
-            <div class="hud-badge hud-occlusion" id="occlusionBadge" style="display: none;">⚡ TRASERA ACTIVA</div>
-          </div>
+        <!-- Único Pill Minimalista de Estado de Cámara -->
+        <div class="camera-status-pill">
+          <div class="status-dot" id="camStatusDot"></div>
+          <span id="camStatusText">Iniciando cámara...</span>
         </div>
 
-        <!-- Guía de Espera cuando NO hay manos -->
-        <div class="idle-hands-overlay" id="idleHandsOverlay">
-          <div class="idle-hands-icon">🖐️</div>
-          <div class="idle-hands-text">Ubica tus manos frente a la cámara</div>
-          <div class="idle-hands-sub">Visión limpia cinemática activa</div>
+        <!-- Sugerencia Flotante No Invasiva (Desaparece cuando hay manos) -->
+        <div class="camera-hint-pill" id="cameraHintPill">
+          <span>🖐️</span> Ubica tus manos frente a la cámara
         </div>
 
+        <!-- Controles Flotantes Discretos de Cámara -->
         <div class="camera-controls">
-          <button class="btn-circle" id="btnToggleCleanVision" title="Alternar Visión Limpia / Esqueleto">✨</button>
-          <button class="btn-circle" id="btnSwitchCam" title="Alternar Cámara">🔄</button>
-          <button class="btn-circle" id="btnToggleMirror" title="Alternar Espejo">🪞</button>
+          <button class="btn-cam-circle" id="btnSwitchCam" title="Alternar Cámara">🔄</button>
+          <button class="btn-cam-circle" id="btnToggleMirror" title="Alternar Modo Espejo">🪞</button>
         </div>
       </div>
 
-      <!-- Tarjeta de Predicción -->
-      <div class="prediction-card">
-        <div class="pred-header">
-          <span class="pred-state-badge state-idle" id="stateBadge">ESPERANDO MANOS</span>
-          <span style="font-size: 11px; color: var(--text-muted); font-weight: 700;" id="quadrantBadge">CÁMARA LISTA</span>
+      <!-- Tarjeta Hero de Interpretación (Limpia y Sofisticada) -->
+      <div class="hero-card">
+        <div class="hero-top-row">
+          <div class="state-pill state-idle" id="statePill">
+            <span id="statePillText">LISTO PARA SEÑAS</span>
+          </div>
+          <div class="zone-indicator" id="zoneIndicator">
+            <span>📍</span> <span id="zoneIndicatorText">Área de captura</span>
+          </div>
         </div>
-        <div class="pred-body">
-          <div class="pred-title" id="predTitle">---</div>
-          <div class="pred-confidence" id="predConfidence">0%</div>
+
+        <div class="hero-main-row">
+          <div class="word-hero" id="predTitle">---</div>
+          <div class="confidence-meter-val" id="predConfidence">0%</div>
         </div>
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="progressBar"></div>
+
+        <div class="meter-track">
+          <div class="meter-fill" id="progressBar"></div>
         </div>
       </div>
     </div>
 
-    <!-- VISTA 2: CONSTRUCTOR DE ORACIONES (ACUMULADOR) -->
+    <!-- BANDEJA DE CONSTRUCCIÓN DE ORACIONES -->
     <div class="sentence-card">
       <div class="sentence-header">
-        <span>Frase / Oración Construida</span>
-        <span style="color: var(--accent-cyan); font-size: 11px;" id="wordCountBadge">0 palabras</span>
+        <span>Frase Construida</span>
+        <span style="color: var(--color-accent);" id="wordCountBadge">0 palabras</span>
       </div>
       <div class="sentence-display" id="sentenceDisplay">
-        <span style="font-size: 13px; color: var(--text-muted);" id="emptySentenceHint">
-          (Realiza señas con tus manos para armar la frase)
+        <span class="empty-hint" id="emptySentenceHint">
+          Las señas confirmadas se sumarán aquí para formar frases
         </span>
       </div>
       <div class="sentence-actions">
@@ -1008,12 +1206,12 @@
       </div>
     </div>
 
-    <!-- VISTA 3: RESPUESTA RÁPIDA OYENTE ➔ SORDO -->
+    <!-- VISTA 2: RESPUESTAS RÁPIDAS OYENTE ➔ SORDO -->
     <div class="bidi-panel" id="viewBidi">
       <div class="bidi-header">
-        Respuestas Rápidas para la Persona Sorda (Letra Gigante OLED):
+        Respuestas para Mostrar a la Persona Sorda:
       </div>
-      <div class="quick-responses-grid">
+      <div class="quick-grid">
         <div class="quick-card" data-reply="¡ENTENDIDO! MUCHAS GRACIAS.">
           <span class="quick-card-icon">👍</span>
           <span class="quick-card-text">¡Entendido!</span>
@@ -1040,9 +1238,8 @@
         </div>
       </div>
 
-      <!-- Respuesta Personalizada Escrita -->
-      <div class="custom-reply-box">
-        <input type="text" class="custom-input" id="customReplyInput" placeholder="Escribe aquí tu respuesta...">
+      <div class="custom-reply-row">
+        <input type="text" class="custom-input" id="customReplyInput" placeholder="Escribe una respuesta personalizada...">
         <button class="btn-action btn-speak-all" id="btnSendCustomReply" style="padding: 0 16px;">
           Mostrar
         </button>
@@ -1050,7 +1247,7 @@
     </div>
   </main>
 
-  <!-- Modal Pantalla Gigante para Persona Sorda -->
+  <!-- MODAL PANTALLA GIGANTE OLED PARA PERSONA SORDA -->
   <div class="fullscreen-modal" id="fullscreenModal">
     <div class="fullscreen-text" id="fullscreenText">¡ENTENDIDO!</div>
     <button class="fullscreen-close" id="btnCloseFullscreen">
@@ -1058,14 +1255,37 @@
     </button>
   </div>
 
-  <!-- Cajón / Modal de Ajustes y Accesibilidad -->
+  <!-- MODAL OTA SYNC (NUBE) -->
+  <div class="modal-backdrop" id="modalCloudSync">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>☁️</span> Actualización desde la Nube
+        </div>
+        <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseCloudModal">✕</span>
+      </div>
+      <div class="modal-body">
+        <p>Esta función descarga e instala la última versión de la interfaz, modelo neuronal y calibraciones directamente desde la nube sin tener que reinstalar la APK.</p>
+        <div style="margin-top: 14px; background: rgba(255,255,255,0.04); padding: 12px; border-radius: 12px; border: 1px solid var(--card-border);">
+          <div style="font-weight: 700; color: #fff;">Gestual Vision v6.2 Maestro</div>
+          <div style="font-size: 12px; color: var(--color-success); margin-top: 3px;">● Listo para sincronizar desde GitHub</div>
+        </div>
+      </div>
+      <button class="btn-action btn-speak-all" id="btnTriggerCloudDownload" style="width: 100%; margin-top: 6px;">
+        <span>⚡</span> Iniciar Sincronización Ahora
+      </button>
+    </div>
+  </div>
+
+  <!-- CAJÓN DE AJUSTES & ACCESIBILIDAD -->
   <div class="drawer-modal" id="drawerSettings">
     <div class="drawer-content">
       <div class="drawer-header">
         <div class="drawer-title">Ajustes & Accesibilidad</div>
         <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseSettings">✕</span>
       </div>
-      <div class="setting-item">
+
+      <div class="setting-row">
         <div>
           <div class="setting-label">🔊 Voz Nativa Android OS</div>
           <div class="setting-desc">Pronuncia por el altavoz la seña confirmada</div>
@@ -1074,7 +1294,8 @@
           <div class="toggle-knob"></div>
         </div>
       </div>
-      <div class="setting-item">
+
+      <div class="setting-row">
         <div>
           <div class="setting-label">📳 Vibración Háptica</div>
           <div class="setting-desc">Pulso táctil en la mano al confirmar seña</div>
@@ -1083,7 +1304,8 @@
           <div class="toggle-knob"></div>
         </div>
       </div>
-      <div class="setting-item">
+
+      <div class="setting-row">
         <div>
           <div class="setting-label">🔔 Chime de Confirmación</div>
           <div class="setting-desc">Sonido sutil de confirmación para oyentes</div>
@@ -1092,43 +1314,61 @@
           <div class="toggle-knob"></div>
         </div>
       </div>
-      <div class="setting-item">
+
+      <div class="setting-row">
         <div>
-          <div class="setting-label">⚡ Flash Perimetral de Pantalla</div>
+          <div class="setting-label">⚡ Flash Perimetral</div>
           <div class="setting-desc">Borde verde brillante para personas sordas</div>
         </div>
         <div class="toggle-switch active" id="toggleFlash">
           <div class="toggle-knob"></div>
         </div>
       </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">✨ Modo Cámara Limpia</div>
+          <div class="setting-desc">Oculta puntos y líneas sobre las manos</div>
+        </div>
+        <div class="toggle-switch active" id="toggleCleanVision">
+          <div class="toggle-knob"></div>
+        </div>
+      </div>
+
+      <div style="margin-top: 10px; padding: 14px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 14px;">
+        <div style="font-weight: 700; color: #93c5fd; font-size: 13px;">Actualización Directa desde la Nube</div>
+        <p style="font-size: 11px; color: var(--text-muted); margin: 4px 0 10px 0;">Recibe mejoras continuas de IA sin transferir APKs.</p>
+        <button class="btn-action btn-secondary" id="btnDrawerSync" style="width: 100%; font-size: 12px; padding: 9px;">
+          <span>☁️</span> Abrir Gestor de Nube
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Cajón / Modal Catálogo de Señas LSC -->
+  <!-- CAJÓN DICCIONARIO LSC -->
   <div class="drawer-modal" id="drawerDictionary">
     <div class="drawer-content">
       <div class="drawer-header">
-        <div class="drawer-title">Catálogo de Señas LSC (11 Señas)</div>
+        <div class="drawer-title">Catálogo de Señas (11 Señas Calibradas)</div>
         <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseDictionary">✕</span>
       </div>
-      <div class="signs-list" id="signsListContainer">
-        <!-- Generado dinámicamente -->
-      </div>
+      <div class="signs-list" id="signsListContainer"></div>
     </div>
   </div>
 
+  <!-- ========================================================================
+       LÓGICA JAVASCRIPT CONEXIÓN NATIVA Y MOTOR ON-DEVICE
+       ======================================================================== -->
   <script>
-    // ========================================================================
-    // 1. GESTOR DE AUDIO NATIVO, HÁPTICO Y ACCESIBILIDAD
-    // ========================================================================
+    // 1. CONFIGURACIÓN DE ACCESIBILIDAD Y FEEDBACK
     let autoVoiceEnabled = true;
     let hapticEnabled = true;
     let chimeEnabled = true;
     let visualFlashEnabled = true;
+    let cleanVisionMode = true; // Cámara limpia cinemática activa por defecto
 
-    // Puente de Audio Nativo Android + Haptic Feedback
     function emitirFeedback(texto, opciones = {}) {
-      // 1. Vibración háptica nativa (para personas sordas)
+      // Vibración háptica
       if (hapticEnabled && opciones.vibrar !== false) {
         if (window.NativeBridge) {
           window.NativeBridge.postMessage(JSON.stringify({ action: 'vibrate', duration: opciones.duracionVib || 45 }));
@@ -1137,14 +1377,11 @@
         }
       }
 
-      // 2. Pronunciación de voz nativa Android OS (para oyentes)
+      // Pronunciación de voz TTS
       if (autoVoiceEnabled && texto && opciones.hablar !== false) {
         let frase = texto.replace(/_/g, ' ').toLowerCase();
-        if (frase.includes('annos')) {
-          frase = frase.replace(/annos/g, 'años');
-        }
+        if (frase.includes('annos')) frase = frase.replace(/annos/g, 'años');
         if (window.NativeBridge) {
-          // LLAMADA NATIVA DIRECTA AL MOTOR ANDROID OS TTS
           window.NativeBridge.postMessage(JSON.stringify({ action: 'speak', text: frase }));
         } else if ('speechSynthesis' in window) {
           try {
@@ -1157,33 +1394,28 @@
         }
       }
 
-      // 3. Chime sonoro de confirmación sintetizado con Web Audio
+      // Chime sonoro sintético
       if (chimeEnabled && opciones.chime !== false) {
         reproducirChimeConfirmacion();
       }
 
-      // 4. Flash visual perimetral (retroalimentación para personas sordas)
+      // Flash visual perimetral
       if (visualFlashEnabled) {
         activarFlashVisual();
       }
     }
 
-    // Chime sintético con Web Audio API
     let audioCtx = null;
     function reproducirChimeConfirmacion() {
       try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
         osc.frequency.exponentialRampToValueAtTime(880.0, audioCtx.currentTime + 0.10); // A5
-        gain.gain.setValueAtTime(0.20, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -1192,24 +1424,13 @@
       } catch (e) {}
     }
 
-    // Desbloquear audio al primer toque
-    window.addEventListener('touchstart', () => {
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    }, { once: true });
-    window.addEventListener('click', () => {
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    }, { once: true });
-
-    // Flash Perimetral
     const screenFlash = document.getElementById('screenFlash');
     function activarFlashVisual() {
       screenFlash.classList.add('active');
       setTimeout(() => screenFlash.classList.remove('active'), 250);
     }
 
-    // ========================================================================
-    // 2. CONSTRUCTOR DE ORACIONES (ACUMULADOR LSC)
-    // ========================================================================
+    // 2. CONSTRUCTOR DE ORACIONES (ACUMULADOR)
     let oracionTokens = [];
     const sentenceDisplay = document.getElementById('sentenceDisplay');
     const emptySentenceHint = document.getElementById('emptySentenceHint');
@@ -1232,10 +1453,10 @@
       }
 
       wordCountBadge.textContent = `${oracionTokens.length} palabra${oracionTokens.length > 1 ? 's' : ''}`;
-      oracionTokens.forEach((tok, idx) => {
+      oracionTokens.forEach((tok) => {
         const chip = document.createElement('div');
         chip.className = 'word-chip';
-        chip.innerHTML = `<span>${tok}</span> <span style="font-size: 10px; opacity: 0.6;">🔊</span>`;
+        chip.innerHTML = `<span>${tok}</span> <span style="font-size: 11px; opacity: 0.65;">🔊</span>`;
         chip.addEventListener('click', () => {
           emitirFeedback(tok, { vibrar: true, hablar: true, chime: false });
         });
@@ -1246,7 +1467,7 @@
     btnSpeakAll.addEventListener('click', () => {
       if (oracionTokens.length === 0) return;
       const textoCompleto = oracionTokens.join(' ').replace(/_/g, ' ');
-      emitirFeedback(textoCompleto, { vibrar: true, hablar: true, duracionVib: 80 });
+      emitirFeedback(textoCompleto, { vibrar: true, hablar: true, duracionVib: 70 });
     });
 
     btnCopySentence.addEventListener('click', () => {
@@ -1255,7 +1476,7 @@
       navigator.clipboard?.writeText(textoCompleto);
       btnCopySentence.textContent = '¡Copiado! ✓';
       setTimeout(() => btnCopySentence.innerHTML = '<span>📋</span> Copiar', 1500);
-      emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 30 });
+      emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 25 });
     });
 
     btnBackspace.addEventListener('click', () => {
@@ -1266,9 +1487,7 @@
       }
     });
 
-    // ========================================================================
     // 3. COMUNICACIÓN BIDIRECCIONAL (OYENTE ➔ SORDO)
-    // ========================================================================
     const fullscreenModal = document.getElementById('fullscreenModal');
     const fullscreenText = document.getElementById('fullscreenText');
     const btnCloseFullscreen = document.getElementById('btnCloseFullscreen');
@@ -1278,7 +1497,7 @@
     function mostrarRespuestaGigante(texto) {
       fullscreenText.textContent = texto;
       fullscreenModal.classList.add('active');
-      emitirFeedback(texto, { vibrar: true, hablar: true, duracionVib: 70 });
+      emitirFeedback(texto, { vibrar: true, hablar: true, duracionVib: 60 });
     }
 
     document.querySelectorAll('.quick-card').forEach(card => {
@@ -1300,9 +1519,7 @@
       fullscreenModal.classList.remove('active');
     });
 
-    // ========================================================================
     // 4. PESTAÑAS Y NAVEGACIÓN
-    // ========================================================================
     const tabTranslate = document.getElementById('tabTranslate');
     const tabSentence = document.getElementById('tabSentence');
     const tabBidi = document.getElementById('tabBidi');
@@ -1330,9 +1547,7 @@
     tabSentence.addEventListener('click', () => setActiveTab(tabSentence));
     tabBidi.addEventListener('click', () => setActiveTab(tabBidi));
 
-    // ========================================================================
-    // 5. CAJÓN DE AJUSTES Y DICCIONARIO LSC
-    // ========================================================================
+    // 5. CAJÓN DE AJUSTES & DICCIONARIO
     const drawerSettings = document.getElementById('drawerSettings');
     const btnOpenSettings = document.getElementById('btnOpenSettings');
     const btnCloseSettings = document.getElementById('btnCloseSettings');
@@ -1342,6 +1557,7 @@
 
     function bindToggle(elId, stateVarSetter) {
       const el = document.getElementById(elId);
+      if (!el) return;
       el.addEventListener('click', () => {
         el.classList.toggle('active');
         stateVarSetter(el.classList.contains('active'));
@@ -1353,6 +1569,7 @@
     bindToggle('toggleHaptic', (val) => hapticEnabled = val);
     bindToggle('toggleChime', (val) => chimeEnabled = val);
     bindToggle('toggleFlash', (val) => visualFlashEnabled = val);
+    bindToggle('toggleCleanVision', (val) => cleanVisionMode = val);
 
     // Diccionario de Señas LSC Calibradas
     const drawerDictionary = document.getElementById('drawerDictionary');
@@ -1361,7 +1578,7 @@
     const signsListContainer = document.getElementById('signsListContainer');
 
     const INFO_SENAS = [
-      { sena: 'HOLA', desc: 'Mano abierta extendida junto a la sien o frente hacia afuera', zona: 'CABEZA / ROSTRO' },
+      { sena: 'HOLA', desc: 'Mano abierta extendida junto a la sien hacia afuera', zona: 'CABEZA / ROSTRO' },
       { sena: 'BUENAS', desc: 'Saludo formal suave desde la frente hacia adelante', zona: 'CABEZA / PECHO' },
       { sena: 'DIAS', desc: 'Mano en arco frontal representando la salida del sol', zona: 'PECHO' },
       { sena: 'TARDES', desc: 'Mano descendiendo suavemente en el espacio frontal', zona: 'ESPACIO MEDIO' },
@@ -1380,7 +1597,7 @@
       row.innerHTML = `
         <div class="sign-info">
           <h4>${item.sena.replace(/_/g, ' ')}</h4>
-          <p>${item.desc} · <b style="color: var(--accent-cyan);">${item.zona}</b></p>
+          <p>${item.desc} · <b style="color: var(--color-accent);">${item.zona}</b></p>
         </div>
         <button class="btn-sign-play" data-sena="${item.sena}">🔊</button>
       `;
@@ -1393,100 +1610,72 @@
     btnOpenDictionary.addEventListener('click', () => drawerDictionary.classList.add('active'));
     btnCloseDictionary.addEventListener('click', () => drawerDictionary.classList.remove('active'));
 
-    // Alternador de Modo de Manos (1 Mano / 2 Manos)
-    const btnToggleHandsNum = document.getElementById('btnToggleHandsNum');
-    if (btnToggleHandsNum) {
-      btnToggleHandsNum.addEventListener('click', () => {
-        maxManosConfiguradas = (maxManosConfiguradas === 1) ? 2 : 1;
-        if (hands) {
-          hands.setOptions({
-            maxNumHands: maxManosConfiguradas,
-            minDetectionConfidence: 0.36,
-            minTrackingConfidence: 0.32
-          });
-        }
-        if (handTracker) handTracker.reset();
-        btnToggleHandsNum.textContent = maxManosConfiguradas === 1 ? '🖐️ 1 MANO' : '🖐️🖐️ 2 MANOS';
-        btnToggleHandsNum.style.color = maxManosConfiguradas === 1 ? 'var(--accent-cyan)' : 'var(--accent-purple)';
-        btnToggleHandsNum.style.borderColor = maxManosConfiguradas === 1 ? 'rgba(0, 240, 255, 0.4)' : 'rgba(240, 0, 255, 0.4)';
-        emitirFeedback('', { hablar: false, duracionVib: 25 });
+    // 6. GESTIÓN DE ACTUALIZACIÓN DESDE LA NUBE (OTA LIVE SYNC)
+    const btnCloudSync = document.getElementById('btnCloudSync');
+    const modalCloudSync = document.getElementById('modalCloudSync');
+    const btnCloseCloudModal = document.getElementById('btnCloseCloudModal');
+    const btnTriggerCloudDownload = document.getElementById('btnTriggerCloudDownload');
+    const btnDrawerSync = document.getElementById('btnDrawerSync');
+
+    function abrirModalSincronizacion() {
+      if (window.NativeBridge) {
+        // Invoca directamente el diálogo de actualización nativa en Flutter
+        window.NativeBridge.postMessage(JSON.stringify({ action: 'showSyncModal' }));
+      } else {
+        modalCloudSync.classList.add('active');
+      }
+    }
+
+    btnCloudSync.addEventListener('click', abrirModalSincronizacion);
+    if (btnDrawerSync) btnDrawerSync.addEventListener('click', () => {
+      drawerSettings.classList.remove('active');
+      abrirModalSincronizacion();
+    });
+    if (btnCloseCloudModal) btnCloseCloudModal.addEventListener('click', () => modalCloudSync.classList.remove('active'));
+    if (btnTriggerCloudDownload) {
+      btnTriggerCloudDownload.addEventListener('click', () => {
+        btnTriggerCloudDownload.textContent = 'Actualizando archivos...';
+        setTimeout(() => {
+          location.reload();
+        }, 1200);
       });
     }
 
-    // ========================================================================
-    // 6. CÁMARA, MEDIAPIPE Y RASTREO BIMANUAL CON ESTABILIZACIÓN
-    // ========================================================================
+    // 7. CÁMARA, MEDIAPIPE Y MOTOR ON-DEVICE
     const video = document.getElementById('videoElement');
     const canvas = document.getElementById('canvasOverlay');
     const ctx = canvas.getContext('2d');
-    const fpsBadge = document.getElementById('fpsBadge');
-    const handsStatusBadge = document.getElementById('handsStatusBadge');
-    const occlusionBadge = document.getElementById('occlusionBadge');
-    const idleHandsOverlay = document.getElementById('idleHandsOverlay');
+    const camStatusDot = document.getElementById('camStatusDot');
+    const camStatusText = document.getElementById('camStatusText');
+    const cameraHintPill = document.getElementById('cameraHintPill');
     const btnSwitchCam = document.getElementById('btnSwitchCam');
     const btnToggleMirror = document.getElementById('btnToggleMirror');
-    const btnToggleCleanVision = document.getElementById('btnToggleCleanVision');
-    const btnCleanVisionBadge = document.getElementById('btnCleanVisionBadge');
 
-    // MODO VISIÓN LIMPIA (Clean Vision Mode - Por defecto activado)
-    // Permite cámara 100% limpia sin puntos ni líneas sobre las manos, como apps comerciales de ASL
-    let cleanVisionMode = true;
-
-    function setCleanVisionMode(enabled) {
-      cleanVisionMode = enabled;
-      if (cleanVisionMode) {
-        if (btnCleanVisionBadge) {
-          btnCleanVisionBadge.textContent = '✨ CÁMARA LIMPIA';
-          btnCleanVisionBadge.style.color = 'var(--accent-cyan)';
-          btnCleanVisionBadge.style.borderColor = 'rgba(0, 240, 255, 0.4)';
-        }
-        if (btnToggleCleanVision) {
-          btnToggleCleanVision.textContent = '✨';
-          btnToggleCleanVision.title = 'Visión Limpia Activa (Tocar para ver Esqueleto)';
-        }
-      } else {
-        if (btnCleanVisionBadge) {
-          btnCleanVisionBadge.textContent = '🦴 ESQUELETO';
-          btnCleanVisionBadge.style.color = 'var(--accent-amber)';
-          btnCleanVisionBadge.style.borderColor = 'rgba(255, 184, 0, 0.4)';
-        }
-        if (btnToggleCleanVision) {
-          btnToggleCleanVision.textContent = '🦴';
-          btnToggleCleanVision.title = 'Modo Esqueleto Activo (Tocar para Cámara Limpia)';
-        }
-      }
-      emitirFeedback('', { duracionVib: 25 });
-    }
-
-    if (btnToggleCleanVision) {
-      btnToggleCleanVision.addEventListener('click', () => setCleanVisionMode(!cleanVisionMode));
-    }
-    if (btnCleanVisionBadge) {
-      btnCleanVisionBadge.addEventListener('click', () => setCleanVisionMode(!cleanVisionMode));
-    }
-
-    const stateBadge = document.getElementById('stateBadge');
-    const quadrantBadge = document.getElementById('quadrantBadge');
+    const statePill = document.getElementById('statePill');
+    const statePillText = document.getElementById('statePillText');
+    const zoneIndicatorText = document.getElementById('zoneIndicatorText');
     const predTitle = document.getElementById('predTitle');
     const predConfidence = document.getElementById('predConfidence');
     const progressBar = document.getElementById('progressBar');
+
+    const splashScreen = document.getElementById('splashScreen');
+    const splashStatusText = document.getElementById('splashStatusText');
 
     let currentStream = null;
     let facingMode = 'user';
     let isMirrored = true;
     let frameCount = 0;
     let lastFrameTime = performance.now();
-    let ultimaSenaPronunciada = '';
-    let timestampUltimaPronunciada = 0;
+    let currentFps = 60;
+    let hasDismissedSplash = false;
 
-    // Acumulador Leaky EMA de Probabilidades LSC (v5.5.0)
-    // Permite detectar fluidamente señas en movimiento continuo y estáticas
+    // Acumulador Leaky EMA de Probabilidades LSC
     const acumuladorLSC = new MotorLSCLocal.AcumuladorProbabilidadesLSC({
       decay: 0.65,
-      threshold: 0.58,
-      minMargin: 0.10,
-      minConsecutive: 3,
-      cooldownMs: 900
+      threshold: 0.52,
+      minMargin: 0.08,
+      minConsecutive: 2,
+      cooldownMs: 850
     });
 
     function adjustMirroring() {
@@ -1528,12 +1717,22 @@
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           adjustMirroring();
-          stateBadge.textContent = 'ESPERANDO MANOS';
-          stateBadge.className = 'pred-state-badge state-idle';
+          camStatusText.textContent = 'En vivo • 60 FPS';
+          camStatusDot.classList.add('active');
+
+          // Ocultar splash screen con transición suave
+          if (!hasDismissedSplash) {
+            hasDismissedSplash = true;
+            setTimeout(() => {
+              splashScreen.classList.add('fade-out');
+              setTimeout(() => splashScreen.remove(), 600);
+            }, 500);
+          }
         };
       } catch (err) {
         console.error('Error cámara:', err);
-        stateBadge.textContent = 'ERROR CÁMARA';
+        camStatusText.textContent = 'Error de cámara';
+        if (splashStatusText) splashStatusText.textContent = 'Permiso de cámara requerido';
       }
     }
 
@@ -1541,9 +1740,8 @@
     let hands = null;
     let pose = null;
     let ultimosHombros = null;
-
     const handTracker = new MotorLSCLocal.DualHandTracker();
-    let maxManosConfiguradas = 2; // Modo 2 Manos (Bimanual / Auto) por defecto según requerimiento
+    let maxManosConfiguradas = 2; // Bimanual nativo
 
     function initMediaPipe() {
       if (typeof Hands === 'undefined') {
@@ -1558,7 +1756,7 @@
       hands.setOptions({
         maxNumHands: maxManosConfiguradas,
         modelComplexity: 1,
-        minDetectionConfidence: 0.36, // Calibrado para captar movimientos rápidos y blur sin desconexión
+        minDetectionConfidence: 0.36,
         minTrackingConfidence: 0.32
       });
 
@@ -1580,8 +1778,6 @@
               nariz: res.poseLandmarks[0] ? [res.poseLandmarks[0].x, res.poseLandmarks[0].y, res.poseLandmarks[0].z] : null,
               hombro_izq: [res.poseLandmarks[11].x, res.poseLandmarks[11].y, res.poseLandmarks[11].z],
               hombro_der: [res.poseLandmarks[12].x, res.poseLandmarks[12].y, res.poseLandmarks[12].z],
-              cadera_izq: res.poseLandmarks.length > 23 ? [res.poseLandmarks[23].x, res.poseLandmarks[23].y, res.poseLandmarks[23].z] : null,
-              cadera_der: res.poseLandmarks.length > 24 ? [res.poseLandmarks[24].x, res.poseLandmarks[24].y, res.poseLandmarks[24].z] : null,
             };
           }
         });
@@ -1593,40 +1789,16 @@
     let isProcessingHands = false;
     let isProcessingPose = false;
 
-    // Componentes On-Device de Mejora y Decodificación Continua
-    const mejoradorVideo = new MotorLSCLocal.MejoradorVideoOnDevice();
-    const decodificadorCTC = new MotorLSCLocal.DecodificadorContinuoCTC({
-      tamanoVentana: 45,
-      pasoSalto: 8,
-      umbralConfianza: 0.85,
-      tiempoCooldownMs: 1400,
-      mutePeriodMs: 600,
-      onPalabraConfirmada: (palabra, conf) => {
-        // La emisión de voz y oraciones se gestiona de forma unificada en actualizarUI
-      }
-    });
-
-    const latencyVal = document.getElementById('latencyVal');
-    const modeVal = document.getElementById('modeVal');
-    const enhanceBadge = document.getElementById('enhanceBadge');
-    let tInicioInfer = 0;
-
     function iniciarLoopProcesamiento() {
       async function step() {
-        tInicioInfer = performance.now();
-
-        // 1. Pipeline Directo WebGL por GPU (30-60 FPS fluidos sin bloqueo CPU)
         if (!isProcessingHands && video.readyState >= 2 && hands) {
           isProcessingHands = true;
           try {
             await hands.send({ image: video });
-          } catch (e) {
-            console.warn(e);
-          }
+          } catch (e) {}
           isProcessingHands = false;
         }
 
-        // 2. Extracción de Pose adaptativa throttled (cada 15 frames ~500ms)
         if (pose && !isProcessingPose && frameCount % 15 === 0 && video.readyState >= 2) {
           isProcessingPose = true;
           pose.send({ image: video }).catch(() => {}).finally(() => {
@@ -1634,24 +1806,10 @@
           });
         }
 
-        // 4. Medición de latencia y FPS
-        const latenciaMs = Math.round(performance.now() - tInicioInfer);
-        if (latencyVal && latenciaMs > 0) {
-          latencyVal.textContent = `${Math.min(latenciaMs, 35)}ms`;
-        }
-
         frameCount++;
         const now = performance.now();
         if (now - lastFrameTime >= 1000) {
-          const fps = (frameCount * 1000) / (now - lastFrameTime);
-          fpsBadge.textContent = `${fps.toFixed(1)} FPS`;
-          
-          if (modeVal) {
-            if (fps >= 26) modeVal.textContent = 'FULL';
-            else if (fps >= 18) modeVal.textContent = 'MEDIO';
-            else modeVal.textContent = 'LITE';
-          }
-
+          currentFps = Math.round((frameCount * 1000) / (now - lastFrameTime));
           frameCount = 0;
           lastFrameTime = now;
         }
@@ -1661,15 +1819,9 @@
       requestAnimationFrame(step);
     }
 
-    // ========================================================================
-    // 7. GESTIÓN DE RESULTADOS Y DECISIÓN DE INFERENCIA
-    // ========================================================================
+    // GESTIÓN DE RESULTADOS
     function onHandsResults(results) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (!cleanVisionMode && ultimosHombros) {
-        dibujarLineaHombros(ultimosHombros);
-      }
 
       const now = performance.now();
       const activeHands = handTracker.update(
@@ -1678,53 +1830,28 @@
         now
       );
 
-      // ======================================================================
-      // REQUISITO CRÍTICO: SI NO HAY MANOS, NO SE DETECTA NADA
-      // ======================================================================
+      // CASO: SIN MANOS
       if (activeHands.length === 0) {
-        idleHandsOverlay.style.display = 'flex';
-        handsStatusBadge.textContent = '⛔ SIN MANOS';
-        handsStatusBadge.className = 'hud-badge hud-idle';
-        occlusionBadge.style.display = 'none';
+        cameraHintPill.classList.remove('hidden');
+        camStatusDot.classList.remove('active');
+        camStatusText.textContent = `En vivo • ${currentFps} FPS`;
 
-        stateBadge.textContent = 'ESPERANDO MANOS';
-        stateBadge.className = 'pred-state-badge state-idle';
+        statePill.className = 'state-pill state-idle';
+        statePillText.textContent = 'LISTO PARA SEÑAS';
         predTitle.textContent = '---';
-        predTitle.style.color = 'var(--text-muted)';
+        predTitle.classList.remove('confirmed');
         predConfidence.textContent = '0%';
         progressBar.style.width = '0%';
-        quadrantBadge.textContent = 'CÁMARA LISTA';
+        zoneIndicatorText.textContent = 'Área de captura';
 
         if (typeof acumuladorLSC !== 'undefined') acumuladorLSC.reset();
-        ultimaSenaPronunciada = '';
-
-        // Resetear detectores de mano neutra y compuertas cinemáticas al desaparecer las manos
-        if (typeof _neutralDetectorSlot0 !== 'undefined') _neutralDetectorSlot0.reset();
-        if (typeof _neutralDetectorSlot1 !== 'undefined') _neutralDetectorSlot1.reset();
-        if (typeof _motionGateSlot0 !== 'undefined') _motionGateSlot0.reset();
-        if (typeof _motionGateSlot1 !== 'undefined') _motionGateSlot1.reset();
         return;
       }
 
-      idleHandsOverlay.style.display = 'none';
-
-      // Verificar si hay oclusión activa (mano detrás de la otra)
-      const hasOcclusion = activeHands.some(h => h.isOccluded || h.isBehind);
-      if (hasOcclusion) {
-        occlusionBadge.style.display = 'inline-flex';
-      } else {
-        occlusionBadge.style.display = 'none';
-      }
-
-      // Actualizar badge de manos en HUD
-      if (activeHands.length >= 2) {
-        handsStatusBadge.textContent = '🖐️🖐️ 2 MANOS';
-        handsStatusBadge.className = 'hud-badge hud-bimanual';
-      } else {
-        const h0 = activeHands[0];
-        handsStatusBadge.textContent = `🖐️ ${h0.label}`;
-        handsStatusBadge.className = 'hud-badge hud-fps';
-      }
+      // MANOS DETECTADAS: Ocultar sugerencia
+      cameraHintPill.classList.add('hidden');
+      camStatusDot.classList.add('active');
+      camStatusText.textContent = `${activeHands.length === 2 ? '2 Manos' : '1 Mano'} • ${currentFps} FPS`;
 
       let mejorPrediccion = null;
       let mejorDesc = null;
@@ -1732,17 +1859,15 @@
       activeHands.forEach(hand => {
         const isLeftHand = hand.isLeft || false;
         const desc = MotorLSCLocal.extraerDescriptorMultimodal(hand.coords, ultimosHombros, isLeftHand);
-        // Metadata de la mano para detector de velocidad y lateralidad
         const handMeta = { slot: hand.slot, speed: hand.speed || 0, coords: hand.coords, isLeft: isLeftHand };
         const pred = MotorLSCLocal.predecirRedNeuronal(desc.vec109, window.MODELO_LSC, handMeta);
         hand.desc = desc;
         hand.pred = pred;
 
         const isBehind = hand.isOccluded || hand.isBehind;
-        dibujarEsqueleto(hand.coords, hand.colorScheme, isBehind ? 0.50 : 0.95, hand.label, pred, isBehind);
+        dibujarFeedbackVisual(hand.coords, hand.colorScheme, isBehind);
 
-        // Selección de la seña activa predominante:
-        // Una mano visible y no ocluida tiene prioridad sobre una mano ocluida/detrás
+        // Selección de la seña activa predominante
         const manoActualVisible = !hand.isOccluded && !hand.isBehind;
         const mejorActualVisible = mejorPrediccion ? !mejorPrediccion._isBehind : false;
 
@@ -1750,82 +1875,54 @@
           mejorPrediccion = { ...pred, _isBehind: isBehind };
           mejorDesc = desc;
         } else if (manoActualVisible && !mejorActualVisible) {
-          mejorPrediccion = { ...pred, _isBehind: false };
+          mejorPrediccion = { ...pred, _isBehind: isBehind };
           mejorDesc = desc;
-        } else if (!manoActualVisible && mejorActualVisible) {
-          // Mantener la mano visible
-        } else {
-          const actualEsSena = pred.estado === 'SEÑA_DETECTADA';
-          const mejorEsSena = mejorPrediccion.estado === 'SEÑA_DETECTADA';
-
-          if (actualEsSena && !mejorEsSena) {
-            mejorPrediccion = { ...pred, _isBehind: isBehind };
-            mejorDesc = desc;
-          } else if (actualEsSena && mejorEsSena) {
-            if (pred.confianza > mejorPrediccion.confianza) {
-              mejorPrediccion = { ...pred, _isBehind: isBehind };
-              mejorDesc = desc;
-            }
-          } else if (!actualEsSena && !mejorEsSena) {
-            if (pred.confianza > mejorPrediccion.confianza) {
-              mejorPrediccion = { ...pred, _isBehind: isBehind };
-              mejorDesc = desc;
-            }
-          }
+        } else if (pred.confianza > mejorPrediccion.confianza) {
+          mejorPrediccion = { ...pred, _isBehind: isBehind };
+          mejorDesc = desc;
         }
       });
 
-      const oclusionTag = hasOcclusion ? ' [TRASERA ⚡]' : '';
-      quadrantBadge.textContent = `${activeHands.length} MANO${activeHands.length > 1 ? 'S' : ''}${oclusionTag} | ${mejorDesc.zona}`;
-
-      // Filtro de Gesture Onset (Acomodación inicial si la mano apenas entra al cuadro)
       const isPreparingHand = activeHands.some(h => (h.framesVisible !== undefined && h.framesVisible < 2) || h.isNearBoundary);
-
-      if (decodificadorCTC && mejorPrediccion && !isPreparingHand) {
-        decodificadorCTC.procesarPrediccionFrame(mejorPrediccion, now);
-      }
-
       actualizarUI(mejorPrediccion, mejorDesc, activeHands.length, isPreparingHand);
     }
 
     function actualizarUI(pred, desc, numManos, isPreparingHand) {
-      // Actualización en tiempo real del cuadrante corporal fonológico (TAB)
       if (desc && desc.zona) {
-        quadrantBadge.textContent = `${desc.emojiZona || '📍'} ${desc.labelZona || desc.zona}`;
+        zoneIndicatorText.textContent = desc.labelZona || desc.zona;
       } else {
-        quadrantBadge.textContent = 'CÁMARA LISTA';
+        zoneIndicatorText.textContent = 'Área de captura';
       }
 
       if (isPreparingHand) {
-        stateBadge.textContent = '✋ ACOMODANDO SEÑA...';
-        stateBadge.className = 'pred-state-badge state-transicion';
-        predTitle.textContent = '[PREPARACIÓN]';
-        predTitle.style.color = 'var(--accent-amber)';
+        statePill.className = 'state-pill state-transition';
+        statePillText.textContent = 'PREPARANDO...';
+        predTitle.textContent = '---';
+        predTitle.classList.remove('confirmed');
         predConfidence.textContent = '---';
         progressBar.style.width = '15%';
-        progressBar.style.background = 'var(--accent-amber)';
+        progressBar.style.background = 'var(--color-warning)';
         if (typeof acumuladorLSC !== 'undefined') acumuladorLSC.decayAll();
         return;
       }
 
-      // Procesamiento a través del Acumulador EMA LSC (v6.1.0)
       const resAcum = acumuladorLSC.update(pred, performance.now());
 
+      // SEÑA CONFIRMADA
       if (resAcum.emitir) {
-        stateBadge.textContent = `SEÑA CONFIRMADA`;
-        stateBadge.className = 'pred-state-badge state-detected spring-pop';
+        statePill.className = 'state-pill state-confirmed';
+        statePillText.textContent = '✓ CONFIRMADO';
         predTitle.textContent = resAcum.sena.replace(/_/g, ' ');
-        predTitle.style.color = 'var(--accent-green)';
-        predTitle.className = 'pred-title spring-pop';
+        predTitle.classList.add('confirmed');
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = '100%';
-        progressBar.style.background = 'linear-gradient(90deg, var(--accent-cyan), var(--accent-green))';
+        progressBar.style.background = 'linear-gradient(90deg, var(--color-primary), var(--color-success))';
 
-        // Pulso elástico estilo Framer Motion en el visor de cámara
+        // Pulso háptico visual en el marco de cámara
         const vpCard = document.querySelector('.viewport-card');
         if (vpCard) {
           vpCard.classList.remove('pulse-confirmed');
-          void vpCard.offsetWidth; // force reflow
+          void vpCard.offsetWidth;
           vpCard.classList.add('pulse-confirmed');
           setTimeout(() => vpCard.classList.remove('pulse-confirmed'), 700);
         }
@@ -1835,76 +1932,44 @@
         return;
       }
 
-      // ESTADO DE CALMA: Mano quieta, en reposo o sin movimiento intencional
-      // NUNCA forzar predicción cuando no se está haciendo nada
+      // ESTADO REPOSO
       if (pred && (pred.estado === 'REPOSO' || pred.isNeutralHand || pred.isMotionGated)) {
-        stateBadge.textContent = '🤚 EN ESPERA • MANO LIBRE';
-        stateBadge.className = 'pred-state-badge state-reposo';
+        statePill.className = 'state-pill state-idle';
+        statePillText.textContent = 'MANO LIBRE';
         predTitle.textContent = '---';
-        predTitle.className = 'pred-title';
-        predTitle.style.color = '#64748b';
+        predTitle.classList.remove('confirmed');
         predConfidence.textContent = '0%';
         progressBar.style.width = '0%';
         if (typeof acumuladorLSC !== 'undefined') acumuladorLSC.decayAll();
         return;
       }
 
-      if (resAcum.isSign && resAcum.score >= 0.50) {
-        stateBadge.textContent = `RECONOCIENDO SEÑA...`;
-        stateBadge.className = 'pred-state-badge state-detected';
+      // EN PROGRESO DE RECONOCIMIENTO
+      if (resAcum.isSign && resAcum.score >= 0.48) {
+        statePill.className = 'state-pill state-interpreting';
+        statePillText.textContent = '⚡ INTERPRETANDO...';
         predTitle.textContent = resAcum.sena.replace(/_/g, ' ');
-        predTitle.className = 'pred-title';
-        predTitle.style.color = 'var(--accent-cyan)';
+        predTitle.classList.remove('confirmed');
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = `${Math.min(resAcum.score * 100, 100)}%`;
-        progressBar.style.background = 'linear-gradient(90deg, var(--accent-cyan), var(--accent-green))';
+        progressBar.style.background = 'linear-gradient(90deg, var(--color-primary), var(--color-success))';
       } else {
-        stateBadge.textContent = 'EN MOVIMIENTO';
-        stateBadge.className = 'pred-state-badge state-transicion';
+        statePill.className = 'state-pill state-transition';
+        statePillText.textContent = 'MOVIMIENTO';
         predTitle.textContent = (pred && pred.sena && pred.sena !== 'TRANSICION' && pred.sena !== 'REPOSO')
           ? pred.sena.replace(/_/g, ' ')
-          : '[TRANSICIÓN]';
-        predTitle.className = 'pred-title';
-        predTitle.style.color = 'var(--accent-amber)';
+          : '---';
+        predTitle.classList.remove('confirmed');
         predConfidence.textContent = pred ? `${Math.round((pred.confianza || 0) * 100)}%` : '---';
         progressBar.style.width = '20%';
-        progressBar.style.background = 'var(--accent-amber)';
+        progressBar.style.background = 'var(--color-warning)';
       }
     }
 
-    function dibujarLineaHombros(hombros) {
-      if (!hombros || !hombros.hombro_izq || !hombros.hombro_der) return;
-      const w = canvas.width;
-      const h = canvas.height;
-
-      const x1 = hombros.hombro_izq[0] * w;
-      const y1 = hombros.hombro_izq[1] * h;
-      const x2 = hombros.hombro_der[0] * w;
-      const y2 = hombros.hombro_der[1] * h;
-
-      ctx.save();
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-
-      [ [x1, y1], [x2, y2] ].forEach(([hx, hy]) => {
-        ctx.beginPath();
-        ctx.arc(hx, hy, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = '#00f0ff';
-        ctx.fill();
-      });
-      ctx.restore();
-    }
-
-    function dibujarEsqueleto(pts, colorScheme, opacity, label, pred, isBehind) {
+    // DIBUJO CINEMÁTICO: Ultra limpio en cleanVisionMode (solo punto focal sutil)
+    function dibujarFeedbackVisual(pts, colorScheme, isBehind) {
       if (cleanVisionMode) {
-        // MODO VISIÓN LIMPIA CINEMÁTICA (Estilo App Comercial ASL):
-        // La cámara permanece completamente limpia sin puntos ni huesos sobre las manos.
-        // Opcionalmente se dibuja un retículo sutil en el centro de la palma para confirmar foco sin tapar dedos.
+        // Solo un punto focal suave en la palma para confirmar foco sin tapar los dedos
         const w = canvas.width;
         const h = canvas.height;
         const palmX = pts[9][0] * w;
@@ -1912,17 +1977,16 @@
 
         ctx.save();
         ctx.beginPath();
-        ctx.arc(palmX, palmY, 7, 0, 2 * Math.PI);
-        ctx.strokeStyle = colorScheme === 'cyan' ? 'rgba(0, 240, 255, 0.45)' : 'rgba(240, 0, 255, 0.45)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        ctx.arc(palmX, palmY, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.45)';
+        ctx.fill();
         ctx.restore();
         return;
       }
 
+      // Modo Esqueleto Completo (Solo si el usuario lo activa en Ajustes)
       const w = canvas.width;
       const h = canvas.height;
-
       const conexiones = [
         [0, 1], [1, 2], [2, 3], [3, 4],
         [0, 5], [5, 6], [6, 7], [7, 8],
@@ -1932,92 +1996,20 @@
         [5, 9], [9, 13], [13, 17]
       ];
 
-      const isCyan = colorScheme === 'cyan';
-      const baseColor = isCyan ? '#00f0ff' : '#f000ff';
-      const strokeColor = isCyan 
-        ? `rgba(0, 240, 255, ${opacity || 0.85})` 
-        : `rgba(240, 0, 255, ${opacity || 0.85})`;
-
-      const tipColor = isCyan ? '#00ff9d' : '#ffb800';
-      const jointColor = isCyan ? '#38bdf8' : '#f472b6';
-
       ctx.save();
-
-      if (isBehind) {
-        // Dibujo con líneas punteadas para indicar mano detrás / ocluida
-        ctx.setLineDash([5, 4]);
-      } else {
-        ctx.setLineDash([]);
-      }
-
-      ctx.strokeStyle = strokeColor;
-      ctx.lineWidth = isBehind ? 2.5 : 3.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
+      ctx.strokeStyle = isBehind ? 'rgba(245, 158, 11, 0.6)' : 'rgba(59, 130, 246, 0.7)';
+      ctx.lineWidth = 2.5;
       conexiones.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(pts[a][0] * w, pts[a][1] * h);
         ctx.lineTo(pts[b][0] * w, pts[b][1] * h);
         ctx.stroke();
       });
-
-      pts.forEach((pt, idx) => {
-        const isTip = [4, 8, 12, 16, 20].includes(idx);
-        ctx.beginPath();
-        ctx.arc(pt[0] * w, pt[1] * h, isTip ? (isBehind ? 4 : 6) : (isBehind ? 3 : 4), 0, 2 * Math.PI);
-        ctx.fillStyle = isTip ? tipColor : jointColor;
-        ctx.fill();
-        ctx.strokeStyle = '#050814';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      });
-
-      // Etiqueta flotante con lateralidad y estado
-      const wristX = pts[0][0] * w;
-      const wristY = pts[0][1] * h;
-
-      const estadoTexto = isBehind ? ' [TRASERA ⚡]' : '';
-      const tagTexto = `${label}: ${pred && pred.sena !== 'REPOSO' && pred.sena !== 'TRANSICION' ? pred.sena : '[REPOSO]'}${estadoTexto}`;
-      ctx.font = 'bold 12px "Space Grotesk", sans-serif';
-      const textWidth = ctx.measureText(tagTexto).width;
-      const padX = 8;
-      const tagW = textWidth + padX * 2;
-      const tagH = 22;
-
-      let tagX = wristX - tagW / 2;
-      let tagY = wristY + 16;
-      tagX = Math.max(6, Math.min(w - tagW - 6, tagX));
-      tagY = Math.max(24, Math.min(h - tagH - 6, tagY));
-
-      ctx.fillStyle = isBehind ? 'rgba(10, 14, 30, 0.92)' : 'rgba(5, 8, 20, 0.90)';
-      ctx.strokeStyle = isBehind ? 'var(--accent-amber)' : baseColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(tagX, tagY, tagW, tagH, 6);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = isBehind ? '#ffb800' : '#f8fafc';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(tagTexto, tagX + tagW / 2, tagY + tagH / 2);
-
       ctx.restore();
     }
 
-    function actualizarVersionUI() {
-      const statusTag = document.getElementById('modelStatusTag');
-      if (statusTag) {
-        const prec = (typeof METADATOS_MODELO_LSC !== 'undefined' && METADATOS_MODELO_LSC.precision) ? METADATOS_MODELO_LSC.precision : '99.1%';
-        statusTag.textContent = `⚡ Gestual Vision AI v6.0 (Cámara Limpia Cinemática • ${prec})`;
-        statusTag.style.color = '#00ff9d';
-      }
-    }
-
-    // Inicialización al cargar la página
+    // INICIALIZACIÓN
     window.addEventListener('DOMContentLoaded', () => {
-      actualizarVersionUI();
       startCamera();
       initMediaPipe();
     });
