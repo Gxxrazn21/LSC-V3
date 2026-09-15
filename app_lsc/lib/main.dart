@@ -24,11 +24,11 @@ class LSCApp extends StatelessWidget {
     return MaterialApp(
       title: 'Gestual Vision AI',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF070913),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF00E5FF),
-          secondary: Color(0xFF00FF9D),
+      theme: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: const Color(0xFFF4F7FB),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF1D4ED8),
+          secondary: Color(0xFFF59E0B),
         ),
       ),
       home: const LSCHomePage(),
@@ -114,7 +114,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
 
       controller
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setBackgroundColor(const Color(0xFF070913))
+        ..setBackgroundColor(const Color(0xFFF4F7FB))
         ..addJavaScriptChannel(
           'NativeBridge',
           onMessageReceived: (JavaScriptMessage jsMessage) async {
