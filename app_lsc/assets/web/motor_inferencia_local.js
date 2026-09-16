@@ -524,8 +524,9 @@ function extraerDescriptorArticular(coords, isLeft = false) {
   const d_palma = Math.max(Vec3.norm(v_mcp_medio), 1e-4);
   const uy = Vec3.scale(v_mcp_medio, 1.0 / d_palma);
 
-  const v_base = Vec3.sub(c[17], c[5]);
-  let uz = Vec3.cross(uy, v_base);
+  const v_idx = Vec3.sub(c[5], p0);
+  const v_pnk = Vec3.sub(c[17], p0);
+  let uz = Vec3.cross(v_idx, v_pnk);
   const n_uz = Vec3.norm(uz);
   if (n_uz < 1e-4) {
     uz = [0, 0, 1];
