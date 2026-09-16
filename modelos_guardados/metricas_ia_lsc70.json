@@ -1,10 +1,10 @@
 {
-  "fecha": "2026-09-15 18:34:53",
-  "version": "6.2.0",
-  "total_muestras": 7625,
-  "precision_global": 0.9862295081967213,
-  "precision_cv_media": 0.8436721311475409,
-  "f1_score": 0.986155562664177,
+  "fecha": "2026-09-15 20:00:15",
+  "version": "6.3.0",
+  "total_muestras": 6000,
+  "precision_global": 0.9996666666666667,
+  "precision_cv_media": 0.9521666666666666,
+  "f1_score": 0.999666665333328,
   "clases": [
     "A\u00d1OS",
     "BUENAS",
@@ -17,7 +17,6 @@
     "NOMBRE",
     "REPOSO",
     "TARDES",
-    "TRANSICION",
     "YO"
   ],
   "arquitectura": [
@@ -25,93 +24,87 @@
     640,
     384,
     192,
-    13
+    12
   ],
   "cv_scores": [
-    0.8445901639344262,
-    0.8472131147540983,
-    0.8367213114754098,
-    0.8465573770491803,
-    0.8432786885245902
+    0.9608333333333333,
+    0.9516666666666667,
+    0.9541666666666667,
+    0.9508333333333333,
+    0.9433333333333334
   ],
   "metricas_por_clase": {
     "A\u00d1OS": {
-      "precision": 0.985172981878089,
-      "recall": 0.9966666666666667,
-      "f1": 0.9908864954432477,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "BUENAS": {
-      "precision": 0.9507936507936507,
-      "recall": 0.9983333333333333,
-      "f1": 0.9739837398373984,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "DIAS": {
-      "precision": 0.9983221476510067,
-      "recall": 0.9916666666666667,
-      "f1": 0.9949832775919732,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "GRACIAS": {
       "precision": 1.0,
       "recall": 1.0,
       "f1": 1.0,
-      "support": 600
+      "support": 500
     },
     "GUSTAR": {
-      "precision": 0.9833610648918469,
-      "recall": 0.985,
-      "f1": 0.984179850124896,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "HOLA": {
-      "precision": 0.9916805324459235,
-      "recall": 0.9933333333333333,
-      "f1": 0.9925062447960034,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "LICOR": {
-      "precision": 0.9966722129783694,
-      "recall": 0.9983333333333333,
-      "f1": 0.9975020815986678,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "NOCHES": {
-      "precision": 0.9803921568627451,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.9900990099009901,
-      "support": 600
+      "f1": 1.0,
+      "support": 500
     },
     "NOMBRE": {
-      "precision": 0.9983333333333333,
-      "recall": 0.9983333333333333,
-      "f1": 0.9983333333333333,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "REPOSO": {
       "precision": 1.0,
-      "recall": 0.9952941176470588,
-      "f1": 0.9976415094339622,
-      "support": 425
+      "recall": 0.996,
+      "f1": 0.9979959919839679,
+      "support": 500
     },
     "TARDES": {
-      "precision": 0.9949324324324325,
-      "recall": 0.9816666666666667,
-      "f1": 0.988255033557047,
-      "support": 600
-    },
-    "TRANSICION": {
-      "precision": 0.9512195121951219,
-      "recall": 0.91,
-      "f1": 0.9301533219761499,
-      "support": 600
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 500
     },
     "YO": {
-      "precision": 0.9948979591836735,
-      "recall": 0.975,
-      "f1": 0.9848484848484849,
-      "support": 600
+      "precision": 0.9960159362549801,
+      "recall": 1.0,
+      "f1": 0.998003992015968,
+      "support": 500
     }
   }
 }

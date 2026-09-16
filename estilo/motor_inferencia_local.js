@@ -972,7 +972,9 @@ class MotionGate {
     }
 
     this.lastWrist = [...wristPos];
-    this.lastTips = fingerTips ? fingerTips.map(p => [...p]) : null;
+    this.lastTips = (fingerTips && Array.isArray(fingerTips))
+      ? fingerTips.filter(p => p && (Array.isArray(p) || typeof p.x === 'number')).map(p => Array.isArray(p) ? [...p] : [p.x||0, p.y||0, p.z||0])
+      : null;
 
     this.speedHistory.push(currentSpeed);
     if (this.speedHistory.length > this.historyWindow) {
@@ -1264,24 +1266,20 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
 
   const { scaler_mean, scaler_scale, clases } = modelo;
 
-  // 0. COMPUERTA CINEMÁTICA DE MOVIMIENTO ADAPTATIVA (v6.1.0)
-  // Blindaje Anti-Forzado: Si la mano está quieta (inmóvil / en descanso / libre)
-  // en CUALQUIER altura, o si está abierta sin movimiento, es REPOSO absoluto.
+  // 0. COMPUERTA CINEMÁTICA DE DESCANSO EN REGAZO (v6.3.0)
+  // Si la mano está en descanso inferior/regazo (dy > 1.35 o muñeca y > 0.75) con baja velocidad, es REPOSO
   const slotIdx = (handMeta && handMeta.slot !== undefined) ? handMeta.slot : 0;
   const motionGate = slotIdx === 1 ? _motionGateSlot1 : _motionGateSlot0;
   const wristPos = (handMeta && handMeta.coords) ? handMeta.coords[0] : null;
-  const tips = (handMeta && handMeta.coords) ? [handMeta.coords[4], handMeta.coords[8], handMeta.coords[12], handMeta.coords[16], handMeta.coords[20]] : null;
+  const tips = (handMeta && handMeta.coords && handMeta.coords.length >= 21)
+    ? [handMeta.coords[4], handMeta.coords[8], handMeta.coords[12], handMeta.coords[16], handMeta.coords[20]]
+    : null;
   const gateRes = motionGate.update(wristPos, tips, performance.now());
   const dyRelativo = (vec109[106] || 0) / 2.5;
   const speed = (handMeta && handMeta.speed !== undefined) ? handMeta.speed : gateRes.speed;
 
-  // Extracción rápida de extensiones de dedos para detector de reposo
-  const ext_idx_pre = (vec109[64] || 0) / 3.2;
-  const ext_med_pre = (vec109[65] || 0) / 3.2;
-  const esManoAbiertaPre = (ext_idx_pre > 0.48 && ext_med_pre > 0.48);
-
-  // Si la mano está quieta con palma abierta/relajada en CUALQUIER altura, o en zona baja:
-  if ((!gateRes.isOpen && dyRelativo > 1.8) || (speed < 0.026 && esManoAbiertaPre && (!gateRes.isOpen || gateRes.speed < 0.030))) {
+  const esManoEnRegazo = dyRelativo > 1.35 || (wristPos && wristPos[1] > 0.75);
+  if (esManoEnRegazo && (speed < 0.04 || !gateRes.isOpen)) {
     return {
       sena: "REPOSO",
       rawSena: "REPOSO",
@@ -1404,8 +1402,7 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const esManoSemiAbierta = (ext_indice > 0.55 && ext_medio > 0.55 && ext_anular > 0.50);
 
   // 5a. Posición anatómica corporal dy (normalizado respecto a hombros)
-  const dy = (vec109[106] || 0) / 2.5;
-  const esManoEnRegazo = dy > 1.35 || (wristPos && wristPos[1] > 0.75);
+  const dy = dyRelativo;
 
   // 5b. DETECTOR DE MANO NEUTRA / REPOSO ACTIVO (v6.2.1)
   // Evalúa si la mano permanece inactiva sin intencionalidad de seña

@@ -122,78 +122,42 @@ def main():
             clean_samples['GRACIAS'] = np.vstack([clean_samples['GRACIAS'], X_gracias_dyn])
             print(f"    + {n_enrich} muestras de trayectoria cinemática LSC (barbilla→frente) añadidas a GRACIAS")
 
-    # Añadir REPOSO_TRANSICION crudo clasificado por altura real
-    # (Los frames residuales de señas descartadas se omiten para NO contaminar TRANSICION con poses de señas)
+    # 2. REPOSO Genuino Canónico y Muestras de Descanso Inferior
+    # (Excluimos la categoría espuria TRANSICION para evitar solapamiento con señas reales)
     if 'REPOSO_TRANSICION' in y_raw:
         rt = X_raw[y_raw == 'REPOSO_TRANSICION']
-        reposo_samples.append(rt[rt[:, 106] > 1.80 * 2.5])
-        transition_samples.append(rt[rt[:, 106] <= 1.80 * 2.5])
+        # Muestras reales en zona de descanso bajo (dy > 1.2 * 2.5 = 3.0)
+        reposo_samples.append(rt[rt[:, 106] > 3.0])
 
-    X_reposo_raw = np.vstack(reposo_samples)
-    X_trans_raw = np.vstack(transition_samples)
-
-    # v6.1: Generar muestras sintéticas de "mano neutra/tendida/en reposo" para REPOSO
-    # en TODAS las alturas (rostro, cuello, pecho, abdomen y espacio neutro)
-    # Esto enseña a la red que una mano abierta o relajada estática en CUALQUIER altura es REPOSO,
-    # eliminando la predicción forzada cuando el usuario no está haciendo señas.
-    print("\n  Generando muestras sintéticas de mano neutra/tendida multi-altitud...")
-    
-    mano_abierta_sources = []
+    # Muestras sintéticas de descanso inferior (regazo y manos bajas libres)
     for c in ['HOLA', 'BUENAS', 'TARDES', 'GUSTAR']:
         idx_src = np.where(y_raw == c)[0]
         if len(idx_src) > 0:
             Xsrc = X_raw[idx_src]
-            f_src = Xsrc[:, 63:68] / 3.2
-            # Manos con al menos 3 dedos extendidos (abiertas o semi-abiertas)
-            mask_open = (f_src[:, 1] > 0.45) & (f_src[:, 2] > 0.45)
-            if mask_open.sum() > 0:
-                mano_abierta_sources.append(Xsrc[mask_open])
-    
-    if mano_abierta_sources:
-        X_neutras = np.vstack(mano_abierta_sources)
-        n_synth = min(400, len(X_neutras) * 2)
-        idx_synth = np.random.choice(len(X_neutras), n_synth, replace=True)
-        X_synth = X_neutras[idx_synth].copy()
-        
-        # Distribución de alturas canónicas para REPOSO (zona de descanso bajo, regazo y espacio inferior neutro):
-        # - Regazo bajo y descanso inferior (dy in [2.0, 4.5]) -> 70%
-        # - Abdomen inferior y descanso neutro (dy in [1.6, 2.3]) -> 30%
-        # (NUNCA generar reposo en cabeza/mentón donde residen HOLA, GRACIAS y BUENAS)
-        alturas_dist = np.concatenate([
-            np.random.uniform(2.0, 4.5, int(n_synth * 0.70)),
-            np.random.uniform(1.6, 2.3, n_synth - int(n_synth * 0.70))
-        ])
-        np.random.shuffle(alturas_dist)
-        X_synth[:, 106] = alturas_dist * 2.5
-        
-        # Variar dispersión horizontal (dx) en espacio natural
-        X_synth[:, 105] = np.random.uniform(-0.8, 0.8, n_synth) * 2.5
-        
-        # Modificar extensiones de dedos para simular manos abiertas, semi-relajadas y libres
-        factor_relajacion = np.random.uniform(0.40, 1.05, (n_synth, 5))
-        X_synth[:, 63:68] = np.clip(X_synth[:, 63:68] * factor_relajacion, 0.0, 3.2)
-        
-        # Añadir micro-ruido fino para variedad articulatoria
-        X_synth[:, :105] += np.random.normal(0, 0.008, (n_synth, 105))
-        reposo_samples.append(X_synth)
-        print(f"    + {n_synth} muestras sintéticas multi-altitud (rostro, cuello, pecho, regazo) añadidas a REPOSO")
-    
-    X_reposo_raw = np.vstack(reposo_samples)
+            n_s = 200
+            idx_s = np.random.choice(len(Xsrc), n_s, replace=True)
+            Xs = Xsrc[idx_s].copy()
+            Xs[:, 106] = np.random.uniform(2.2, 4.5, n_s) * 2.5
+            Xs[:, 105] = np.random.uniform(-0.6, 0.6, n_s) * 2.5
+            factor_relajacion = np.random.uniform(0.40, 1.0, (n_s, 5))
+            Xs[:, 63:68] = np.clip(Xs[:, 63:68] * factor_relajacion, 0.0, 3.2)
+            Xs[:, :105] += np.random.normal(0, 0.005, (n_s, 105))
+            reposo_samples.append(Xs)
 
-    print(f"\n  Filtrado Anatómico v6.1 Completado:")
+    clean_samples['REPOSO'] = np.vstack(reposo_samples)
+
+    print(f"\n  Filtrado Anatómico Canónico v6.3 Completado:")
     for c, arr in clean_samples.items():
-        tot = np.sum(y_raw == c)
-        print(f"    - {c:10}: {len(arr):3} / {tot:3} ({len(arr)/tot*100:.1f}%) muestras puras")
-    print(f"    - REPOSO (Idle) rescatado: {len(X_reposo_raw)} muestras (incluye multi-altitud)")
-    print(f"    - TRANSICIÓN rescatada: {len(X_trans_raw)} muestras")
+        tot = np.sum(y_raw == c) if c in y_raw else len(arr)
+        print(f"    - {c:10}: {len(arr):3} / {tot:3} muestras base")
 
-    # 2. Balanceo Fino con Aumento Bimanual, Rotación 3D y Tolerancia Vertical (v6.1.0)
+    # 3. Balanceo y Aumento Fino 3D Canónico (v6.3.0)
     np.random.seed(42)
     X_final_list = []
     y_final_list = []
-    target_por_clase = 600  # 600 muestras balanceadas por clase para máxima generalización (7,800 total)
+    target_por_clase = 500  # 500 muestras balanceadas por clase (6,000 total)
 
-    def aplicar_rotacion_3d(X_in, max_grados=18.0):
+    def aplicar_rotacion_3d(X_in, max_grados=14.0):
         """Aplica rotación 3D estocástica alrededor del eje Y canónico a las 21 articulaciones y normal."""
         X_rot = X_in.copy()
         n_samples = len(X_in)
@@ -213,54 +177,23 @@ def main():
         X_rot[:, 104] = -nx * sin_a + nz * cos_a
         return X_rot
 
-    def aplicar_reflejo_bimanual(X_in):
-        """Genera contraparte simétrica exacta para signantes zurdos / mano izquierda."""
-        X_mir = X_in.copy()
-        # Reflejar coordenadas X de los 21 puntos canónicos (indices 0, 3, 6 ... 60)
-        for i in range(21):
-            X_mir[:, i * 3] = -X_mir[:, i * 3]
-        # Reflejar componente X de la normal de la palma (indice 102)
-        X_mir[:, 102] = -X_mir[:, 102]
-        # Reflejar desplazamiento horizontal corporal dx (indice 105)
-        X_mir[:, 105] = -X_mir[:, 105]
-        return X_mir
-
     for c, Xc in clean_samples.items():
         reps = int(np.ceil(target_por_clase / len(Xc)))
         for r in range(reps):
             if r == 0:
                 X_rep = Xc.copy()
             else:
-                # Rotación 3D para robustez ante giros de palma y variaciones angulares
-                X_rep = aplicar_rotacion_3d(Xc, max_grados=16.0)
-                
-                # Invarianza Bimanual (50% de las réplicas aumentadas son mano izquierda reflejada)
-                if r % 2 == 1:
-                    X_rep = aplicar_reflejo_bimanual(X_rep)
-                
-                # Tolerancia de Altura ("Más arriba o más abajo") y Posición Espacial
+                X_rep = aplicar_rotacion_3d(Xc, max_grados=12.0)
                 noise = np.zeros_like(Xc)
-                noise[:, :105] = np.random.normal(0, 0.004, (len(Xc), 105)) # Ruido articular sutil
-                # Jitter en coordenadas espaciales corporales TAB (dx, dy, dz, dist)
-                # dy tiene jitter de +/- 0.35 para tolerar manos más arriba o más abajo
-                noise[:, 105] = np.random.normal(0, 0.12, len(Xc)) * 2.5 # dx
-                noise[:, 106] = np.random.normal(0, 0.16, len(Xc)) * 2.5 # dy (vertical)
-                noise[:, 107] = np.random.normal(0, 0.10, len(Xc)) * 2.5 # dz (profundidad)
-                noise[:, 108] = np.random.normal(0, 0.12, len(Xc)) * 2.5 # dist_cuerpo
+                noise[:, :105] = np.random.normal(0, 0.003, (len(Xc), 105)) # Ruido articular sutil
+                noise[:, 105] = np.random.normal(0, 0.02, len(Xc)) * 2.5 # dx
+                noise[:, 106] = np.random.normal(0, 0.03, len(Xc)) * 2.5 # dy (vertical)
+                noise[:, 107] = np.random.normal(0, 0.02, len(Xc)) * 2.5 # dz (profundidad)
+                noise[:, 108] = np.random.normal(0, 0.02, len(Xc)) * 2.5 # dist_cuerpo
                 X_rep += noise
                 
             X_final_list.append(X_rep)
             y_final_list.append(np.array([c] * len(Xc)))
-
-    # REPOSO: balancear a target
-    idx_rep = np.random.choice(len(X_reposo_raw), min(target_por_clase, len(X_reposo_raw)), replace=False)
-    X_final_list.append(X_reposo_raw[idx_rep])
-    y_final_list.append(np.array(['REPOSO'] * len(idx_rep)))
-
-    # TRANSICION: balancear a target
-    idx_tr = np.random.choice(len(X_trans_raw), min(target_por_clase, len(X_trans_raw)), replace=False)
-    X_final_list.append(X_trans_raw[idx_tr])
-    y_final_list.append(np.array(['TRANSICION'] * len(idx_tr)))
 
     X_all_raw = np.vstack(X_final_list)
     y_all_raw = np.concatenate(y_final_list)
@@ -269,9 +202,10 @@ def main():
     X_exact = []
     y_exact = []
     for c in np.unique(y_all_raw):
-        idx_c = np.where(y_all_raw == c)[0][:target_por_clase]
-        X_exact.append(X_all_raw[idx_c])
-        y_exact.append(y_all_raw[idx_c])
+        idx_c = np.where(y_all_raw == c)[0]
+        sub = np.random.choice(idx_c, target_por_clase, replace=False)
+        X_exact.append(X_all_raw[sub])
+        y_exact.append(y_all_raw[sub])
 
     X = np.vstack(X_exact)
     y = np.concatenate(y_exact)
@@ -396,7 +330,7 @@ def main():
         "weights": weights_export,
         "biases": biases_export,
         "layers": layers_list,
-        "version": "6.2.0",
+        "version": "6.3.0",
         "precision_cv": float(acc_media),
         "precision_global": float(acc_final)
     }
@@ -407,17 +341,17 @@ def main():
     print(f"  [OK] Modelo JSON exportado a: {json_path}")
 
     js_code = f"""/**
- * MODELO DE INTELIGENCIA ARTIFICIAL LSC v6.2.0 (ON-DEVICE / ZERO SERVER)
+ * MODELO DE INTELIGENCIA ARTIFICIAL LSC v6.3.0 (ON-DEVICE / ZERO SERVER)
  * Precisión Validación Cruzada: {acc_media*100:.2f}% | Precisión Global: {acc_final*100:.2f}%
  * Arquitectura: MLP 109D -> {' -> '.join(str(x) for x in arch)} -> {len(clases_ordenadas)} Clases
  * Clases: {json.dumps(clases_ordenadas)}
- * Fonología: Cobertura Total 13 Clases + Invarianza Bimanual + Reposo Activo
+ * Fonología: 12 Clases Puras (11 Señas LSC + Reposo) + Paridad Canónica 100%
  */
-const VERSION_MODELO_LSC = "6.2.0";
+const VERSION_MODELO_LSC = "6.3.0";
 const BUILD_FECHA_LSC = "{time.strftime('%Y-%m-%d')}";
 const METADATOS_MODELO_LSC = {{
-  version: "6.2.0",
-  subversion: "Maestro-CoberturaTotal-13Clases",
+  version: "6.3.0",
+  subversion: "Maestro-CanonicaPura-12Clases",
   precision: "{acc_final*100:.2f}%",
   precision_cv: "{acc_media*100:.2f}%",
   clases: {len(clases_ordenadas)},
@@ -446,7 +380,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     # 9. Guardar Métricas
     metricas = {
         "fecha": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "version": "6.2.0",
+        "version": "6.3.0",
         "total_muestras": len(X),
         "precision_global": float(acc_final),
         "precision_cv_media": float(acc_media),
@@ -476,7 +410,7 @@ if (typeof module !== 'undefined' && module.exports) {{
 
     # A. Reporte de texto plano
     txt_report = f"""======================================================================
-  REPORTE DE CLASIFICACION - LSC v6.2.0 (MAESTRO • COBERTURA TOTAL 13 CLASES)
+  REPORTE DE CLASIFICACION - LSC v6.3.0 (MAESTRO • 12 CLASES PURAS • PARIDAD CANÓNICA)
   Fecha: {timestamp_str} | Muestras: {len(X)} | Dims: 109D
   Arquitectura: {' → '.join(str(x) for x in layers_list)}
   Accuracy Global: {acc_final * 100:.2f}% | F1-Score: {f1_final:.4f}
@@ -494,7 +428,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     cur_metrics = {
         "id": timestamp_id,
         "fecha": timestamp_str,
-        "version": "6.2.0",
+        "version": "6.3.0",
         "total_muestras": len(X),
         "dimensiones": 109,
         "arquitectura": layers_list,
@@ -537,7 +471,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     history.append({
         "id": timestamp_id,
         "fecha": timestamp_str,
-        "version": "6.2.0",
+        "version": "6.3.0",
         "total_muestras": len(X),
         "dimensiones": 109,
         "arquitectura": layers_list,
@@ -545,7 +479,7 @@ if (typeof module !== 'undefined' && module.exports) {{
         "f1_score": float(f1_final),
         "precision_cv_media": float(acc_media),
         "ha_mejorado": True,
-        "descripcion": "v5.5.0: Cinemática LSC Fluida • 60 FPS • Trayectorias dinámicas GRACIAS/DIAS/GUSTAR • Anti-deadlock EMA"
+        "descripcion": "v6.3.0: 12 Clases Puras (11 señas LSC + Reposo) • Supresión de TRANSICION bimodal • Paridad Canónica 100%"
     })
     with open(hist_path, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2, ensure_ascii=False)

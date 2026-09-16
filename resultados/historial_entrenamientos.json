@@ -287,5 +287,24 @@
     "precision_cv_media": 0.8436721311475409,
     "ha_mejorado": true,
     "descripcion": "v5.5.0: Cinemática LSC Fluida • 60 FPS • Trayectorias dinámicas GRACIAS/DIAS/GUSTAR • Anti-deadlock EMA"
+  },
+  {
+    "id": "20260915_200015",
+    "fecha": "2026-09-15 20:00:15",
+    "version": "6.3.0",
+    "total_muestras": 6000,
+    "dimensiones": 109,
+    "arquitectura": [
+      109,
+      640,
+      384,
+      192,
+      12
+    ],
+    "accuracy_global": 0.9996666666666667,
+    "f1_score": 0.999666665333328,
+    "precision_cv_media": 0.9521666666666666,
+    "ha_mejorado": true,
+    "descripcion": "v6.3.0: 12 Clases Puras (11 señas LSC + Reposo) • Supresión de TRANSICION bimodal • Paridad Canónica 100%"
   }
 ]

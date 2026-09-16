@@ -38,7 +38,8 @@ resultados/*.txt
 *.tflite
 
 # Misc
-*.log
+scratch/
+test_*.png
 *.apk
 *.aab
 .claude/
