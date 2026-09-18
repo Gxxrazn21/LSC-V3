@@ -230,12 +230,17 @@ El motor web ejecuta el siguiente ciclo en cada fotograma (`requestAnimationFram
    $$p_c = \frac{e^{\hat{z}_c}}{\sum_{j=1}^{49} e^{\hat{z}_j}}$$
    Dado que $e^{-200.0} \approx 0$, la probabilidad de cualquier clase inactiva es exactamente **0.0%**. Esto elimina el 100% de las confusiones entre letras y palabras (por ejemplo, confundir la letra `O` con la palabra `GRACIAS`), logrando una precisión absoluta sin gastar un solo byte extra de memoria.
 
-### 5.4 Estabilización Temporal, Debounce y Síntesis de Voz
-Para evitar que transiciones naturales entre una seña y otra disparen palabras incorrectas de forma errática:
-- **Filtro One-Euro 3D**: Estabiliza las coordenadas espaciales eliminando el temblor de alta frecuencia cuando la mano está casi quieta, sin introducir latencia cuando la mano se mueve rápido.
-- **Ventana de Consenso Temporal (Debounce de 5 Frames)**: Una seña solo se confirma como detectada si la misma clase obtiene la máxima probabilidad con una confianza superior al umbral configurado (por ejemplo, $\ge 80\%$) durante **5 fotogramas consecutivos**.
-- **Histéresis Anti-Repetición**: Una vez pronunciada una seña, el sistema no la vuelve a pronunciar a menos que el usuario baje las manos a posición `REPOSO` o transicione a una seña distinta.
-- **Síntesis de Voz Nativa**: Al confirmarse la seña, se invoca `window.speechSynthesis.speak()` con voz en español (`es-CO`), acompañada de una respuesta háptica en el dispositivo.
+### 5.4 Estabilización Temporal, Sostén Deliberado y Construcción de Frases
+Para evitar que transiciones naturales entre señas o movimientos rápidos de los brazos disparen palabras al azar a gran velocidad:
+- **Filtro One-Euro 3D**: Estabiliza las coordenadas espaciales eliminando el temblor de alta frecuencia cuando la mano está quieta, sin introducir latencia cuando la mano se mueve rápido.
+- **Filtro de Velocidad Cinemática (*Transit Gating*)**: Si la mano se desplaza a velocidad de tránsito rápido ($v > 0.20$ normalizado por segundo), el sistema fuerza el estado a `TRANSICION`. Esto previene que mientras el usuario levanta o reubica el brazo se generen falsos positivos fortuitos.
+- **Sostén Deliberado (*Hold-to-Confirm*, 250 ms)**: Para que una seña se confirme, el usuario debe mantener la postura estable durante un mínimo de **250 ms** ($\approx$ 5 a 6 fotogramas continuos) con confianza $\ge 60\%$ y margen $\ge 10\%$.
+- **Barra de Progreso Visual Reactiva**: La interfaz muestra visualmente cómo la barra se llena del **0% al 100%** mientras el usuario sostiene la seña (`⏳ SOSTÉN LA SEÑA...`), dando control total al señante sobre cuándo se confirma cada token.
+- **Enfriamiento Adaptativo Post-Emisión (*Inter-Sign Cooldown*)**:
+  - Entre señas distintas: **550 ms**, otorgando tiempo para mover la mano cómodamente a la siguiente postura sin registrar palabras basura.
+  - Entre la misma seña: **1100 ms**, evitando duplicaciones o ecos accidentales.
+- **Constructor de Frases Interactivo**: Las palabras confirmadas se añaden como fichas interactivas en la bandeja inferior (`[HOLA] [BUENAS]`), permitiendo escucharlas individualmente, borrarlas selectivamente con un botón `✕`, o pronunciar la oración completa mediante el botón `🔊 Hablar`.
+- **Síntesis de Voz Fonética LSC**: Pronunciación adaptada para la lengua colombiana (incluyendo corrección fonética de `NN` a *"eñe"* y números como *"un millón"*).
 
 ### 5.5 Sincronización en Vivo OTA (Cloud Sync vía GitHub Pages)
 Una de las características más potentes de Gestual Vision es el botón de **Sincronización en Vivo (`☁️ Actualizar`)**:

@@ -1037,26 +1037,34 @@ const _motionGateSlot1 = new MotionGate();
  */
 class AcumuladorProbabilidadesLSC {
   constructor(options = {}) {
-    this.decay = options.decay || 0.65; // Factor de retención
-    this.threshold = options.threshold || 0.52; // Puntuación EMA requerida (52%)
-    this.minMargin = options.minMargin || 0.08; // Margen de separación sobre el segundo
-    this.minConsecutive = options.minConsecutive || 3; // 3 ticks sucesivos (~80-100ms a 30-40 FPS)
-    this.cooldownMs = options.cooldownMs || 650; // Enfriamiento entre misma seña (más reactivo)
+    this.decay = options.decay || 0.70; // Factor de retención EMA suave
+    this.threshold = options.threshold || 0.60; // Puntuación mínima calibrada (60%)
+    this.minMargin = options.minMargin || 0.10; // Margen de separación sobre el segundo candidato (10%)
+    this.requiredHoldMs = options.requiredHoldMs || 250; // Sostén deliberado de 250ms (evita disparos al azar al mover la mano)
+    this.minConsecutiveFrames = options.minConsecutiveFrames || 5; // Mínimo 5 fotogramas estables consecutivos
+    this.cooldownMs = options.cooldownMs || 1100; // Enfriamiento para repetir la MISMA seña (evita ecos)
+    this.interSignCooldownMs = options.interSignCooldownMs || 550; // Enfriamiento entre señas DIFERENTES para transicionar cómodo
+    this.maxSpeedForHold = options.maxSpeedForHold || 0.14; // Velocidad cinemática máxima permitida para considerar postura sostenida
 
     this.scores = {};
     this.candidate = null;
+    this.candidateStartTime = null;
     this.consecutiveCount = 0;
     this.lastEmitted = '';
     this.lastEmittedTime = 0;
   }
 
-  update(prediction, timestamp) {
+  update(prediction, timestamp, handSpeed) {
     const now = (typeof timestamp === 'number') ? timestamp : performance.now();
 
     if (!prediction || !prediction.candidatos || prediction.candidatos.length === 0) {
       this.decayAll();
-      return { emitir: false, scores: this.scores, top: null, score: 0 };
+      return { emitir: false, scores: this.scores, top: null, score: 0, progress: 0.0, isSign: false };
     }
+
+    // Velocidad cinemática de la mano: si la mano se mueve en tránsito rápido, no acumular sostén
+    const speed = (typeof handSpeed === 'number') ? handSpeed : (prediction.speed || 0);
+    const isMovingFast = speed > this.maxSpeedForHold;
 
     const alpha = 1.0 - this.decay;
     const currentProbs = {};
@@ -1064,12 +1072,11 @@ class AcumuladorProbabilidadesLSC {
       currentProbs[c.sena] = c.probabilidad;
     }
 
-    // Actualizar scores de clases conocidas
+    // Actualizar distribución continua EMA
     for (const sena in this.scores) {
       const p = currentProbs[sena] || 0.0;
       this.scores[sena] = this.decay * this.scores[sena] + alpha * p;
     }
-    // Agregar nuevas clases
     for (const c of prediction.candidatos) {
       if (!(c.sena in this.scores)) {
         this.scores[c.sena] = alpha * c.probabilidad;
@@ -1092,41 +1099,69 @@ class AcumuladorProbabilidadesLSC {
     const margin = top1Score - (top2Score > 0 ? top2Score : 0);
     const isSign = top1Sena && top1Sena !== 'REPOSO' && top1Sena !== 'TRANSICION' && top1Sena !== 'TRANSICIÓN';
 
-    if (isSign && top1Score >= this.threshold && margin >= this.minMargin) {
+    // Verificación de período de enfriamiento post-emisión
+    const timeSinceLast = this.lastEmittedTime > 0 ? (now - this.lastEmittedTime) : Infinity;
+    const isSameSign = (top1Sena === this.lastEmitted);
+    const requiredCooldown = isSameSign ? this.cooldownMs : this.interSignCooldownMs;
+    const inCooldown = timeSinceLast < requiredCooldown;
+
+    // Validación de candidato estable
+    if (isSign && top1Score >= this.threshold && margin >= this.minMargin && !isMovingFast && !inCooldown) {
       if (this.candidate === top1Sena) {
         this.consecutiveCount++;
       } else {
-        // Transición ágil entre múltiples señas: atenuar fuertemente memoria de señas previas
-        for (const s in this.scores) {
-          if (s !== top1Sena) this.scores[s] *= 0.20;
-        }
+        // Nuevo candidato: iniciar cronómetro de sostén y atenuar memorias previas
         this.candidate = top1Sena;
+        this.candidateStartTime = now;
         this.consecutiveCount = 1;
+        for (const s in this.scores) {
+          if (s !== top1Sena) this.scores[s] *= 0.15;
+        }
       }
     } else {
-      this.candidate = null;
-      this.consecutiveCount = 0;
+      // Si la mano se mueve en tránsito rápido o no es una seña válida, frenar acumulación
+      if (isMovingFast || !isSign || inCooldown) {
+        this.candidate = null;
+        this.candidateStartTime = null;
+        this.consecutiveCount = 0;
+      } else {
+        this.consecutiveCount = Math.max(0, this.consecutiveCount - 1);
+        if (this.consecutiveCount === 0) {
+          this.candidate = null;
+          this.candidateStartTime = null;
+        }
+      }
     }
 
-    const timeSinceLast = now - this.lastEmittedTime;
-    const isSameSign = (top1Sena === this.lastEmitted);
-    const cooldownOk = isSameSign ? (timeSinceLast > this.cooldownMs) : (timeSinceLast > 280);
-    // Si la confianza es alta (>=72%), bastan 2 fotogramas para confirmación ultrarrápida
-    const reqConsecutive = (top1Score >= 0.72) ? 2 : this.minConsecutive;
+    // Cálculo del progreso de confirmación (0.0 a 1.0)
+    let progress = 0.0;
+    if (this.candidate && this.candidateStartTime) {
+      const elapsedHold = now - this.candidateStartTime;
+      const progressTime = elapsedHold / this.requiredHoldMs;
+      const progressFrames = this.consecutiveCount / this.minConsecutiveFrames;
+      progress = Math.min(1.0, Math.max(0.0, Math.min(progressTime, progressFrames)));
+    }
 
-    if (isSign && this.consecutiveCount >= reqConsecutive && cooldownOk) {
+    // Comprobación de cumplimiento de sostén deliberado
+    const holdTimeMet = this.candidateStartTime && (now - this.candidateStartTime >= this.requiredHoldMs);
+    const framesMet = this.consecutiveCount >= this.minConsecutiveFrames;
+
+    if (isSign && holdTimeMet && framesMet && !inCooldown) {
       this.lastEmitted = top1Sena;
       this.lastEmittedTime = now;
+      this.candidate = null;
+      this.candidateStartTime = null;
       this.consecutiveCount = 0;
-      // Drenar el score de la seña emitida para evitar eco
-      this.scores[top1Sena] *= 0.25;
+      this.scores = {}; // Drenaje completo para iniciar el próximo ciclo limpio
 
       return {
         emitir: true,
         sena: top1Sena,
         score: top1Score,
         margen: margin,
-        top: top1Sena
+        progress: 1.0,
+        top: top1Sena,
+        isSign: true
       };
     }
 
@@ -1135,8 +1170,11 @@ class AcumuladorProbabilidadesLSC {
       sena: top1Sena,
       score: top1Score,
       margen: margin,
+      progress: progress,
       top: top1Sena,
-      isSign: isSign
+      isSign: isSign,
+      inCooldown: inCooldown,
+      isMovingFast: isMovingFast
     };
   }
 
@@ -1145,12 +1183,14 @@ class AcumuladorProbabilidadesLSC {
       this.scores[s] *= this.decay;
     }
     this.candidate = null;
+    this.candidateStartTime = null;
     this.consecutiveCount = 0;
   }
 
   reset() {
     this.scores = {};
     this.candidate = null;
+    this.candidateStartTime = null;
     this.consecutiveCount = 0;
     this.lastEmitted = '';
     this.lastEmittedTime = 0;
@@ -1450,26 +1490,77 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     };
   }
 
-  // 5c. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v6.2.1):
-  if (top1.sena === "LICOR" && (esManoAbierta || (ext_indice > 0.85 && ext_medio > 0.85 && ext_anular > 0.85))) {
-    // LICOR: pulgar al cuello. Si los 4 dedos están extendidos como saludo, es mano abierta/HOLA, no LICOR
-    top1.sena = esManoAbierta ? (dy < 0.2 ? "HOLA" : "TRANSICION") : "TRANSICION";
-    top1.probabilidad = 0.88;
-  } else if (top1.sena === "AÑOS" && (ext_indice > 0.85 && ext_medio > 0.85)) {
-    // AÑOS: puño cerrado acariciando mejilla; mano totalmente abierta no es AÑOS
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.88;
-  } else if (top1.sena === "YO" && dy < -0.70) {
-    // YO: índice al pecho/esternón; no arriba en el techo/sobre la cabeza
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.88;
-  } else if (top1.sena === "DIAS" && dy > 1.60) {
-    // DÍAS: arco ascendente en torso/cabeza, no abajo en el regazo
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.88;
+  // 5c. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v6.4.1):
+  // dy: vertical respecto a hombros (normalizado).
+  // dy < 0.15: zona superior (cuello, mentón, rostro, cabeza).
+  // 0.15 <= dy <= 0.85: pecho / esternón.
+  // 0.85 < dy <= 1.25: abdomen / espacio medio.
+  // dy > 1.25: cadera / regazo / reposo.
+
+  // Filtro de Alta Velocidad Cinemática (Transit Gating):
+  // Si la mano se desplaza a velocidad rápida de tránsito (>0.20), está moviéndose entre señas.
+  // No emitir predicciones al vuelo ni adivinar sobre fotogramas borrosos de movimiento.
+  if (speed > 0.20 && top1.sena !== 'REPOSO') {
+    return {
+      sena: 'TRANSICION',
+      rawSena: top1.sena,
+      confianza: 0.50,
+      margen: 0,
+      estado: 'TRANSICIÓN',
+      candidatos: candidatos.slice(0, 3),
+      isTransitMotion: true,
+      speed: speed
+    };
   }
 
-  // 6. Filtro de Decisión Anti-Aleatoriedad Calibrado LSC v6.2
+  // Regla 1: Señas Faciales / Cefálicas (HOLA, BUENAS, GRACIAS, AÑOS)
+  // DEBEN estar en la zona superior (dy <= 0.52). No pueden ejecutarse en pecho o abdomen.
+  const senasSuperiores = ['HOLA', 'BUENAS', 'GRACIAS', 'AÑOS'];
+  if (senasSuperiores.includes(top1.sena) && dy > 0.52) {
+    top1.sena = 'TRANSICION';
+    top1.probabilidad = 0.50;
+  }
+
+  // Regla 2: LICOR (pulgar al cuello/garganta: 0.05 <= dy <= 0.45)
+  if (top1.sena === "LICOR" && (dy > 0.50 || dy < -0.20 || esManoAbierta || (ext_indice > 0.80 && ext_medio > 0.80))) {
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.50;
+  }
+
+  // Regla 3: AÑOS (puño acariciando mejilla/rostro: dy <= 0.35)
+  if (top1.sena === "AÑOS" && (dy > 0.38 || (ext_indice > 0.80 && ext_medio > 0.80))) {
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.50;
+  }
+
+  // Regla 4: YO (índice al centro del pecho: 0.15 <= dy <= 0.85)
+  if (top1.sena === "YO" && (dy < 0.10 || dy > 0.90)) {
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.50;
+  }
+
+  // Regla 5: GUSTAR (palma sobre el pecho/corazón: 0.15 <= dy <= 0.85)
+  if (top1.sena === "GUSTAR" && (dy < 0.10 || dy > 0.90)) {
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.50;
+  }
+
+  // Regla 6: DIAS (arco en torso/cabeza)
+  if (top1.sena === "DIAS" && dy > 1.10) {
+    top1.sena = "TRANSICION";
+    top1.probabilidad = 0.50;
+  }
+
+  // Regla 7: Letras y Números fuera del espacio de señado
+  // En LSC, dactilología y números se ejecutan en el espacio frente al torso/hombros (-0.20 <= dy <= 1.15).
+  // Si la mano está en el regazo (dy > 1.18) o muy arriba de la cabeza, no son letras/números válidos.
+  const esDactilologiaONumero = (modelo.categorias?.abecedario?.includes(top1.sena) || modelo.categorias?.numeros?.includes(top1.sena));
+  if (esDactilologiaONumero && (dy > 1.18 || dy < -0.30)) {
+    top1.sena = "REPOSO";
+    top1.probabilidad = 0.95;
+  }
+
+  // 6. Filtro de Decisión Anti-Aleatoriedad Calibrado LSC v6.4.1
   let senaFinal = top1.sena;
   let estado = "SEÑA_DETECTADA";
 
@@ -1479,9 +1570,9 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   } else if (top1.sena === "TRANSICION") {
     estado = "TRANSICION";
     senaFinal = "TRANSICIÓN";
-  } else if (top1.probabilidad < 0.55 || margen < 0.08) {
-    // Umbral calibrado v6.2: 55% de confianza mínima y 8% de margen
-    // Permite que todas las señas auténticas sean detectadas sin bloqueos artificiales
+  } else if (top1.probabilidad < 0.60 || margen < 0.10) {
+    // Umbral calibrado v6.4.1: 60% de confianza mínima y 10% de margen
+    // Elimina dudas o fluctuaciones dudosas entre dos clases
     estado = "TRANSICION";
     senaFinal = "TRANSICIÓN";
   }

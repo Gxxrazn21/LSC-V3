@@ -1482,6 +1482,9 @@
       if (autoVoiceEnabled && texto && opciones.hablar !== false) {
         let frase = texto.replace(/_/g, ' ').toLowerCase();
         if (frase.includes('annos')) frase = frase.replace(/annos/g, 'años');
+        if (frase === 'nn') frase = 'eñe';
+        if (frase === 'millon') frase = 'un millón';
+        if (frase === 'mil') frase = 'mil';
         if (window.NativeBridge) {
           window.NativeBridge.postMessage(JSON.stringify({ action: 'speak', text: frase }));
         } else if ('speechSynthesis' in window) {
@@ -1553,12 +1556,25 @@
       }
 
       wordCountBadge.textContent = `${oracionTokens.length} palabra${oracionTokens.length > 1 ? 's' : ''}`;
-      oracionTokens.forEach((tok) => {
+      oracionTokens.forEach((tok, idx) => {
         const chip = document.createElement('div');
         chip.className = 'word-chip';
-        chip.innerHTML = `<span>${tok}</span> <span style="font-size: 11px; opacity: 0.7;">🔊</span>`;
-        chip.addEventListener('click', () => {
-          emitirFeedback(tok, { vibrar: true, hablar: true, chime: false });
+        const labelTok = tok === 'NN' ? 'Ñ' : tok.replace(/_/g, ' ');
+        chip.innerHTML = `
+          <span>${labelTok}</span> 
+          <span class="chip-speak" style="font-size: 11px; opacity: 0.7; cursor: pointer;" title="Escuchar">🔊</span>
+          <span class="chip-remove" style="font-size: 12px; margin-left: 6px; opacity: 0.55; cursor: pointer; font-weight: 800;" title="Quitar de la frase">✕</span>
+        `;
+        chip.querySelector('.chip-speak').addEventListener('click', (e) => {
+          e.stopPropagation();
+          const textoHablar = tok === 'NN' ? 'Eñe' : tok;
+          emitirFeedback(textoHablar, { vibrar: true, hablar: true, chime: false });
+        });
+        chip.querySelector('.chip-remove').addEventListener('click', (e) => {
+          e.stopPropagation();
+          oracionTokens.splice(idx, 1);
+          renderizarOracion();
+          emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 20 });
         });
         sentenceDisplay.appendChild(chip);
       });
@@ -1852,13 +1868,16 @@
     let currentFps = 60;
     let hasDismissedSplash = false;
 
-    // Acumulador Leaky EMA de Probabilidades LSC
+    // Acumulador Leaky EMA de Probabilidades LSC con Sostén Deliberado (v6.4.1)
     const acumuladorLSC = new MotorLSCLocal.AcumuladorProbabilidadesLSC({
-      decay: 0.65,
-      threshold: 0.52,
-      minMargin: 0.08,
-      minConsecutive: 2,
-      cooldownMs: 850
+      decay: 0.70,
+      threshold: 0.60,
+      minMargin: 0.10,
+      requiredHoldMs: 260, // 260ms de postura sostenida deliberada (evita ráfagas al azar)
+      minConsecutiveFrames: 5, // Mínimo 5 fotogramas estables consecutivos
+      cooldownMs: 1100, // Enfriamiento al repetir la MISMA seña
+      interSignCooldownMs: 550, // Enfriamiento entre señas DIFERENTES para construir frases limpio
+      maxSpeedForHold: 0.14 // Pausa acumulación si la mano está en movimiento rápido de tránsito
     });
 
     function adjustMirroring() {
@@ -2065,10 +2084,11 @@
       });
 
       const isPreparingHand = activeHands.some(h => (h.framesVisible !== undefined && h.framesVisible < 2) || h.isNearBoundary);
-      actualizarUI(mejorPrediccion, mejorDesc, activeHands.length, isPreparingHand);
+      const handSpeed = activeHands.reduce((max, h) => Math.max(max, h.speed || 0), 0);
+      actualizarUI(mejorPrediccion, mejorDesc, activeHands.length, isPreparingHand, handSpeed);
     }
 
-    function actualizarUI(pred, desc, numManos, isPreparingHand) {
+    function actualizarUI(pred, desc, numManos, isPreparingHand, handSpeed = 0) {
       if (desc && desc.zona) {
         zoneIndicatorText.textContent = desc.labelZona || desc.zona;
       } else {
@@ -2081,13 +2101,13 @@
         predTitle.textContent = '---';
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = '---';
-        progressBar.style.width = '15%';
+        progressBar.style.width = '10%';
         progressBar.style.background = 'var(--col-red)';
         if (typeof acumuladorLSC !== 'undefined') acumuladorLSC.decayAll();
         return;
       }
 
-      const resAcum = acumuladorLSC.update(pred, performance.now());
+      const resAcum = acumuladorLSC.update(pred, performance.now(), handSpeed);
 
       // SEÑA CONFIRMADA
       if (resAcum.emitir) {
@@ -2124,25 +2144,24 @@
         return;
       }
 
-      // EN PROGRESO DE RECONOCIMIENTO
-      if (resAcum.isSign && resAcum.score >= 0.48) {
+      // EN PROGRESO DE RECONOCIMIENTO (SOSTÉN DELIBERADO)
+      if (resAcum.isSign && resAcum.progress > 0) {
         statePill.className = 'state-pill state-interpreting';
-        statePillText.textContent = '⚡ INTERPRETANDO...';
+        statePillText.textContent = resAcum.progress >= 0.5 ? '⏳ SOSTÉN LA SEÑA...' : '⚡ INTERPRETANDO...';
         predTitle.textContent = resAcum.sena.replace(/_/g, ' ');
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
-        progressBar.style.width = `${Math.min(resAcum.score * 100, 100)}%`;
+        progressBar.style.width = `${Math.round(resAcum.progress * 100)}%`;
         progressBar.style.background = 'var(--tricolor-smooth)';
       } else {
         statePill.className = 'state-pill state-transition';
-        statePillText.textContent = 'MOVIMIENTO';
+        statePillText.textContent = resAcum.inCooldown ? 'ESPERA...' : 'MOVIMIENTO';
         predTitle.textContent = (pred && pred.sena && pred.sena !== 'TRANSICION' && pred.sena !== 'REPOSO')
           ? pred.sena.replace(/_/g, ' ')
           : '---';
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = pred ? `${Math.round((pred.confianza || 0) * 100)}%` : '---';
-        progressBar.style.width = '20%';
-        progressBar.style.background = 'var(--col-yellow)';
+        progressBar.style.width = '0%';
       }
     }
 
