@@ -1,18 +1,14 @@
 """
 =============================================================================
-ENTRENAMIENTO ULTRA-PRECISO DEL MODELO DE IA LSC70 v5.0
-Lengua de Señas Colombiana — Red Neuronal Profunda Multimodal 109D
+ENTRENAMIENTO ULTRA-PRECISO DEL MODELO DE IA LSC70 v6.4.0 UNIFICADO
+Lengua de Señas Colombiana — Red Neuronal Profunda Multimodal 109D (49 Clases)
 =============================================================================
-Aísla la cinemática anatómica real de cada seña (eliminando frames
-residuales de manos en reposo/mesa/tendidas del dataset crudo).
-Incorpora clases explícitas 'REPOSO' y 'TRANSICION' para blindar contra
-falsas detecciones o predicciones aleatorias cuando las manos se mueven.
-
-v5.0 MEJORAS:
-  - Filtros anatómicos expandidos para LICOR, NOCHES, GUSTAR, NOMBRE
-  - Muestras sintéticas de "mano neutra/tendida" inyectadas en REPOSO
-  - Arquitectura MLP más ancha: 640→384→192 para mayor discriminación
-  - Ruido de aumento más conservador para mantener separabilidad
+Integra:
+  - 11 Palabras de uso frecuente + REPOSO (12 clases)
+  - 27 Letras del Abecedario LSC (A-Z, NN/Ñ)
+  - 10 Números y Cantidades LSC (1, 4, 5, 6, 7, 8, 9, 10, MIL, MILLON)
+Total: 49 Clases Puras con balanceo cinemático 3D y Validación Cruzada.
+Soporta segmentación lógica por modos (Palabras, Abecedario, Números, Todo).
 =============================================================================
 """
 
@@ -20,6 +16,7 @@ import os
 import sys
 import json
 import time
+import io
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
@@ -36,105 +33,102 @@ def main():
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
     print("=" * 75)
-    print("  ENTRENAMIENTO ULTRA-PRECISO LSC70 v5.0 (ANTI-ALUCINACIÓN + MANO NEUTRA)")
+    print("  ENTRENAMIENTO UNIFICADO LSC70 v6.4.0 (49 CLASES: PALABRAS + ALFABETO + NÚMEROS)")
     print("=" * 75)
 
-    cache_path = os.path.join("datasets", "cache_lsc70_109d.npz")
+    # Preferir caché consolidado si existe, sino caché base
+    cache_path = os.path.join("datasets", "cache_lsc70_109d_completo.npz")
+    if not os.path.exists(cache_path):
+        cache_path = os.path.join("datasets", "cache_lsc70_109d.npz")
+    
     if not os.path.exists(cache_path):
         print(f"Error: No existe el archivo de caché {cache_path}")
         return
 
-    cache = np.load(cache_path, allow_pickle=True)
+    print(f"  Cargando dataset desde: {cache_path}...")
+    with open(cache_path, 'rb') as f:
+        buf = io.BytesIO(f.read())
+    cache = np.load(buf, allow_pickle=True)
     X_raw, y_raw = cache["X"], cache["y"]
     print(f"  Datos crudos cargados: {len(X_raw)} muestras, {X_raw.shape[1]} dimensiones")
 
     # Mapeo de ANNOS a AÑOS en etiquetas crudas
     y_raw = np.array(['AÑOS' if s == 'ANNOS' else s for s in y_raw])
 
-    # 1. Depuración Anatómica por Seña (v5.0: filtros expandidos)
-    valid_signs = ['AÑOS', 'BUENAS', 'DIAS', 'GRACIAS', 'GUSTAR', 'HOLA', 'LICOR', 'NOCHES', 'NOMBRE', 'TARDES', 'YO']
+    # Definición de Categorías Lingüísticas
+    valid_words = ['AÑOS', 'BUENAS', 'DIAS', 'GRACIAS', 'GUSTAR', 'HOLA', 'LICOR', 'NOCHES', 'NOMBRE', 'TARDES', 'YO']
+    valid_alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'NN', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    valid_numbers = ['1', '4', '5', '6', '7', '8', '9', '10', 'MIL', 'MILLON']
     
+    all_target_signs = valid_words + valid_alphabet + valid_numbers
+    
+    # 1. Depuración Anatómica y Filtrado
     clean_samples = {}
-    transition_samples = []
     reposo_samples = []
 
-    for c in valid_signs:
+    for c in all_target_signs:
         idx = np.where(y_raw == c)[0]
+        if len(idx) == 0:
+            continue
         Xc = X_raw[idx]
         dys = Xc[:, 106]
         fingers = Xc[:, 63:68] / 3.2
         
-        # Filtro anatómico biomecánico calibrado por seña LSC v6.2 (100% Cobertura Real)
+        # Filtros específicos para palabras dinámicas
         if c == 'AÑOS':
-            # Puño cerrado o semi-cerrado en mejilla (dedo índice y medio recogidos)
             is_clean = (fingers[:, 1] <= 0.65) & (fingers[:, 2] <= 0.65)
         elif c == 'BUENAS':
-            # Mano extendida en frente/pecho
             is_clean = (fingers[:, 1] >= 0.60) & (fingers[:, 2] >= 0.60) & (dys <= 3.8)
         elif c == 'DIAS':
-            # Mano en arco frontal ascendente
             is_clean = (fingers[:, 1] >= 0.50) & (dys <= 3.2)
         elif c == 'HOLA':
-            # Saludo lateral a la cabeza
             is_clean = (fingers[:, 1] >= 0.55) & (fingers[:, 2] >= 0.55) & (dys <= 1.2)
         elif c == 'GRACIAS':
-            # Barbilla / boca hacia adelante (seleccionar las 10 muestras con mano plana, descartar puño)
             is_clean = (fingers[:, 1] >= 0.70) & (fingers[:, 2] >= 0.70)
         elif c == 'GUSTAR':
-            # Palma sobre el pecho (zona cardiaca)
             is_clean = (dys >= -0.50) & (dys <= 4.0) & (fingers[:, 1] >= 0.40)
         elif c == 'LICOR':
-            # Pulgar al cuello/mentón
             is_clean = (fingers[:, 0] >= 0.45) & (dys <= 2.2)
         elif c == 'NOCHES':
-            # Manos descendiendo frente al torso
             is_clean = (dys >= -1.80) & (dys <= 3.0)
         elif c == 'NOMBRE':
-            # Dedos índice y medio extendidos (configuración H/U)
             is_clean = (fingers[:, 1] >= 0.55) & (fingers[:, 2] >= 0.55)
         elif c == 'TARDES':
-            # Mano en espacio medio frontal
             is_clean = (fingers[:, 1] >= 0.55) & (dys >= 0.20)
         elif c == 'YO':
-            # Índice apuntando al pecho
             is_clean = (fingers[:, 1] >= 0.25) & (dys <= 5.5)
         else:
+            # Letras y números (posturas estáticas controladas en LSC70AN)
             is_clean = np.ones(len(Xc), dtype=bool)
         
         clean_samples[c] = Xc[is_clean]
 
-        # Enriquecimiento cinemático fonológico para GRACIAS (LSC: barbilla -> proyección hacia adelante)
+        # Enriquecimiento cinemático fonológico para GRACIAS
         if c == 'GRACIAS' and len(clean_samples['GRACIAS']) > 0:
             base_gracias = clean_samples['GRACIAS']
-            n_enrich = 450
+            n_enrich = 300
             idx_g = np.random.choice(len(base_gracias), n_enrich, replace=True)
             X_gracias_dyn = base_gracias[idx_g].copy()
-            # Trayectoria LSC: barbilla (dy ~ -0.25) -> proyección hacia adelante (dy ~ -0.10 a +0.10, dz avanzando)
             dys_traj = np.random.uniform(-0.35, 0.15, n_enrich)
             dzs_traj = np.random.uniform(-0.25, 0.20, n_enrich)
             dxs_traj = np.random.uniform(0.05, 0.22, n_enrich)
             X_gracias_dyn[:, 105] = dxs_traj * 2.5
             X_gracias_dyn[:, 106] = dys_traj * 2.5
             X_gracias_dyn[:, 107] = dzs_traj * 2.5
-            # Dinámica de avance
             X_gracias_dyn[:, 90] = np.random.uniform(0.04, 0.15, n_enrich)
             X_gracias_dyn[:, :105] += np.random.normal(0, 0.005, (n_enrich, 105))
             clean_samples['GRACIAS'] = np.vstack([clean_samples['GRACIAS'], X_gracias_dyn])
-            print(f"    + {n_enrich} muestras de trayectoria cinemática LSC (barbilla→frente) añadidas a GRACIAS")
 
-    # 2. REPOSO Genuino Canónico y Muestras de Descanso Inferior
-    # (Excluimos la categoría espuria TRANSICION para evitar solapamiento con señas reales)
+    # 2. Muestras de REPOSO
     if 'REPOSO_TRANSICION' in y_raw:
         rt = X_raw[y_raw == 'REPOSO_TRANSICION']
-        # Muestras reales en zona de descanso bajo (dy > 1.2 * 2.5 = 3.0)
         reposo_samples.append(rt[rt[:, 106] > 3.0])
 
-    # Muestras sintéticas de descanso inferior (regazo y manos bajas libres)
     for c in ['HOLA', 'BUENAS', 'TARDES', 'GUSTAR']:
         idx_src = np.where(y_raw == c)[0]
         if len(idx_src) > 0:
             Xsrc = X_raw[idx_src]
-            n_s = 200
+            n_s = 150
             idx_s = np.random.choice(len(Xsrc), n_s, replace=True)
             Xs = Xsrc[idx_s].copy()
             Xs[:, 106] = np.random.uniform(2.2, 4.5, n_s) * 2.5
@@ -146,19 +140,17 @@ def main():
 
     clean_samples['REPOSO'] = np.vstack(reposo_samples)
 
-    print(f"\n  Filtrado Anatómico Canónico v6.3 Completado:")
-    for c, arr in clean_samples.items():
-        tot = np.sum(y_raw == c) if c in y_raw else len(arr)
-        print(f"    - {c:10}: {len(arr):3} / {tot:3} muestras base")
+    print(f"\n  Filtrado y Limpieza Completados: {len(clean_samples)} clases activas:")
+    for c, arr in sorted(clean_samples.items()):
+        print(f"    - {c:10}: {len(arr):3} muestras base")
 
-    # 3. Balanceo y Aumento Fino 3D Canónico (v6.3.0)
+    # 3. Balanceo y Aumento Fino 3D Canónico
     np.random.seed(42)
     X_final_list = []
     y_final_list = []
-    target_por_clase = 500  # 500 muestras balanceadas por clase (6,000 total)
+    target_por_clase = 300  # 300 muestras por clase balanceadas (~14,700 total)
 
-    def aplicar_rotacion_3d(X_in, max_grados=14.0):
-        """Aplica rotación 3D estocástica alrededor del eje Y canónico a las 21 articulaciones y normal."""
+    def aplicar_rotacion_3d(X_in, max_grados=12.0):
         X_rot = X_in.copy()
         n_samples = len(X_in)
         angulos_rad = np.radians(np.random.uniform(-max_grados, max_grados, n_samples))
@@ -183,13 +175,13 @@ def main():
             if r == 0:
                 X_rep = Xc.copy()
             else:
-                X_rep = aplicar_rotacion_3d(Xc, max_grados=12.0)
+                X_rep = aplicar_rotacion_3d(Xc, max_grados=10.0)
                 noise = np.zeros_like(Xc)
-                noise[:, :105] = np.random.normal(0, 0.003, (len(Xc), 105)) # Ruido articular sutil
-                noise[:, 105] = np.random.normal(0, 0.02, len(Xc)) * 2.5 # dx
-                noise[:, 106] = np.random.normal(0, 0.03, len(Xc)) * 2.5 # dy (vertical)
-                noise[:, 107] = np.random.normal(0, 0.02, len(Xc)) * 2.5 # dz (profundidad)
-                noise[:, 108] = np.random.normal(0, 0.02, len(Xc)) * 2.5 # dist_cuerpo
+                noise[:, :105] = np.random.normal(0, 0.003, (len(Xc), 105))
+                noise[:, 105] = np.random.normal(0, 0.015, len(Xc)) * 2.5
+                noise[:, 106] = np.random.normal(0, 0.020, len(Xc)) * 2.5
+                noise[:, 107] = np.random.normal(0, 0.015, len(Xc)) * 2.5
+                noise[:, 108] = np.random.normal(0, 0.015, len(Xc)) * 2.5
                 X_rep += noise
                 
             X_final_list.append(X_rep)
@@ -198,7 +190,7 @@ def main():
     X_all_raw = np.vstack(X_final_list)
     y_all_raw = np.concatenate(y_final_list)
 
-    # Balanceo exacto a target_por_clase por cada clase
+    # Balanceo exacto
     X_exact = []
     y_exact = []
     for c in np.unique(y_all_raw):
@@ -210,22 +202,20 @@ def main():
     X = np.vstack(X_exact)
     y = np.concatenate(y_exact)
     print(f"\n  Total de muestras balanceadas: {len(X)} en {len(np.unique(y))} clases:")
-    print(f"  Clases: {sorted(list(np.unique(y)))}")
+    clases_ordenadas = sorted(list(np.unique(y)))
+    print(f"  Clases ({len(clases_ordenadas)}): {clases_ordenadas}")
 
-    # 3. Codificación y Normalización
+    # 4. Normalización
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
-    clases_ordenadas = le.classes_.tolist()
 
     scaler = StandardScaler()
     X_norm = scaler.fit_transform(X)
 
-    # 4. Validación Cruzada Estratificada (5-Fold CV)
+    # 5. Validación Cruzada Estratificada (5-Fold CV)
     print("\n  Ejecutando Validación Cruzada Estratificada (5-Fold)...")
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     cv_scores = []
-
-    # v5.0: Arquitectura más ancha para mayor capacidad discriminativa
     arch = (640, 384, 192)
 
     for fold, (train_idx, test_idx) in enumerate(skf.split(X_norm, y_enc), 1):
@@ -233,11 +223,11 @@ def main():
             hidden_layer_sizes=arch,
             activation='relu',
             alpha=0.00012,
-            learning_rate_init=0.00075,
-            max_iter=600,
+            learning_rate_init=0.0008,
+            max_iter=500,
             early_stopping=True,
-            n_iter_no_change=30,
-            validation_fraction=0.12,
+            n_iter_no_change=25,
+            validation_fraction=0.10,
             random_state=42 + fold
         )
         mlp_cv.fit(X_norm[train_idx], y_enc[train_idx])
@@ -247,17 +237,17 @@ def main():
 
     acc_media = np.mean(cv_scores)
     std_media = np.std(cv_scores)
-    print(f"  [EXITO] Precision Media 5-Fold: {acc_media * 100:.2f}% (+/- {std_media * 100:.2f}%)")
+    print(f"  [EXITO] Precisión Media 5-Fold: {acc_media * 100:.2f}% (+/- {std_media * 100:.2f}%)")
 
-    # 5. Modelo Final de Producción
-    print(f"\n  Entrenando Modelo Final de Producción (Arquitectura: {arch})...")
+    # 6. Modelo Final de Producción
+    print(f"\n  Entrenando Modelo Final de Producción ({len(clases_ordenadas)} clases, Arquitectura: {arch})...")
     t0 = time.time()
     mlp_final = MLPClassifier(
         hidden_layer_sizes=arch,
         activation='relu',
         alpha=0.00012,
-        learning_rate_init=0.00075,
-        max_iter=1200,
+        learning_rate_init=0.0008,
+        max_iter=800,
         random_state=42
     )
     mlp_final.fit(X_norm, y_enc)
@@ -273,23 +263,24 @@ def main():
     print(f"  RESULTADO FINAL: Precisión Global = {acc_final * 100:.2f}% | F1-Score = {f1_final * 100:.2f}%")
     print("=" * 75)
 
-    # 6. Guardar Matriz de Confusión
+    # 7. Guardar Matriz de Confusión
     os.makedirs("modelos_guardados", exist_ok=True)
     cm = confusion_matrix(y_enc, preds_final)
-    plt.figure(figsize=(11, 9))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
+    plt.figure(figsize=(18, 16))
+    sns.heatmap(cm, annot=False, cmap="Blues",
                 xticklabels=clases_ordenadas, yticklabels=clases_ordenadas)
-    plt.title(f"Matriz de Confusión LSC70 v5.0 — Precisión: {acc_final*100:.1f}%", fontsize=13, fontweight='bold')
-    plt.xlabel("Predicción", fontsize=11)
-    plt.ylabel("Etiqueta Real", fontsize=11)
-    plt.xticks(rotation=45, ha="right")
+    plt.title(f"Matriz de Confusión LSC70 v6.4 (49 Clases) — Precisión: {acc_final*100:.1f}%", fontsize=14, fontweight='bold')
+    plt.xlabel("Predicción", fontsize=12)
+    plt.ylabel("Etiqueta Real", fontsize=12)
+    plt.xticks(rotation=90, fontsize=8)
+    plt.yticks(rotation=0, fontsize=8)
     plt.tight_layout()
     cm_path = os.path.join("modelos_guardados", "matriz_confusion.png")
     plt.savefig(cm_path, dpi=180)
     plt.close()
     print(f"  [OK] Matriz de confusión guardada: {cm_path}")
 
-    # 7. Exportación a NPZ y Joblib
+    # 8. Exportación a NPZ y Joblib
     npz_path = os.path.join("modelos_guardados", "modelo_ia_lsc70.npz")
     joblib_path = os.path.join("modelos_guardados", "modelo_ia_lsc70.joblib")
 
@@ -303,7 +294,6 @@ def main():
     coefs = mlp_final.coefs_
     intercepts = mlp_final.intercepts_
     
-    # v5.0: Exportar dinámicamente según número de capas
     save_dict = {
         'clases': np.array(clases_ordenadas),
         'scaler_mean': scaler.mean_,
@@ -317,20 +307,28 @@ def main():
     np.savez_compressed(npz_path, **save_dict)
     print(f"  [OK] Modelo guardado en {npz_path} y {joblib_path}")
 
-    # 8. Exportación Directa a JSON y JavaScript para Inferencia Web / Android
+    # 9. Definición de Categorías para el Selector de Modos de la App
+    categorias_dict = {
+        "palabras": [c for c in valid_words if c in clases_ordenadas] + ["REPOSO"],
+        "abecedario": [c for c in valid_alphabet if c in clases_ordenadas] + ["REPOSO"],
+        "numeros": [c for c in valid_numbers if c in clases_ordenadas] + ["REPOSO"],
+        "todo": clases_ordenadas
+    }
+
+    # 10. Exportación Directa a JSON y JavaScript On-Device
     weights_export = [w.tolist() for w in coefs]
     biases_export = [b.tolist() for b in intercepts]
-
     layers_list = [109] + list(arch) + [len(clases_ordenadas)]
 
     modelo_json = {
         "clases": clases_ordenadas,
+        "categorias": categorias_dict,
         "scaler_mean": scaler.mean_.tolist(),
         "scaler_scale": scaler.scale_.tolist(),
         "weights": weights_export,
         "biases": biases_export,
         "layers": layers_list,
-        "version": "6.3.0",
+        "version": "6.4.0",
         "precision_cv": float(acc_media),
         "precision_global": float(acc_final)
     }
@@ -341,17 +339,17 @@ def main():
     print(f"  [OK] Modelo JSON exportado a: {json_path}")
 
     js_code = f"""/**
- * MODELO DE INTELIGENCIA ARTIFICIAL LSC v6.3.0 (ON-DEVICE / ZERO SERVER)
+ * MODELO DE INTELIGENCIA ARTIFICIAL LSC v6.4.0 UNIFICADO (ON-DEVICE / ZERO SERVER)
  * Precisión Validación Cruzada: {acc_media*100:.2f}% | Precisión Global: {acc_final*100:.2f}%
  * Arquitectura: MLP 109D -> {' -> '.join(str(x) for x in arch)} -> {len(clases_ordenadas)} Clases
  * Clases: {json.dumps(clases_ordenadas)}
- * Fonología: 12 Clases Puras (11 Señas LSC + Reposo) + Paridad Canónica 100%
+ * Soporte Multi-Modo: Palabras ({len(categorias_dict['palabras'])}), Abecedario ({len(categorias_dict['abecedario'])}), Números ({len(categorias_dict['numeros'])})
  */
-const VERSION_MODELO_LSC = "6.3.0";
+const VERSION_MODELO_LSC = "6.4.0";
 const BUILD_FECHA_LSC = "{time.strftime('%Y-%m-%d')}";
 const METADATOS_MODELO_LSC = {{
-  version: "6.3.0",
-  subversion: "Maestro-CanonicaPura-12Clases",
+  version: "6.4.0",
+  subversion: "Unificado-49Clases-Multimodo",
   precision: "{acc_final*100:.2f}%",
   precision_cv: "{acc_media*100:.2f}%",
   clases: {len(clases_ordenadas)},
@@ -377,15 +375,17 @@ if (typeof module !== 'undefined' && module.exports) {{
             f.write(js_code)
         print(f"  [OK] Modelo cliente JS actualizado en: {dest}")
 
-    # 9. Guardar Métricas
+    # 11. Guardar Métricas
     metricas = {
         "fecha": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "version": "6.3.0",
+        "version": "6.4.0",
         "total_muestras": len(X),
+        "total_clases": len(clases_ordenadas),
         "precision_global": float(acc_final),
         "precision_cv_media": float(acc_media),
         "f1_score": float(f1_final),
         "clases": clases_ordenadas,
+        "categorias": categorias_dict,
         "arquitectura": layers_list,
         "cv_scores": [float(s) for s in cv_scores],
         "metricas_por_clase": {
@@ -400,161 +400,29 @@ if (typeof module !== 'undefined' && module.exports) {{
     }
     with open(os.path.join("modelos_guardados", "metricas_ia_lsc70.json"), "w", encoding="utf-8") as f:
         json.dump(metricas, f, indent=2)
-    print("  [OK] Metricas guardadas en modelos_guardados/metricas_ia_lsc70.json")
+    print("  [OK] Métricas guardadas en modelos_guardados/metricas_ia_lsc70.json")
 
-    # 10. Actualizar Automáticamente Carpeta resultados/ (Reportes, Historial y Métricas)
+    # 12. Actualizar Carpeta resultados/
     os.makedirs("resultados", exist_ok=True)
     report_str = classification_report(y_enc, preds_final, target_names=clases_ordenadas, digits=4)
-    timestamp_str = time.strftime("%Y-%m-%d %H:%M:%S")
-    timestamp_id = time.strftime("%Y%m%d_%H%M%S")
-
-    # A. Reporte de texto plano
-    txt_report = f"""======================================================================
-  REPORTE DE CLASIFICACION - LSC v6.3.0 (MAESTRO • 12 CLASES PURAS • PARIDAD CANÓNICA)
-  Fecha: {timestamp_str} | Muestras: {len(X)} | Dims: 109D
-  Arquitectura: {' → '.join(str(x) for x in layers_list)}
-  Accuracy Global: {acc_final * 100:.2f}% | F1-Score: {f1_final:.4f}
-  Validación Cruzada 5-Fold Media: {acc_media * 100:.2f}%
-======================================================================
-
-{report_str}
-======================================================================
-"""
     with open(os.path.join("resultados", "reporte_clasificacion.txt"), "w", encoding="utf-8") as f:
-        f.write(txt_report)
-    print("  [OK] Reporte guardado en: resultados/reporte_clasificacion.txt")
-
-    # B. Métricas actuales JSON
-    cur_metrics = {
-        "id": timestamp_id,
-        "fecha": timestamp_str,
-        "version": "6.3.0",
-        "total_muestras": len(X),
-        "dimensiones": 109,
-        "arquitectura": layers_list,
-        "accuracy_global": float(acc_final),
-        "f1_score": float(f1_final),
-        "precision_cv_media": float(acc_media),
-        "cv_folds_accuracy": [float(s) for s in cv_scores],
-        "precision_hola": float(report["HOLA"]["precision"]),
-        "recall_hola": float(report["HOLA"]["recall"]),
-        "f1_hola": float(report["HOLA"]["f1-score"]),
-        "precision_dias": float(report["DIAS"]["precision"]),
-        "recall_dias": float(report["DIAS"]["recall"]),
-        "f1_dias": float(report["DIAS"]["f1-score"]),
-        "precision_buenas": float(report["BUENAS"]["precision"]),
-        "recall_buenas": float(report["BUENAS"]["recall"]),
-        "precision_anos": float(report["AÑOS"]["precision"]),
-        "recall_anos": float(report["AÑOS"]["recall"]),
-        "precision_licor": float(report["LICOR"]["precision"]),
-        "recall_licor": float(report["LICOR"]["recall"]),
-        "precision_gracias": float(report["GRACIAS"]["precision"]) if "GRACIAS" in report else 0.0,
-        "recall_gracias": float(report["GRACIAS"]["recall"]) if "GRACIAS" in report else 0.0,
-        "delta_accuracy": float(acc_final - 0.7282),
-        "delta_f1": float(f1_final - 0.7111),
-        "ha_mejorado": True,
-        "clases": clases_ordenadas
-    }
+        f.write(report_str)
+    
     with open(os.path.join("resultados", "metricas_actuales.json"), "w", encoding="utf-8") as f:
-        json.dump(cur_metrics, f, indent=2, ensure_ascii=False)
-    print("  [OK] Métricas actuales guardadas en: resultados/metricas_actuales.json")
-
-    # C. Historial de entrenamientos
-    hist_path = os.path.join("resultados", "historial_entrenamientos.json")
-    history = []
-    if os.path.exists(hist_path):
-        try:
-            with open(hist_path, "r", encoding="utf-8") as f:
-                history = json.load(f)
-        except Exception:
-            history = []
-    history.append({
-        "id": timestamp_id,
-        "fecha": timestamp_str,
-        "version": "6.3.0",
-        "total_muestras": len(X),
-        "dimensiones": 109,
-        "arquitectura": layers_list,
-        "accuracy_global": float(acc_final),
-        "f1_score": float(f1_final),
-        "precision_cv_media": float(acc_media),
-        "ha_mejorado": True,
-        "descripcion": "v6.3.0: 12 Clases Puras (11 señas LSC + Reposo) • Supresión de TRANSICION bimodal • Paridad Canónica 100%"
-    })
-    with open(hist_path, "w", encoding="utf-8") as f:
-        json.dump(history, f, indent=2, ensure_ascii=False)
-    print("  [OK] Historial guardado en: resultados/historial_entrenamientos.json")
-
-    # D. Gráficos en resultados/
-    # 1. Matriz de confusión
-    cm_dest = os.path.join("resultados", "matriz_confusion.png")
-    plt.figure(figsize=(11, 9))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=clases_ordenadas, yticklabels=clases_ordenadas)
-    plt.title(f"Matriz de Confusión LSC v5.0 (Precisión Global: {acc_final*100:.2f}%)", fontsize=13, fontweight='bold')
-    plt.xlabel("Predicción", fontsize=11)
-    plt.ylabel("Etiqueta Real", fontsize=11)
-    plt.xticks(rotation=45, ha="right")
+        json.dump(metricas, f, indent=2)
+    
+    # Copiar matriz de confusión a resultados/
+    plt.figure(figsize=(18, 16))
+    sns.heatmap(cm, annot=False, cmap="Blues",
+                xticklabels=clases_ordenadas, yticklabels=clases_ordenadas)
+    plt.title(f"Matriz de Confusión LSC70 v6.4 (49 Clases)", fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(cm_dest, dpi=180)
+    plt.savefig(os.path.join("resultados", "matriz_confusion.png"), dpi=180)
     plt.close()
 
-    # 2. Métricas por clase
-    f1_scores = [report[c]["f1-score"] for c in clases_ordenadas]
-    plt.figure(figsize=(12, 6))
-    palette = ['#00E5FF' if c in ['HOLA', 'DIAS', 'LICOR'] else '#3B82F6' for c in clases_ordenadas]
-    bars = plt.bar(clases_ordenadas, [s * 100 for s in f1_scores], color=palette, edgecolor='white', alpha=0.9)
-    plt.axhline(90, color='#10B981', linestyle='--', label='Meta 90%')
-    plt.title("F1-Score por Clase — LSC v5.0 Anti-Alucinación", fontsize=14, fontweight='bold')
-    plt.xlabel("Clase / Seña", fontsize=11)
-    plt.ylabel("F1-Score (%)", fontsize=11)
-    plt.ylim(0, 105)
-    plt.xticks(rotation=45, ha="right")
-    for bar in bars:
-        h = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2., h + 1.2, f"{h:.1f}%", ha='center', va='bottom', fontsize=9, fontweight='bold')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join("resultados", "metricas_por_clase.png"), dpi=180)
-    plt.close()
+    print(f"\n" + "=" * 75)
+    print(f"  ENTRENAMIENTO Y DESPLIEGUE MULTIMODO COMPLETADO CON ÉXITO")
+    print(f"=" * 75)
 
-    # 3. Comparativa histórica
-    fechas = [h.get("fecha", h.get("id"))[:10] for h in history]
-    accs = [h.get("accuracy_global", h.get("accuracy_ensamble", 0.70)) * 100 for h in history]
-    f1s = [h.get("f1_score", h.get("f1_score_ensamble", 0.70)) * 100 for h in history]
-    plt.figure(figsize=(10, 5))
-    x_pos = np.arange(len(history))
-    plt.plot(x_pos, accs, marker='o', linewidth=2.5, markersize=8, color='#00E5FF', label='Accuracy (%)')
-    plt.plot(x_pos, f1s, marker='s', linewidth=2.5, markersize=8, color='#10B981', label='F1-Score (%)')
-    plt.title("Evolución Histórica del Rendimiento LSC", fontsize=14, fontweight='bold')
-    plt.xlabel("Sesión de Entrenamiento", fontsize=11)
-    plt.ylabel("Porcentaje (%)", fontsize=11)
-    plt.xticks(x_pos, [f"v{i+1} ({f})" for i, f in enumerate(fechas)], rotation=20)
-    plt.ylim(60, 105)
-    plt.grid(True, linestyle=':', alpha=0.6)
-    for i, (a, f_score) in enumerate(zip(accs, f1s)):
-        plt.text(i, a + 1.5, f"{a:.1f}%", ha='center', fontweight='bold', color='#00E5FF')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(os.path.join("resultados", "comparativa_historica.png"), dpi=180)
-    plt.close()
-
-    # 4. Curva de pérdida
-    if hasattr(mlp_final, 'loss_curve_'):
-        plt.figure(figsize=(10, 5))
-        plt.plot(mlp_final.loss_curve_, color='#6366F1', linewidth=2)
-        plt.title(f"Curva de Pérdida del Modelo Final ({len(mlp_final.loss_curve_)} Épocas)", fontsize=13, fontweight='bold')
-        plt.xlabel("Época / Iteración", fontsize=11)
-        plt.ylabel("Log-Loss", fontsize=11)
-        plt.grid(True, linestyle=':', alpha=0.6)
-        plt.tight_layout()
-        plt.savefig(os.path.join("resultados", "curvas_aprendizaje.png"), dpi=180)
-        plt.close()
-
-    print("  [OK] Gráficos de resultados actualizados en: resultados/")
-    print("\n" + "=" * 75)
-    print("  [FINAL] ENTRENAMIENTO v5.0 Y EXPORTACION EXITOSOS!")
-    print("=" * 75)
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
-

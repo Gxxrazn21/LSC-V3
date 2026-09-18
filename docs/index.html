@@ -406,6 +406,49 @@
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
     }
 
+    /* Selector de Categorías / Modos (Palabras, Abecedario, Números, Todo) */
+    .category-selector-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px 2px 4px 2px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .category-selector-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .cat-pill {
+      flex: 1;
+      min-width: fit-content;
+      padding: 7px 12px;
+      border: 1.5px solid var(--card-border);
+      background: #ffffff;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-weight: 800;
+      font-size: 11.5px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s var(--ease-spring);
+      white-space: nowrap;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+    }
+    .cat-pill:hover {
+      border-color: var(--col-blue);
+      color: var(--col-blue);
+    }
+    .cat-pill.active {
+      background: var(--col-blue);
+      color: #ffffff;
+      border-color: var(--col-blue);
+      box-shadow: 0 3px 10px rgba(29, 78, 216, 0.28);
+    }
+
     /* ==========================================================================
        CONTENEDOR PRINCIPAL
        ========================================================================== */
@@ -1176,8 +1219,24 @@
   <!-- CONTENIDO PRINCIPAL -->
   <main>
     <!-- VISTA 1: TRADUCTOR Y CÁMARA ULTRA-LIMPIA -->
-    <div id="viewTranslator" style="display: flex; flex-direction: column; gap: 12px;">
+    <div id="viewTranslator" style="display: flex; flex-direction: column; gap: 10px;">
       
+      <!-- Selector de Modo / Categoría de Señas -->
+      <div class="category-selector-bar" id="categorySelectorBar">
+        <button class="cat-pill active" data-mode="palabras" id="catBtnPalabras" title="11 Señas Conversacionales + Reposo">
+          <span>💬</span> Palabras
+        </button>
+        <button class="cat-pill" data-mode="abecedario" id="catBtnAbecedario" title="27 Letras del Alfabeto LSC (A-Z, Ñ)">
+          <span>🔤</span> Abecedario
+        </button>
+        <button class="cat-pill" data-mode="numeros" id="catBtnNumeros" title="10 Números y Cantidades LSC">
+          <span>🔢</span> Números
+        </button>
+        <button class="cat-pill" data-mode="todo" id="catBtnTodo" title="49 Clases Unificadas">
+          <span>🌐</span> Todo (49)
+        </button>
+      </div>
+
       <!-- Viewport de Cámara Limpia -->
       <div class="viewport-card">
         <video id="videoElement" autoplay playsinline muted></video>
@@ -1621,38 +1680,104 @@
     bindToggle('toggleFlash', (val) => visualFlashEnabled = val);
     bindToggle('toggleCleanVision', (val) => cleanVisionMode = val);
 
-    // Diccionario de Señas LSC Calibradas
+    // GESTIÓN DEL SELECTOR DE MODO / CATEGORÍA (49 CLASES LSC)
+    window.MODO_LSC_ACTIVO = 'palabras'; // Modo inicial por defecto: Palabras conversacionales
+    const catPills = document.querySelectorAll('.cat-pill');
+    catPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        catPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        window.MODO_LSC_ACTIVO = pill.dataset.mode;
+        emitirFeedback('', { hablar: false, duracionVib: 25 });
+        const statePillText = document.getElementById('statePillText');
+        if (statePillText) {
+          const labels = {
+            palabras: 'MODO: PALABRAS (11)',
+            abecedario: 'MODO: ABECEDARIO (27)',
+            numeros: 'MODO: NÚMEROS (10)',
+            todo: 'MODO: TODO (49)'
+          };
+          statePillText.textContent = labels[pill.dataset.mode] || 'LISTO PARA SEÑAS';
+        }
+      });
+    });
+
+    // Diccionario de Señas LSC Calibradas (49 Clases Totales)
     const drawerDictionary = document.getElementById('drawerDictionary');
     const btnOpenDictionary = document.getElementById('btnOpenDictionary');
     const btnCloseDictionary = document.getElementById('btnCloseDictionary');
     const signsListContainer = document.getElementById('signsListContainer');
 
     const INFO_SENAS = [
-      { sena: 'HOLA', desc: 'Mano abierta extendida junto a la sien hacia afuera', zona: 'CABEZA / ROSTRO' },
-      { sena: 'BUENAS', desc: 'Saludo formal suave desde la frente hacia adelante', zona: 'CABEZA / PECHO' },
-      { sena: 'DIAS', desc: 'Mano en arco frontal representando la salida del sol', zona: 'PECHO' },
-      { sena: 'TARDES', desc: 'Mano descendiendo suavemente en el espacio frontal', zona: 'ESPACIO MEDIO' },
-      { sena: 'NOCHES', desc: 'Ambas manos descendiendo juntas frente al pecho', zona: 'ESPACIO CENTRAL' },
-      { sena: 'GRACIAS', desc: 'Yemas de los dedos tocando el mentón proyectadas al frente', zona: 'MENTÓN / ROSTRO' },
-      { sena: 'GUSTAR', desc: 'Palma abierta sobre el corazón con suave roce circular', zona: 'PECHO' },
-      { sena: 'NOMBRE', desc: 'Mano en forma de H o extendida en el espacio lateral', zona: 'ESPACIO MEDIO' },
-      { sena: 'YO', desc: 'Dedo índice apuntando directamente al centro del pecho', zona: 'PECHO' },
-      { sena: 'LICOR', desc: 'Pulgar extendido hacia la garganta / cuello', zona: 'CUELLO' },
-      { sena: 'AÑOS', desc: 'Mano acariciando suavemente la mejilla o mentón indicando edad', zona: 'ROSTRO' },
+      // Palabras Conversacionales (11)
+      { sena: 'HOLA', desc: 'Mano abierta extendida junto a la sien hacia afuera', cat: 'PALABRA', zona: 'CABEZA / ROSTRO' },
+      { sena: 'BUENAS', desc: 'Saludo formal suave desde la frente hacia adelante', cat: 'PALABRA', zona: 'CABEZA / PECHO' },
+      { sena: 'DIAS', desc: 'Mano en arco frontal representando la salida del sol', cat: 'PALABRA', zona: 'PECHO' },
+      { sena: 'TARDES', desc: 'Mano descendiendo suavemente en el espacio frontal', cat: 'PALABRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'NOCHES', desc: 'Ambas manos descendiendo juntas frente al pecho', cat: 'PALABRA', zona: 'ESPACIO CENTRAL' },
+      { sena: 'GRACIAS', desc: 'Yemas de los dedos tocando el mentón proyectadas al frente', cat: 'PALABRA', zona: 'MENTÓN / ROSTRO' },
+      { sena: 'GUSTAR', desc: 'Palma abierta sobre el corazón con suave roce circular', cat: 'PALABRA', zona: 'PECHO' },
+      { sena: 'NOMBRE', desc: 'Mano en forma de H o extendida en el espacio lateral', cat: 'PALABRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'YO', desc: 'Dedo índice apuntando directamente al centro del pecho', cat: 'PALABRA', zona: 'PECHO' },
+      { sena: 'LICOR', desc: 'Pulgar extendido hacia la garganta / cuello', cat: 'PALABRA', zona: 'CUELLO' },
+      { sena: 'AÑOS', desc: 'Mano acariciando suavemente la mejilla o mentón indicando edad', cat: 'PALABRA', zona: 'ROSTRO' },
+
+      // Abecedario Dactilológico LSC (27)
+      { sena: 'A', desc: 'Puño cerrado con el pulgar extendido apoyado lateralmente', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'B', desc: 'Cuatro dedos extendidos unidos hacia arriba con pulgar doblado en palma', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'C', desc: 'Mano curvada en forma de arco imitando la letra C', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'D', desc: 'Dedo índice extendido vertical, yemas de dedos restantes tocando pulgar', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'E', desc: 'Dedos flexionados apoyados sobre el pulgar doblado', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'F', desc: 'Yemas de pulgar e índice unidas en círculo, tres dedos extendidos', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'G', desc: 'Índice y pulgar paralelos apuntando horizontalmente al frente', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'H', desc: 'Dedos índice y medio extendidos juntos apuntando horizontalmente', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'I', desc: 'Dedo meñique extendido verticalmente, puño cerrado', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'J', desc: 'Dedo meñique trazando en el aire una curva en J', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'K', desc: 'Índice vertical, dedo medio adelante y pulgar en el centro (forma V)', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'L', desc: 'Índice vertical y pulgar horizontal formando ángulo de 90° (L)', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'M', desc: 'Tres dedos descansando sobre el pulgar asomando por debajo', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'N', desc: 'Dos dedos (índice y medio) descansando sobre el pulgar', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'NN', desc: 'Configuración N con suave balanceo horizontal (letra Ñ)', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'O', desc: 'Todos los dedos unidos en curva formando un círculo cerrado (O)', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'P', desc: 'Configuración de K orientada apuntando hacia abajo', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'Q', desc: 'Configuración G con los dedos apuntando hacia abajo', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'R', desc: 'Dedo índice y medio cruzados verticalmente', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'S', desc: 'Puño cerrado con el pulgar cruzando sobre los dedos', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'T', desc: 'Pulgar asomando entre el índice y el dedo medio en puño', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'U', desc: 'Dedos índice y medio extendidos juntos hacia arriba', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'V', desc: 'Dedos índice y medio extendidos separados en V', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'W', desc: 'Dedos índice, medio y anular extendidos separados (forma W)', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'X', desc: 'Dedo índice doblado en gancho, puño cerrado', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'Y', desc: 'Pulgar y meñique extendidos hacia los lados, otros dedos cerrados', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+      { sena: 'Z', desc: 'Dedo índice trazando en el aire la forma de Z', cat: 'LETRA', zona: 'ESPACIO MEDIO' },
+
+      // Números y Cantidades LSC (10)
+      { sena: '1', desc: 'Dedo índice extendido verticalmente (cifra 1)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: '4', desc: 'Cuatro dedos extendidos hacia arriba con pulgar recogido (cifra 4)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: '5', desc: 'Mano abierta con los 5 dedos extendidos separados (cifra 5)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: '6', desc: 'Yema del pulgar tocando la yema del meñique (cifra 6 LSC)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: '7', desc: 'Yema del pulgar tocando la yema del anular (cifra 7 LSC)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: '8', desc: 'Yema del pulgar tocando la yema del dedo medio (cifra 8 LSC)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: '9', desc: 'Yema del pulgar tocando la yema del índice (cifra 9 LSC)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: '10', desc: 'Pulgar arriba con suave movimiento de rotación lateral (cifra 10)', cat: 'NÚMERO', zona: 'ESPACIO MEDIO' },
+      { sena: 'MIL', desc: 'Mano en forma de M apoyada sobre la palma opuesta (cantidad mil)', cat: 'NÚMERO', zona: 'ESPACIO CENTRAL' },
+      { sena: 'MILLON', desc: 'Gesto de salto doble sobre la palma (cantidad millón)', cat: 'NÚMERO', zona: 'ESPACIO CENTRAL' }
     ];
 
     INFO_SENAS.forEach(item => {
       const row = document.createElement('div');
       row.className = 'sign-item';
+      const labelMostrar = item.sena === 'NN' ? 'Ñ (NN)' : item.sena.replace(/_/g, ' ');
       row.innerHTML = `
         <div class="sign-info">
-          <h4>${item.sena.replace(/_/g, ' ')}</h4>
+          <h4>${labelMostrar} <span style="font-size: 10px; font-weight: 700; color: var(--col-blue); background: var(--col-blue-pill); padding: 2px 6px; border-radius: 6px; margin-left: 4px;">${item.cat}</span></h4>
           <p>${item.desc} · <b style="color: var(--col-blue);">${item.zona}</b></p>
         </div>
         <button class="btn-sign-play" data-sena="${item.sena}">🔊</button>
       `;
       row.querySelector('.btn-sign-play').addEventListener('click', () => {
-        emitirFeedback(item.sena, { vibrar: true, hablar: true });
+        const textoHablar = item.sena === 'NN' ? 'Eñe' : item.sena;
+        emitirFeedback(textoHablar, { vibrar: true, hablar: true });
       });
       signsListContainer.appendChild(row);
     });

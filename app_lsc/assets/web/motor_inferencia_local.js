@@ -1343,6 +1343,17 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     }
   }
 
+  // Filtrado condicional por modo/categoría activa (Palabras, Abecedario, Números, Todo)
+  const modoActivo = (typeof window !== 'undefined' && window.MODO_LSC_ACTIVO) ? window.MODO_LSC_ACTIVO : 'todo';
+  if (modoActivo !== 'todo' && modelo.categorias && modelo.categorias[modoActivo]) {
+    const permitidas = new Set(modelo.categorias[modoActivo]);
+    for (let j = 0; j < num_clases; j++) {
+      if (!permitidas.has(clases[j])) {
+        logits[j] -= 200.0; // Enmascarar clase no perteneciente al modo activo (Probabilidad = 0.0%)
+      }
+    }
+  }
+
   for (let j = 0; j < num_clases; j++) {
     if (logits[j] > maxLogit) maxLogit = logits[j];
   }
