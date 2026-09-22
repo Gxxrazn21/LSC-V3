@@ -43,3 +43,7 @@ test_*.png
 *.apk
 *.aab
 .claude/
+
+# Herramientas y salidas locales de Graphify
+.tools/
+graphify-out/

@@ -48,6 +48,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
   HttpServer? _server;
   late final WebViewController _controller;
   bool _serverReady = false;
+  bool _splashVisible = true; // controla el fade-out gradual del splash nativo
   String _statusMessage = 'Iniciando Gestual Vision AI v6.2...';
 
   // Gestión de Live Sync y Recursos OTA
@@ -119,7 +120,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
           'NativeBridge',
           onMessageReceived: (JavaScriptMessage jsMessage) async {
             try {
-              final data = jsonDecode(jsMessage.message) as Map<String, dynamic>;
+              final data =
+                  jsonDecode(jsMessage.message) as Map<String, dynamic>;
               final action = data['action'];
               if (action == 'speak') {
                 final text = data['text'] as String? ?? '';
@@ -128,7 +130,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
                 }
               } else if (action == 'vibrate') {
                 final duration = data['duration'] as int? ?? 45;
-                await _nativeChannel.invokeMethod('vibrate', {'duration': duration});
+                await _nativeChannel.invokeMethod('vibrate', {
+                  'duration': duration,
+                });
               } else if (action == 'showSyncModal' || action == 'openSync') {
                 _showSyncModal();
               }
@@ -143,6 +147,10 @@ class _LSCHomePageState extends State<LSCHomePage> {
             onPageFinished: (String url) {
               debugPrint('Página lista: $url');
               setState(() => _serverReady = true);
+              // Fade-out gradual del splash nativo (350ms) y luego lo ocultamos
+              Future.delayed(const Duration(milliseconds: 380), () {
+                if (mounted) setState(() => _splashVisible = false);
+              });
             },
             onWebResourceError: (WebResourceError error) {
               debugPrint('Error de recurso: ${error.description}');
@@ -150,7 +158,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
                 // Si el modo en vivo remoto falla, volver automáticamente a modo autónomo local
                 _isLiveMode = false;
                 final fallbackPort = _server?.port ?? 8765;
-                _controller.loadRequest(Uri.parse('http://127.0.0.1:$fallbackPort/index.html'));
+                _controller.loadRequest(
+                  Uri.parse('http://127.0.0.1:$fallbackPort/index.html'),
+                );
               }
             },
           ),
@@ -162,9 +172,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
             .setMediaPlaybackRequiresUserGesture(false);
         (controller.platform as AndroidWebViewController)
             .setOnPlatformPermissionRequest((request) {
-          debugPrint('Permiso de WebRTC otorgado: ${request.types}');
-          request.grant();
-        });
+              debugPrint('Permiso de WebRTC otorgado: ${request.types}');
+              request.grant();
+            });
       }
 
       _controller = controller;
@@ -173,7 +183,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
       if (_isLiveMode && _pcHost.isNotEmpty) {
         await _controller.loadRequest(Uri.parse('http://$_pcHost/index.html'));
       } else {
-        await _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html'));
+        await _controller.loadRequest(
+          Uri.parse('http://127.0.0.1:$port/index.html'),
+        );
       }
     } catch (e) {
       debugPrint('Error iniciando app: $e');
@@ -232,7 +244,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
       'https://raw.githubusercontent.com/Gxxrazn21/LSC-V3/main/estilo';
 
   Future<bool> _downloadResourcesFromCloud({String? baseUrl}) async {
-    final base = (baseUrl != null && baseUrl.isNotEmpty) ? baseUrl : _defaultCloudBase;
+    final base = (baseUrl != null && baseUrl.isNotEmpty)
+        ? baseUrl
+        : _defaultCloudBase;
     try {
       final assetsDir = await _getWebAssetsDir();
       final filesToSync = [
@@ -249,7 +263,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
       client.connectionTimeout = const Duration(seconds: 25);
 
       for (final fileName in filesToSync) {
-        final uri = Uri.parse('$base/$fileName?nocache=${DateTime.now().millisecondsSinceEpoch}');
+        final uri = Uri.parse(
+          '$base/$fileName?nocache=${DateTime.now().millisecondsSinceEpoch}',
+        );
         final request = await client.getUrl(uri);
         final response = await request.close();
 
@@ -303,7 +319,11 @@ class _LSCHomePageState extends State<LSCHomePage> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.cloud_sync, color: Color(0xFF00E5FF), size: 26),
+                          Icon(
+                            Icons.cloud_sync,
+                            color: Color(0xFF00E5FF),
+                            size: 26,
+                          ),
                           SizedBox(width: 10),
                           Text(
                             'Actualización & Nube LSC v6.2',
@@ -332,8 +352,12 @@ class _LSCHomePageState extends State<LSCHomePage> {
                     child: Row(
                       children: [
                         Icon(
-                          _hasDownloadedAssets ? Icons.check_circle : Icons.phone_android,
-                          color: _hasDownloadedAssets ? const Color(0xFF00FF9D) : const Color(0xFF00E5FF),
+                          _hasDownloadedAssets
+                              ? Icons.check_circle
+                              : Icons.phone_android,
+                          color: _hasDownloadedAssets
+                              ? const Color(0xFF00FF9D)
+                              : const Color(0xFF00E5FF),
                           size: 20,
                         ),
                         const SizedBox(width: 10),
@@ -342,7 +366,10 @@ class _LSCHomePageState extends State<LSCHomePage> {
                             _hasDownloadedAssets
                                 ? 'Versión Nube IA v6.2 Maestro (Cámara Limpia & UI Fluida)'
                                 : 'Ejecutando versión embebida de la APK (IA v6.2)',
-                            style: const TextStyle(fontSize: 12, color: Colors.white70),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white70,
+                            ),
                           ),
                         ),
                       ],
@@ -357,24 +384,36 @@ class _LSCHomePageState extends State<LSCHomePage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF00E5FF),
                         foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         elevation: 4,
                       ),
                       icon: downloading
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.black,
+                              ),
                             )
                           : const Icon(Icons.cloud_download, size: 22),
                       label: Text(
-                        downloading ? 'Descargando modelo desde la nube...' : '☁️ Actualizar Modelo desde la Nube',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                        downloading
+                            ? 'Descargando modelo desde la nube...'
+                            : '☁️ Actualizar Modelo desde la Nube',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                        ),
                       ),
                       onPressed: downloading
                           ? null
                           : () async {
-                              final messenger = ScaffoldMessenger.of(this.context);
+                              final messenger = ScaffoldMessenger.of(
+                                this.context,
+                              );
                               final nav = Navigator.of(ctx);
 
                               setModalState(() => downloading = true);
@@ -382,7 +421,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                               setModalState(() => downloading = false);
 
                               if (ok) {
-                                final prefs = await SharedPreferences.getInstance();
+                                final prefs =
+                                    await SharedPreferences.getInstance();
                                 await prefs.setBool('pref_is_live_mode', false);
 
                                 if (!mounted) return;
@@ -392,19 +432,47 @@ class _LSCHomePageState extends State<LSCHomePage> {
 
                                 nav.pop();
                                 await _controller.clearCache();
-                                _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text('✅ ¡Interfaz y modelo actualizados a Gestual Vision AI v6.2 Maestro!'),
-                                      backgroundColor: Colors.green,
-                                      duration: Duration(seconds: 4),
+                                _controller.loadRequest(
+                                  Uri.parse(
+                                    'http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}',
+                                  ),
+                                );
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      '✅ ¡Interfaz y modelo actualizados a Gestual Vision AI v6.2 Maestro!',
                                     ),
-                                  );
+                                    backgroundColor: Colors.green,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    margin: const EdgeInsets.fromLTRB(
+                                      14,
+                                      0,
+                                      14,
+                                      14,
+                                    ),
+                                  ),
+                                );
                               } else {
                                 messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('❌ No se pudo descargar. Verifica que tengas conexión a internet.'),
+                                  SnackBar(
+                                    content: const Text(
+                                      '❌ No se pudo descargar. Verifica que tengas conexión a internet.',
+                                    ),
                                     backgroundColor: Colors.redAccent,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    margin: const EdgeInsets.fromLTRB(
+                                      14,
+                                      0,
+                                      14,
+                                      14,
+                                    ),
                                   ),
                                 );
                               }
@@ -420,11 +488,16 @@ class _LSCHomePageState extends State<LSCHomePage> {
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.white24),
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('Recargar', style: TextStyle(fontWeight: FontWeight.w700)),
+                          label: const Text(
+                            'Recargar',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                           onPressed: () async {
                             Navigator.of(ctx).pop();
                             await _controller.clearCache();
@@ -438,13 +511,20 @@ class _LSCHomePageState extends State<LSCHomePage> {
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Color(0xFFF59E0B)),
                             foregroundColor: const Color(0xFFF59E0B),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           icon: const Icon(Icons.restore, size: 18),
-                          label: const Text('Restaurar APK', style: TextStyle(fontWeight: FontWeight.w700)),
+                          label: const Text(
+                            'Restaurar APK',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                           onPressed: () async {
-                            final messenger = ScaffoldMessenger.of(this.context);
+                            final messenger = ScaffoldMessenger.of(
+                              this.context,
+                            );
                             final nav = Navigator.of(ctx);
                             final prefs = await SharedPreferences.getInstance();
                             await prefs.setBool('pref_is_live_mode', false);
@@ -461,11 +541,27 @@ class _LSCHomePageState extends State<LSCHomePage> {
 
                             nav.pop();
                             await _controller.clearCache();
-                            _controller.loadRequest(Uri.parse('http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}'));
+                            _controller.loadRequest(
+                              Uri.parse(
+                                'http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}',
+                              ),
+                            );
                             messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text('Restablecido a los archivos originales de la APK'),
+                              SnackBar(
+                                content: const Text(
+                                  'Restablecido a los archivos originales de la APK',
+                                ),
                                 backgroundColor: Colors.amber,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                margin: const EdgeInsets.fromLTRB(
+                                  14,
+                                  0,
+                                  14,
+                                  14,
+                                ),
                               ),
                             );
                           },
@@ -476,72 +572,139 @@ class _LSCHomePageState extends State<LSCHomePage> {
                   const SizedBox(height: 12),
                   // SECCIÓN AVANZADA COLAPSABLE: WI-FI LOCAL OPCIONAL
                   GestureDetector(
-                    onTap: () => setModalState(() => showAdvanced = !showAdvanced),
+                    onTap: () =>
+                        setModalState(() => showAdvanced = !showAdvanced),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(showAdvanced ? Icons.expand_less : Icons.expand_more, color: Colors.white38, size: 18),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          reverseDuration: const Duration(milliseconds: 160),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, anim) =>
+                              FadeTransition(opacity: anim, child: child),
+                          child: Icon(
+                            showAdvanced
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            key: ValueKey<bool>(showAdvanced),
+                            color: Colors.white38,
+                            size: 18,
+                          ),
+                        ),
                         const SizedBox(width: 4),
                         Text(
-                          showAdvanced ? 'Ocultar Opciones Avanzadas' : 'Opciones Avanzadas (IP Local)',
-                          style: const TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.w600),
+                          showAdvanced
+                              ? 'Ocultar Opciones Avanzadas'
+                              : 'Opciones Avanzadas (IP Local)',
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  if (showAdvanced) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: textController,
-                      decoration: InputDecoration(
-                        labelText: 'IP y Puerto del PC (Opcional)',
-                        hintText: 'Ej: 192.168.1.15:8000',
-                        prefixIcon: const Icon(Icons.computer, color: Color(0xFF00E5FF)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white24),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFF070913),
+                  AnimatedCrossFade(
+                    firstChild: const SizedBox.shrink(),
+                    secondChild: Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: textController,
+                            decoration: InputDecoration(
+                              labelText: 'IP y Puerto del PC (Opcional)',
+                              hintText: 'Ej: 192.168.1.15:8000',
+                              prefixIcon: const Icon(
+                                Icons.computer,
+                                color: Color(0xFF00E5FF),
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.white24,
+                                ),
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFF070913),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 42,
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF00E5FF),
+                                backgroundColor: const Color(
+                                  0xFF00E5FF,
+                                ).withValues(alpha: 0.1),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              icon: const Icon(Icons.wifi_tethering, size: 18),
+                              label: const Text(
+                                'Conectar a Servidor Wi-Fi Local',
+                              ),
+                              onPressed: () async {
+                                final host = textController.text.trim();
+                                if (host.isEmpty) return;
+                                final messenger = ScaffoldMessenger.of(
+                                  this.context,
+                                );
+                                final nav = Navigator.of(ctx);
+
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                await prefs.setString('pref_pc_host', host);
+                                await prefs.setBool('pref_is_live_mode', true);
+
+                                if (!mounted) return;
+                                setState(() {
+                                  _pcHost = host;
+                                  _isLiveMode = true;
+                                });
+
+                                nav.pop();
+                                _controller.loadRequest(
+                                  Uri.parse('http://$host/index.html'),
+                                );
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Conectando a http://$host/index.html',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    margin: const EdgeInsets.fromLTRB(
+                                      14,
+                                      0,
+                                      14,
+                                      14,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 42,
-                      child: TextButton.icon(
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF00E5FF),
-                          backgroundColor: const Color(0xFF00E5FF).withValues(alpha: 0.1),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        icon: const Icon(Icons.wifi_tethering, size: 18),
-                        label: const Text('Conectar a Servidor Wi-Fi Local'),
-                        onPressed: () async {
-                          final host = textController.text.trim();
-                          if (host.isEmpty) return;
-                          final messenger = ScaffoldMessenger.of(this.context);
-                          final nav = Navigator.of(ctx);
-
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('pref_pc_host', host);
-                          await prefs.setBool('pref_is_live_mode', true);
-
-                          if (!mounted) return;
-                          setState(() {
-                            _pcHost = host;
-                            _isLiveMode = true;
-                          });
-
-                          nav.pop();
-                          _controller.loadRequest(Uri.parse('http://$host/index.html'));
-                          messenger.showSnackBar(
-                            SnackBar(content: Text('Conectando a http://$host/index.html')),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                    crossFadeState: showAdvanced
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 320),
+                    reverseDuration: const Duration(milliseconds: 220),
+                    firstCurve: Curves.easeInCubic,
+                    secondCurve: Curves.easeOutCubic,
+                    sizeCurve: Curves.easeInOutCubic,
+                  ),
                 ],
               ),
             );
@@ -563,50 +726,245 @@ class _LSCHomePageState extends State<LSCHomePage> {
       body: SafeArea(
         child: Stack(
           children: [
-            if (_server != null)
-              WebViewWidget(controller: _controller),
-            if (!_serverReady)
-              Container(
-                color: const Color(0xFF0B1120),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/web/logo_simbolo.png',
-                        width: 96,
-                        height: 96,
-                        fit: BoxFit.contain,
+            if (_server != null) WebViewWidget(controller: _controller),
+            // Splash nativo animado: se oculta con fade-out gradual (GPU: opacity + transform)
+            AnimatedOpacity(
+              opacity: _splashVisible ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 420),
+              curve: Curves.easeOutCubic,
+              onEnd: () {},
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeOutCubic,
+                transform: Matrix4.diagonal3Values(
+                  _splashVisible ? 1.0 : 1.04,
+                  _splashVisible ? 1.0 : 1.04,
+                  1.0,
+                ),
+                transformAlignment: Alignment.center,
+                child: IgnorePointer(
+                  ignoring: !_splashVisible,
+                  child: Container(
+                    color: const Color(0xFF0B1120),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Logo con Tween entrada spring-like (escala)
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.82, end: 1.0),
+                            duration: const Duration(milliseconds: 850),
+                            curve: Curves.elasticOut,
+                            builder: (ctx, val, child) {
+                              return Opacity(
+                                opacity: (val - 0.82) / 0.18,
+                                child: Transform.scale(
+                                  scale: val,
+                                  child: Image.asset(
+                                    'assets/web/logo_simbolo.png',
+                                    width: 108,
+                                    height: 108,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          // Título Gestual Vision animado
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
+                            duration: const Duration(milliseconds: 700),
+                            curve: Curves.easeOutBack,
+                            builder: (ctx, val, _) {
+                              return Opacity(
+                                opacity: val,
+                                child: Transform.translate(
+                                  offset: Offset(0, (1 - val) * 18),
+                                  child: const Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        TextSpan(
+                                          text: 'Gestual',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.4,
+                                          ),
+                                        ),
+                                        TextSpan(
+                                          text: ' Vision',
+                                          style: TextStyle(
+                                            color: Color(0xFF00E5FF),
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.4,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
+                            duration: const Duration(milliseconds: 850),
+                            curve: Curves.easeOut,
+                            builder: (ctx, val, _) => Opacity(
+                              opacity: val,
+                              child: const Text(
+                                '🇨🇴 Lengua de Señas Colombiana',
+                                style: TextStyle(
+                                  color: Color(0xFF94A3B8),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 30),
+                          // Loader orbit tricolor Colombia (amarillo • azul • rojo)
+                          const _TricolorOrbitLoader(),
+                          const SizedBox(height: 18),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
+                            duration: const Duration(milliseconds: 900),
+                            curve: Curves.easeOut,
+                            builder: (ctx, val, _) => Opacity(
+                              opacity: val,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 36,
+                                ),
+                                child: Text(
+                                  _statusMessage,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Color(0xFF94A3B8),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 14),
-                      const Text(
-                        'Gestual',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const CircularProgressIndicator(
-                        color: Color(0xFF00E5FF),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _statusMessage,
-                        style: const TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+/// Loader orbital tricolor Colombia (solo transform y opacity — GPU-safe)
+class _TricolorOrbitLoader extends StatefulWidget {
+  const _TricolorOrbitLoader();
+
+  @override
+  State<_TricolorOrbitLoader> createState() => _TricolorOrbitLoaderState();
+}
+
+class _TricolorOrbitLoaderState extends State<_TricolorOrbitLoader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1350),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (ctx, _) {
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _dot(const Color(0xFFF59E0B), _ctrl.value * 360),
+              _dot(const Color(0xFF1D4ED8), _ctrl.value * 360 + 120),
+              _dot(const Color(0xFFE11D48), _ctrl.value * 360 + 240),
+              Center(
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00E5FF),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _dot(Color color, double degrees) {
+    return Positioned.fill(
+      child: Transform.rotate(
+        angle: degrees * 3.1415926535 / 180,
+        child: const Align(alignment: Alignment.topCenter, child: _Dot()),
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      margin: const EdgeInsets.only(top: 2),
+      decoration: const BoxDecoration(
+        color: Colors.transparent,
+        shape: BoxShape.circle,
+        boxShadow: [],
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color:
+              context
+                  .dependOnInheritedWidgetOfExactType<_InheritedDotColor>()
+                  ?.color ??
+              const Color(0xFFF59E0B),
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+class _InheritedDotColor extends InheritedWidget {
+  final Color color;
+  const _InheritedDotColor({required this.color, required super.child});
+  @override
+  bool updateShouldNotify(covariant _InheritedDotColor old) =>
+      old.color != color;
 }

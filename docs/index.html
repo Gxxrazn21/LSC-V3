@@ -71,6 +71,52 @@
       --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
       --ease-out: cubic-bezier(0, 0, 0.2, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+      /* Tokens Uniformes de Duración (Motion Design System) */
+      --dur-micro: 150ms;
+      --dur-fast: 220ms;
+      --dur-std: 320ms;
+      --dur-slow: 500ms;
+      --dur-xl: 700ms;
+
+      /* Stagger base (usado en IntersectionObserver lazy) */
+      --stagger-step: 45ms;
+
+      /* Offset GPU: garantiza compositor-layer en transforms */
+      --gpu-off: translate3d(0, 0, 0);
+      --gpu-promote: will-change: transform, opacity;
+    }
+
+    /* ==========================================================================
+       ACCESIBILIDAD — WCAG 2.1 / Prefers Reduced Motion (Global Override)
+       ========================================================================== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+      }
+      .animate-on-enter, [data-animate] {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
+    @supports (animation-timeline: scroll()) {
+      /* Timeline implícito — sin uso; solo garantiza soporte moderno */
+    }
+
+    /* Promoción a capa compositora solo para elementos que animamos */
+    .splash-screen, .splash-logo-wrap, .viewport-card, .word-hero.confirmed,
+    .drawer-content, .modal-card, .btn-header, .btn-action, .btn-cam-circle,
+    .quick-card, .cat-pill, .word-chip, .tab-btn, .fullscreen-modal,
+    .modal-backdrop, .drawer-modal, .animate-on-enter, [data-animate] {
+      -webkit-transform: var(--gpu-off);
+              transform: var(--gpu-off);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
 
     * {
@@ -246,15 +292,15 @@
       100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    /* Animación 3D Orgánica del Logo Oficial */
+    /* Animación 3D Orgánica del Logo Oficial (solo transform + opacity — GPU-safe) */
     @keyframes logo3DFloat {
       0%, 100% {
-        transform: translateY(0px) rotate(0deg) scale(1);
-        box-shadow: 0 20px 45px rgba(245, 158, 11, 0.22), 0 10px 25px rgba(29, 78, 216, 0.15);
+        -webkit-transform: translateY(0px) rotate(0deg) scale(1);
+                transform: translateY(0px) rotate(0deg) scale(1);
       }
       50% {
-        transform: translateY(-9px) rotate(2deg) scale(1.035);
-        box-shadow: 0 28px 55px rgba(245, 158, 11, 0.32), 0 14px 30px rgba(225, 29, 72, 0.18);
+        -webkit-transform: translateY(-9px) rotate(2deg) scale(1.035);
+                transform: translateY(-9px) rotate(2deg) scale(1.035);
       }
     }
 
@@ -479,14 +525,30 @@
       transition: transform 0.4s var(--ease-bounce), border-color 0.3s, box-shadow 0.3s;
     }
 
+    /* Pulso de confirmación — solo transform + border-color via class (GPU-safe) */
     .viewport-card.pulse-confirmed {
       animation: pulseConfirmed 0.65s var(--ease-bounce) forwards;
     }
+    .viewport-card.pulse-confirmed::after {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border-radius: 34px;
+      pointer-events: none;
+      box-shadow: 0 0 0 0 var(--col-yellow-glow);
+      animation: pulseRing 0.7s var(--ease-out) forwards;
+    }
 
     @keyframes pulseConfirmed {
-      0% { transform: scale(0.98); border-color: var(--col-yellow); }
-      45% { transform: scale(1.02); box-shadow: 0 0 35px rgba(245, 158, 11, 0.45); border-color: var(--col-yellow); }
-      100% { transform: scale(1.0); border-color: rgba(245, 158, 11, 0.25); }
+      0%   { -webkit-transform: scale(0.98); transform: scale(0.98); border-color: var(--col-yellow); }
+      45%  { -webkit-transform: scale(1.02); transform: scale(1.02); border-color: var(--col-yellow); }
+      100% { -webkit-transform: scale(1);    transform: scale(1);    border-color: rgba(245, 158, 11, 0.25); }
+    }
+
+    @keyframes pulseRing {
+      0%   { opacity: 0.9; box-shadow: 0 0 0 0 var(--col-yellow-glow); }
+      70%  { opacity: 0;   box-shadow: 0 0 40px 20px rgba(245,158,11,0); }
+      100% { opacity: 0;   box-shadow: 0 0 0 0 rgba(245,158,11,0); }
     }
 
     #videoElement {
@@ -1150,6 +1212,495 @@
       font-size: 13px;
       cursor: pointer;
       font-weight: 800;
+      -webkit-transition: -webkit-transform var(--dur-micro) var(--ease-bounce), background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast), -webkit-box-shadow var(--dur-fast);
+              transition:         transform var(--dur-micro) var(--ease-bounce), background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast),         box-shadow var(--dur-fast);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-sign-play:hover {
+      -webkit-transform: translateY(-2px) scale(1.03);
+              transform: translateY(-2px) scale(1.03);
+      background: var(--col-blue);
+      color: #fff;
+      border-color: var(--col-blue);
+      -webkit-box-shadow: 0 6px 14px var(--col-blue-glow);
+              box-shadow: 0 6px 14px var(--col-blue-glow);
+    }
+    .btn-sign-play:active {
+      -webkit-transform: scale(0.96);
+              transform: scale(0.96);
+    }
+
+    /* ==========================================================================
+       MOTION SYSTEM — NUEVOS KEYFRAMES (solo transform + opacity — GPU-safe)
+       ========================================================================== */
+    /* Entrada/salida de vistas al cambiar tabs */
+    @keyframes viewInRight {
+      0%   { opacity: 0; -webkit-transform: translateX(28px); transform: translateX(28px); }
+      100% { opacity: 1; -webkit-transform: translateX(0);    transform: translateX(0); }
+    }
+    @-webkit-keyframes viewInRight {
+      0%   { opacity: 0; -webkit-transform: translateX(28px); }
+      100% { opacity: 1; -webkit-transform: translateX(0); }
+    }
+    @keyframes viewInLeft {
+      0%   { opacity: 0; -webkit-transform: translateX(-28px); transform: translateX(-28px); }
+      100% { opacity: 1; -webkit-transform: translateX(0);     transform: translateX(0); }
+    }
+    @keyframes viewOutRight {
+      0%   { opacity: 1; -webkit-transform: translateX(0);    transform: translateX(0); }
+      100% { opacity: 0; -webkit-transform: translateX(28px); transform: translateX(28px); }
+    }
+
+    /* Backdrop Fade (modales y drawer) */
+    @keyframes backdropFadeIn {
+      0%   { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    @keyframes backdropFadeOut {
+      0%   { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* Modal card / drawer panel — entrada y salida */
+    @keyframes modalPopIn {
+      0%   { opacity: 0; -webkit-transform: translateY(18px) scale(0.96); transform: translateY(18px) scale(0.96); }
+      100% { opacity: 1; -webkit-transform: translateY(0)    scale(1);    transform: translateY(0)    scale(1); }
+    }
+    @keyframes modalPopOut {
+      0%   { opacity: 1; -webkit-transform: translateY(0)    scale(1);    transform: translateY(0)    scale(1); }
+      100% { opacity: 0; -webkit-transform: translateY(18px) scale(0.96); transform: translateY(18px) scale(0.96); }
+    }
+    @keyframes drawerSlideUp {
+      from { -webkit-transform: translateY(100%); transform: translateY(100%); }
+      to   { -webkit-transform: translateY(0);    transform: translateY(0); }
+    }
+    @keyframes drawerSlideDown {
+      from { -webkit-transform: translateY(0);    transform: translateY(0); }
+      to   { -webkit-transform: translateY(100%); transform: translateY(100%); }
+    }
+
+    /* Chips dinámicos — entrada */
+    @keyframes chipIn {
+      0%   { opacity: 0; -webkit-transform: translateY(12px) scale(0.8); transform: translateY(12px) scale(0.8); }
+      60%  { opacity: 1; -webkit-transform: translateY(-2px) scale(1.05); transform: translateY(-2px) scale(1.05); }
+      100% { opacity: 1; -webkit-transform: translateY(0)    scale(1);    transform: translateY(0)    scale(1); }
+    }
+    @-webkit-keyframes chipIn {
+      0%   { opacity: 0; -webkit-transform: translateY(12px) scale(0.8); }
+      60%  { opacity: 1; -webkit-transform: translateY(-2px) scale(1.05); }
+      100% { opacity: 1; -webkit-transform: translateY(0)    scale(1); }
+    }
+
+    /* Ripple click */
+    @keyframes rippleExpand {
+      0%   { -webkit-transform: scale(0);   transform: scale(0);   opacity: 0.55; }
+      100% { -webkit-transform: scale(4.5); transform: scale(4.5); opacity: 0;   }
+    }
+
+    /* Loader tricolor orbit — reemplaza spinners genéricos */
+    @keyframes orbitA {
+      0%   { -webkit-transform: rotate(0deg)   translateX(14px) rotate(0deg);   transform: rotate(0deg)   translateX(14px) rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg) translateX(14px) rotate(-360deg); transform: rotate(360deg) translateX(14px) rotate(-360deg); }
+    }
+    @keyframes orbitB {
+      0%   { -webkit-transform: rotate(180deg) translateX(14px) rotate(-180deg); transform: rotate(180deg) translateX(14px) rotate(-180deg); }
+      100% { -webkit-transform: rotate(540deg) translateX(14px) rotate(-540deg); transform: rotate(540deg) translateX(14px) rotate(-540deg); }
+    }
+
+    /* Micro-interacciones: éxito y shake de error */
+    @keyframes successPop {
+      0%   { opacity: 0; -webkit-transform: translateY(6px) scale(0.88); transform: translateY(6px) scale(0.88); }
+      55%  { opacity: 1; -webkit-transform: translateY(-2px) scale(1.05); transform: translateY(-2px) scale(1.05); }
+      100% { opacity: 1; -webkit-transform: translateY(0)    scale(1);    transform: translateY(0)    scale(1); }
+    }
+    @keyframes shakeX {
+      0%, 100% { -webkit-transform: translateX(0);    transform: translateX(0); }
+      20%      { -webkit-transform: translateX(-7px); transform: translateX(-7px); }
+      40%      { -webkit-transform: translateX(7px);  transform: translateX(7px); }
+      60%      { -webkit-transform: translateX(-4px); transform: translateX(-4px); }
+      80%      { -webkit-transform: translateX(4px);  transform: translateX(4px); }
+    }
+
+    /* Fullscreen modal (Oyente → Sordo) zoom entrada */
+    @keyframes fullscreenZoomIn {
+      0%   { opacity: 0; -webkit-transform: scale(0.9); transform: scale(0.9); }
+      100% { opacity: 1; -webkit-transform: scale(1);   transform: scale(1); }
+    }
+    @keyframes fullscreenZoomOut {
+      0%   { opacity: 1; -webkit-transform: scale(1);   transform: scale(1); }
+      100% { opacity: 0; -webkit-transform: scale(1.05); transform: scale(1.05); }
+    }
+
+    /* ==========================================================================
+       TRANSICIONES ENTRE VISTAS (TABS) — fade + slide uniforme
+       ========================================================================== */
+    #viewTranslator, .bidi-panel {
+      -webkit-transition: opacity var(--dur-std) var(--ease-spring),
+                          -webkit-transform var(--dur-std) var(--ease-spring);
+              transition: opacity var(--dur-std) var(--ease-spring),
+                          transform var(--dur-std) var(--ease-spring);
+      will-change: opacity, transform;
+    }
+    #viewTranslator.view-enter  { animation: viewInLeft  var(--dur-std) var(--ease-spring) both; }
+    .bidi-panel.view-enter      { animation: viewInRight var(--dur-std) var(--ease-spring) both; }
+    #viewTranslator.view-exit   { animation: viewOutRight var(--dur-fast) var(--ease-out) forwards; }
+
+    /* ==========================================================================
+       MODAL / DRAWER / FULLSCREEN — transiciones uniformes + backdrop
+       ========================================================================== */
+    .modal-backdrop, .drawer-modal, .fullscreen-modal {
+      opacity: 0;
+      pointer-events: none;
+      display: flex; /* siempre flex; no display none para animar */
+      visibility: hidden;
+      -webkit-transition: opacity var(--dur-std) var(--ease-spring),
+                          visibility 0s linear var(--dur-std);
+              transition: opacity var(--dur-std) var(--ease-spring),
+                          visibility 0s linear var(--dur-std);
+    }
+    .modal-backdrop.active, .drawer-modal.active, .fullscreen-modal.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      -webkit-transition: opacity var(--dur-std) var(--ease-spring),
+                          visibility 0s linear 0s;
+              transition: opacity var(--dur-std) var(--ease-spring),
+                          visibility 0s linear 0s;
+    }
+
+    /* Modal card: entrada/salida */
+    .modal-card {
+      -webkit-transform: translateY(18px) scale(0.96);
+              transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      -webkit-transition: opacity var(--dur-std) var(--ease-spring),
+                          -webkit-transform var(--dur-std) var(--ease-spring);
+              transition: opacity var(--dur-std) var(--ease-spring),
+                          transform var(--dur-std) var(--ease-spring);
+    }
+    .modal-backdrop.active .modal-card {
+      -webkit-transform: translateY(0) scale(1);
+              transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    /* Drawer content: slide up/down uniforme */
+    .drawer-content {
+      -webkit-transform: translateY(100%);
+              transform: translateY(100%);
+      -webkit-transition: -webkit-transform var(--dur-std) var(--ease-spring);
+              transition:         transform var(--dur-std) var(--ease-spring);
+      animation: none !important; /* desactivamos keyframe previo para usar transition uniforme */
+    }
+    .drawer-modal.active .drawer-content {
+      -webkit-transform: translateY(0);
+              transform: translateY(0);
+    }
+
+    /* Fullscreen: zoom entrada uniforme */
+    .fullscreen-modal .fullscreen-text {
+      opacity: 0;
+      -webkit-transform: scale(0.92);
+              transform: scale(0.92);
+      -webkit-transition: opacity var(--dur-slow) var(--ease-spring),
+                          -webkit-transform var(--dur-slow) var(--ease-spring);
+              transition: opacity var(--dur-slow) var(--ease-spring),
+                          transform var(--dur-slow) var(--ease-spring);
+      -webkit-transition-delay: 80ms;
+              transition-delay: 80ms;
+    }
+    .fullscreen-modal.active .fullscreen-text {
+      opacity: 1;
+      -webkit-transform: scale(1);
+              transform: scale(1);
+    }
+
+    /* ==========================================================================
+       LAZY ANIMATE ON-ENTER (IntersectionObserver) — sin JS en CSS
+       ========================================================================== */
+    .animate-on-enter, [data-animate="fade-up"] {
+      opacity: 0;
+      -webkit-transform: translateY(22px);
+              transform: translateY(22px);
+      -webkit-transition: opacity var(--dur-slow) var(--ease-spring),
+                          -webkit-transform var(--dur-slow) var(--ease-spring);
+              transition: opacity var(--dur-slow) var(--ease-spring),
+                          transform var(--dur-slow) var(--ease-spring);
+      will-change: opacity, transform;
+    }
+    [data-animate="fade-in"] {
+      opacity: 0;
+      -webkit-transform: var(--gpu-off);
+              transform: var(--gpu-off);
+      -webkit-transition: opacity var(--dur-slow) var(--ease-spring);
+              transition: opacity var(--dur-slow) var(--ease-spring);
+    }
+    [data-animate="zoom-in"] {
+      opacity: 0;
+      -webkit-transform: scale(0.9);
+              transform: scale(0.9);
+      -webkit-transition: opacity var(--dur-slow) var(--ease-spring),
+                          -webkit-transform var(--dur-slow) var(--ease-spring);
+              transition: opacity var(--dur-slow) var(--ease-spring),
+                          transform var(--dur-slow) var(--ease-spring);
+    }
+    .animate-on-enter.visible, [data-animate].visible {
+      opacity: 1;
+      -webkit-transform: none;
+              transform: none;
+    }
+
+    /* ==========================================================================
+       CHIPS — entrada con stagger (JS aplica --stagger-index)
+       ========================================================================== */
+    .word-chip.chip-enter {
+      animation: chipIn 380ms var(--ease-bounce) both;
+      -webkit-animation: chipIn 380ms var(--ease-bounce) both;
+      -webkit-animation-delay: calc(var(--stagger-index, 0) * var(--stagger-step));
+              animation-delay: calc(var(--stagger-index, 0) * var(--stagger-step));
+    }
+
+    /* ==========================================================================
+       RIPPLE CLICK — retroalimentación háptica visual
+       ========================================================================== */
+    .has-ripple { position: relative; overflow: hidden; isolation: isolate; }
+    .ripple {
+      position: absolute;
+      border-radius: 9999px;
+      background: currentColor;
+      opacity: 0;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      -webkit-transform: scale(0);
+              transform: scale(0);
+      animation: rippleExpand 550ms var(--ease-out) forwards;
+      -webkit-animation: rippleExpand 550ms var(--ease-out) forwards;
+    }
+    .btn-header .ripple, .btn-action .ripple, .tab-btn .ripple,
+    .btn-cam-circle .ripple, .quick-card .ripple, .cat-pill .ripple,
+    .btn-sign-play .ripple {
+      opacity: 0.22;
+      mix-blend-mode: multiply;
+    }
+    .btn-speak-all .ripple { background: #ffffff; opacity: 0.35; mix-blend-mode: normal; }
+
+    /* ==========================================================================
+       HOVER MEJORADO (unificado) — translateY + scale + sombra
+       (solo transform / opacity / box-shadow en hover — NO animar width/color)
+       ========================================================================== */
+    .btn-header {
+      -webkit-transition: -webkit-transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), border-color var(--dur-fast),
+                          color var(--dur-fast), -webkit-box-shadow var(--dur-fast);
+              transition:         transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), border-color var(--dur-fast),
+                          color var(--dur-fast),         box-shadow var(--dur-fast);
+    }
+    .btn-header:hover {
+      -webkit-transform: translateY(-2px) scale(1.02);
+              transform: translateY(-2px) scale(1.02);
+      -webkit-box-shadow: 0 6px 16px rgba(15,23,42,0.08);
+              box-shadow: 0 6px 16px rgba(15,23,42,0.08);
+    }
+    .btn-cloud-sync:hover {
+      -webkit-transform: translateY(-2px) scale(1.02);
+              transform: translateY(-2px) scale(1.02);
+      border-color: var(--col-yellow);
+      background: linear-gradient(135deg, #fffbeb, #dbeafe);
+      -webkit-box-shadow: 0 8px 22px var(--col-yellow-glow);
+              box-shadow: 0 8px 22px var(--col-yellow-glow);
+    }
+
+    .tab-btn {
+      position: relative;
+    }
+    .tab-btn:hover:not(.active) {
+      -webkit-transform: translateY(-1px);
+              transform: translateY(-1px);
+      color: var(--col-blue-dark);
+    }
+    .tab-btn.active {
+      -webkit-transform: translateY(0);
+              transform: translateY(0);
+      -webkit-transition: -webkit-transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), color var(--dur-fast),
+                          -webkit-box-shadow var(--dur-fast);
+              transition:         transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), color var(--dur-fast),
+                                  box-shadow var(--dur-fast);
+    }
+
+    .cat-pill:hover {
+      -webkit-transform: translateY(-2px) scale(1.03);
+              transform: translateY(-2px) scale(1.03);
+      -webkit-box-shadow: 0 6px 14px rgba(29, 78, 216, 0.18);
+              box-shadow: 0 6px 14px rgba(29, 78, 216, 0.18);
+    }
+    .cat-pill.active:hover {
+      -webkit-transform: translateY(-1px) scale(1.01);
+              transform: translateY(-1px) scale(1.01);
+    }
+
+    .hero-card, .sentence-card {
+      -webkit-transition: -webkit-transform var(--dur-std) var(--ease-spring),
+                          border-color var(--dur-fast),
+                          -webkit-box-shadow var(--dur-fast);
+              transition:         transform var(--dur-std) var(--ease-spring),
+                          border-color var(--dur-fast),
+                                  box-shadow var(--dur-fast);
+    }
+    .hero-card:hover, .sentence-card:hover {
+      -webkit-transform: translateY(-3px);
+              transform: translateY(-3px);
+      border-color: rgba(29,78,216,0.2);
+      -webkit-box-shadow: var(--card-shadow-hover);
+              box-shadow: var(--card-shadow-hover);
+    }
+
+    .viewport-card:hover {
+      -webkit-transform: translateY(-2px);
+              transform: translateY(-2px);
+    }
+
+    .word-chip:hover {
+      -webkit-transform: translateY(-2px) scale(1.04);
+              transform: translateY(-2px) scale(1.04);
+      background: linear-gradient(135deg, #fef3c7, #bfdbfe);
+      -webkit-box-shadow: 0 8px 18px rgba(245, 158, 11, 0.22);
+              box-shadow: 0 8px 18px rgba(245, 158, 11, 0.22);
+    }
+
+    .btn-action {
+      position: relative;
+      -webkit-transition: -webkit-transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), border-color var(--dur-fast),
+                          color var(--dur-fast), -webkit-box-shadow var(--dur-fast),
+                          -webkit-filter var(--dur-fast);
+              transition:         transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), border-color var(--dur-fast),
+                          color var(--dur-fast),         box-shadow var(--dur-fast),
+                                  filter var(--dur-fast);
+    }
+    .btn-action:hover {
+      -webkit-transform: translateY(-2px);
+              transform: translateY(-2px);
+    }
+    .btn-speak-all:hover {
+      -webkit-box-shadow: 0 10px 26px var(--col-blue-glow);
+              box-shadow: 0 10px 26px var(--col-blue-glow);
+      -webkit-filter: brightness(1.08);
+              filter: brightness(1.08);
+    }
+    .btn-secondary:hover {
+      background: #ffffff;
+      border-color: var(--col-blue);
+      color: var(--col-blue-dark);
+      -webkit-box-shadow: 0 6px 16px rgba(29,78,216,0.14);
+              box-shadow: 0 6px 16px rgba(29,78,216,0.14);
+    }
+
+    .quick-card {
+      -webkit-transition: -webkit-transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), border-color var(--dur-fast),
+                          -webkit-box-shadow var(--dur-fast);
+              transition:         transform var(--dur-micro) var(--ease-bounce),
+                          background var(--dur-fast), border-color var(--dur-fast),
+                                  box-shadow var(--dur-fast);
+    }
+    .quick-card:hover {
+      -webkit-transform: translateY(-4px) scale(1.02);
+              transform: translateY(-4px) scale(1.02);
+      border-color: var(--col-blue);
+      background: linear-gradient(160deg, #ffffff, #eff6ff);
+      -webkit-box-shadow: 0 12px 28px rgba(29, 78, 216, 0.16);
+              box-shadow: 0 12px 28px rgba(29, 78, 216, 0.16);
+    }
+
+    .btn-cam-circle:hover {
+      -webkit-transform: translateY(-2px) scale(1.05);
+              transform: translateY(-2px) scale(1.05);
+      -webkit-box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+              box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+      background: #ffffff;
+    }
+
+    .custom-input {
+      -webkit-transition: border-color var(--dur-fast), -webkit-box-shadow var(--dur-fast),
+                          -webkit-transform var(--dur-micro);
+              transition: border-color var(--dur-fast),         box-shadow var(--dur-fast),
+                          transform var(--dur-micro);
+    }
+    .custom-input:focus {
+      border-color: var(--col-blue);
+      -webkit-box-shadow: 0 0 0 4px rgba(29,78,216,0.12);
+              box-shadow: 0 0 0 4px rgba(29,78,216,0.12);
+      -webkit-transform: translateY(-1px);
+              transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       MICRO-ANIMACIONES DE ÉXITO / ERROR (acciones críticas)
+       ========================================================================== */
+    .flash-success {
+      animation: successPop 420ms var(--ease-bounce) both;
+      -webkit-animation: successPop 420ms var(--ease-bounce) both;
+    }
+    .flash-error {
+      animation: shakeX 380ms var(--ease-out) both;
+      -webkit-animation: shakeX 380ms var(--ease-out) both;
+    }
+
+    /* ==========================================================================
+       LOADER TRICOLOR ORBIT — indicador de carga personalizado
+       ========================================================================== */
+    .loader-orbit {
+      width: 34px; height: 34px;
+      position: relative;
+      display: inline-block;
+    }
+    .loader-orbit .dot {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 9999px;
+      top: 50%; left: 50%;
+      margin: -4px 0 0 -4px;
+      -webkit-transform-origin: center;
+              transform-origin: center;
+      will-change: transform;
+    }
+    .loader-orbit .dot.y { background: var(--col-yellow); animation: orbitA 1.2s linear infinite; -webkit-animation: orbitA 1.2s linear infinite; }
+    .loader-orbit .dot.b { background: var(--col-blue);   animation: orbitB 1.2s linear infinite; -webkit-animation: orbitB 1.2s linear infinite; }
+    .loader-orbit .dot.r { background: var(--col-red);    animation: orbitA 1.2s linear infinite reverse; -webkit-animation: orbitA 1.2s linear infinite reverse; }
+
+    /* ==========================================================================
+       SCREEN FLASH — versión mejorada con transition uniforme
+       ========================================================================== */
+    .screen-flash {
+      -webkit-transition: opacity var(--dur-micro) var(--ease-out);
+              transition: opacity var(--dur-micro) var(--ease-out);
+    }
+
+    /* Fix TABS: garantizar stacking sin layout-shift al cambiar display.
+       viewTranslator está en flujo normal con display:flex inicial;
+       bidi-panel usa ahora approach visibility/opacity para flujo continuo.
+       ========================================================================== */
+    .bidi-panel {
+      display: flex;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+      left: -9999px;
+    }
+    .bidi-panel.active {
+      position: static;
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #viewTranslator.tab-hidden {
+      display: none !important;
     }
   </style>
 </head>
@@ -1463,13 +2014,143 @@
        LÓGICA JAVASCRIPT CONEXIÓN NATIVA Y MOTOR ON-DEVICE
        ======================================================================== -->
   <script>
+    // ==========================================================================
+    // MOTION HELPERS (Ripple, Lazy Animate, Micro-interacciones)
+    // Sistema sin dependencias: Web Animations API + classList toggles
+    // ==========================================================================
+
+    // Verificación prefers-reduced-motion (JS side para micro-interacciones opcionales)
+    const PREFERS_REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Duración reducida si el usuario activó reduced-motion
+    function motionDur(ms) { return PREFERS_REDUCED_MOTION ? 1 : ms; }
+
+    // Helper: añade clase temporal con auto-remoción
+    function addClassTimed(el, cls, ms) {
+      if (!el) return;
+      el.classList.remove(cls); // void offset para reiniciar keyframes
+      void el.offsetWidth;
+      el.classList.add(cls);
+      setTimeout(() => el.classList.remove(cls), ms);
+    }
+
+    // Micro: animación éxito (pop-in bounce)
+    function flashSuccess(el, ms) {
+      if (PREFERS_REDUCED_MOTION) return;
+      addClassTimed(el, 'flash-success', ms || 450);
+    }
+
+    // Micro: animación error (shake)
+    function flashError(el, ms) {
+      if (PREFERS_REDUCED_MOTION) return;
+      addClassTimed(el, 'flash-error', ms || 420);
+    }
+
+    // Ripple click (solo transform/opacity — GPU-safe)
+    function createRipple(event, target) {
+      if (PREFERS_REDUCED_MOTION) return;
+      const host = target || event.currentTarget;
+      if (!host) return;
+      const rect = host.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = (event.clientX ?? rect.left + rect.width / 2) - rect.left - size / 2;
+      const y = (event.clientY ?? rect.top  + rect.height / 2) - rect.top  - size / 2;
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      r.style.width = r.style.height = size + 'px';
+      r.style.left = x + 'px';
+      r.style.top  = y + 'px';
+      host.appendChild(r);
+      setTimeout(() => r.remove(), 620);
+    }
+
+    // Instala ripple + clase has-ripple en todos los elementos interactivos
+    function installRipple() {
+      const targets = document.querySelectorAll(
+        '.btn-header, .tab-btn, .cat-pill, .btn-action, .btn-cam-circle, ' +
+        '.quick-card, .btn-sign-play, .word-chip, .fullscreen-close, ' +
+        '#btnCloseCloudModal, #btnCloseSettings, #btnCloseDictionary, .brand-logo-wrap'
+      );
+      targets.forEach(el => {
+        el.classList.add('has-ripple');
+        el.addEventListener('pointerdown', (ev) => createRipple(ev, el));
+      });
+    }
+
+    // IntersectionObserver: activa .visible en elementos lazy animate
+    let _lazyObserver = null;
+    function initLazyAnimate() {
+      if (PREFERS_REDUCED_MOTION || !('IntersectionObserver' in window)) {
+        document.querySelectorAll('.animate-on-enter, [data-animate]').forEach(el => el.classList.add('visible'));
+        return;
+      }
+      if (_lazyObserver) return;
+      _lazyObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const el = entry.target;
+            const delay = (el.dataset.staggerIndex || 0) * 45;
+            if (delay > 0) {
+              setTimeout(() => el.classList.add('visible'), delay);
+            } else {
+              el.classList.add('visible');
+            }
+            _lazyObserver.unobserve(el);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+      document.querySelectorAll('.animate-on-enter, [data-animate]').forEach((el, i) => {
+        if (!el.dataset.staggerIndex) el.dataset.staggerIndex = String(i % 12);
+        _lazyObserver.observe(el);
+      });
+    }
+
+    // Splash dismiss con stagger secuencial (logo → title → badge → loader → fade)
+    function dismissSplashAnimated(splashEl, cb) {
+      if (!splashEl) { cb && cb(); return; }
+      const brand = splashEl.querySelector('.splash-brand');
+      const logo  = splashEl.querySelector('.splash-logo-wrap');
+      const title = splashEl.querySelector('.splash-title');
+      const badge = splashEl.querySelector('.splash-colombia-badge');
+      const bar   = splashEl.querySelector('.splash-loader-bar');
+      const txt   = splashEl.querySelector('.splash-loader-text');
+      const dur = motionDur(PREFERS_REDUCED_MOTION ? 10 : 70);
+
+      if (PREFERS_REDUCED_MOTION) {
+        splashEl.classList.add('fade-out');
+        setTimeout(() => { splashEl.remove(); cb && cb(); }, 60);
+        return;
+      }
+
+      [logo, title, badge, bar, txt].forEach((n, idx) => {
+        if (!n) return;
+        const t = dur * (idx + 1);
+        setTimeout(() => {
+          n.style.transition = `transform ${t*3}ms var(--ease-spring), opacity ${t*3}ms var(--ease-spring)`;
+          n.style.opacity = '0';
+          n.style.transform = 'translateY(-14px) scale(0.94)';
+        }, dur * idx);
+      });
+
+      const totalOut = 260;
+      setTimeout(() => splashEl.classList.add('fade-out'), totalOut - 120);
+      setTimeout(() => { splashEl.remove(); cb && cb(); }, totalOut + motionDur(300));
+    }
+
+    // ==========================================================================
     // 1. CONFIGURACIÓN DE ACCESIBILIDAD Y FEEDBACK
+    // ==========================================================================
     let autoVoiceEnabled = true;
     let hapticEnabled = true;
     let chimeEnabled = true;
     let visualFlashEnabled = true;
     let cleanVisionMode = true;
 
+    // Orquesta todos los canales de feedback multimodal cuando se detecta/actúa sobre una seña.
+    // Respeta PREFERS_REDUCED_MOTION: el chime/voz no son animaciones; el flash visual se acorta
+    // en reduced-motion gracias a la regla CSS global. Las micro-interacciones gráficas asociadas
+    // (flashSuccess / flashError) se aplican en los callers y honran el guard JS.
     function emitirFeedback(texto, opciones = {}) {
       if (hapticEnabled && opciones.vibrar !== false) {
         if (window.NativeBridge) {
@@ -1527,9 +2208,11 @@
     }
 
     const screenFlash = document.getElementById('screenFlash');
+    // Flash visual corto (250ms) para feedback sin sonido en usuarios Sordos/CoDA.
+    // Usa opacity-only (transition) → compositor-only, 0 repaint por frame.
     function activarFlashVisual() {
       screenFlash.classList.add('active');
-      setTimeout(() => screenFlash.classList.remove('active'), 250);
+      setTimeout(() => screenFlash.classList.remove('active'), motionDur(250));
     }
 
     // 2. CONSTRUCTOR DE ORACIONES (ACUMULADOR)
@@ -1558,13 +2241,20 @@
       wordCountBadge.textContent = `${oracionTokens.length} palabra${oracionTokens.length > 1 ? 's' : ''}`;
       oracionTokens.forEach((tok, idx) => {
         const chip = document.createElement('div');
-        chip.className = 'word-chip';
+        // Entrada animada con stagger uniforme (45ms * idx)
+        chip.className = 'word-chip chip-enter';
+        chip.style.setProperty('--stagger-index', String(idx));
+        // Reiniciar keyframe tras stagger
+        setTimeout(() => chip.classList.remove('chip-enter'), 700 + idx * 45);
+
         const labelTok = tok === 'NN' ? 'Ñ' : tok.replace(/_/g, ' ');
         chip.innerHTML = `
           <span>${labelTok}</span> 
           <span class="chip-speak" style="font-size: 11px; opacity: 0.7; cursor: pointer;" title="Escuchar">🔊</span>
           <span class="chip-remove" style="font-size: 12px; margin-left: 6px; opacity: 0.55; cursor: pointer; font-weight: 800;" title="Quitar de la frase">✕</span>
         `;
+        chip.querySelector('.chip-speak').addEventListener('pointerdown', (e) => createRipple(e, chip));
+        chip.querySelector('.chip-remove').addEventListener('pointerdown', (e) => createRipple(e, chip));
         chip.querySelector('.chip-speak').addEventListener('click', (e) => {
           e.stopPropagation();
           const textoHablar = tok === 'NN' ? 'Eñe' : tok;
@@ -1572,8 +2262,11 @@
         });
         chip.querySelector('.chip-remove').addEventListener('click', (e) => {
           e.stopPropagation();
-          oracionTokens.splice(idx, 1);
-          renderizarOracion();
+          flashSuccess(chip, 260);
+          setTimeout(() => {
+            oracionTokens.splice(idx, 1);
+            renderizarOracion();
+          }, 180);
           emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 20 });
         });
         sentenceDisplay.appendChild(chip);
@@ -1581,17 +2274,30 @@
     }
 
     btnSpeakAll.addEventListener('click', () => {
-      if (oracionTokens.length === 0) return;
+      if (oracionTokens.length === 0) {
+        flashError(btnSpeakAll);
+        return;
+      }
       const textoCompleto = oracionTokens.join(' ').replace(/_/g, ' ');
-      btnSpeakAll.style.opacity = '0.7';
-      setTimeout(() => btnSpeakAll.style.opacity = '1', 1000);
-      emitirFeedback(textoCompleto, { vibrar: true, hablar: true, duracionVib: 70 });
+      flashSuccess(btnSpeakAll, 650);
+      // Micro feedback visual: estilo de pulsación persistente breve
+      btnSpeakAll.animate(
+        [{ filter: 'brightness(1)' }, { filter: 'brightness(1.2)' }, { filter: 'brightness(1)' }],
+        { duration: motionDur(550), easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+      );
+      setTimeout(() => {
+        emitirFeedback(textoCompleto, { vibrar: true, hablar: true, duracionVib: 70 });
+      }, 120);
     });
 
     btnCopySentence.addEventListener('click', () => {
-      if (oracionTokens.length === 0) return;
+      if (oracionTokens.length === 0) {
+        flashError(btnCopySentence);
+        return;
+      }
       const textoCompleto = oracionTokens.join(' ').replace(/_/g, ' ');
       navigator.clipboard?.writeText(textoCompleto);
+      flashSuccess(btnCopySentence, 1700);
       btnCopySentence.innerHTML = '<span>✓</span> ¡Copiado!';
       setTimeout(() => btnCopySentence.innerHTML = '<span>📋</span> Copiar', 1600);
       emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 35 });
@@ -1600,8 +2306,11 @@
     btnBackspace.addEventListener('click', () => {
       if (oracionTokens.length > 0) {
         oracionTokens.pop();
+        flashSuccess(btnBackspace, 350);
         renderizarOracion();
         emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 25 });
+      } else {
+        flashError(btnBackspace);
       }
     });
 
@@ -1609,8 +2318,11 @@
       btnClearAll.addEventListener('click', () => {
         if (oracionTokens.length > 0) {
           oracionTokens = [];
+          flashSuccess(btnClearAll, 500);
           renderizarOracion();
           emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 40 });
+        } else {
+          flashError(btnClearAll);
         }
       });
     }
@@ -1625,13 +2337,17 @@
     function mostrarRespuestaGigante(texto) {
       fullscreenText.textContent = texto;
       fullscreenModal.classList.add('active');
+      flashSuccess(fullscreenText, 800);
       emitirFeedback(texto, { vibrar: true, hablar: true, duracionVib: 60 });
     }
 
-    document.querySelectorAll('.quick-card').forEach(card => {
+    document.querySelectorAll('.quick-card').forEach((card, i) => {
+      card.dataset.staggerIndex = String(i);
+      card.classList.add('animate-on-enter');
       card.addEventListener('click', () => {
         const reply = card.getAttribute('data-reply');
-        mostrarRespuestaGigante(reply);
+        flashSuccess(card, 500);
+        setTimeout(() => mostrarRespuestaGigante(reply), 180);
       });
     });
 
@@ -1640,14 +2356,19 @@
       if (val) {
         mostrarRespuestaGigante(val.toUpperCase());
         customReplyInput.value = '';
+        flashSuccess(btnSendCustomReply, 600);
+      } else {
+        flashError(customReplyInput, 450);
+        flashError(btnSendCustomReply);
       }
     });
 
     btnCloseFullscreen.addEventListener('click', () => {
       fullscreenModal.classList.remove('active');
+      flashSuccess(btnCloseFullscreen, 350);
     });
 
-    // 4. PESTAÑAS Y NAVEGACIÓN (2 MODOS LIMPIOS)
+    // 4. PESTAÑAS Y NAVEGACIÓN (2 MODOS LIMPIOS) — animadas con viewInLeft/Right
     const tabTranslate = document.getElementById('tabTranslate');
     const tabBidi = document.getElementById('tabBidi');
     const viewTranslator = document.getElementById('viewTranslator');
@@ -1655,17 +2376,42 @@
     const sentenceCard = document.querySelector('.sentence-card');
 
     function setActiveTab(tab) {
+      if (tab.classList.contains('active')) return;
       [tabTranslate, tabBidi].forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
 
-      if (tab === tabTranslate) {
-        viewTranslator.style.display = 'flex';
-        if (sentenceCard) sentenceCard.style.display = 'flex';
+      const goingToTranslator = tab === tabTranslate;
+
+      if (goingToTranslator) {
+        // Entrada viewTranslator + ocultar viewBidi
         viewBidi.classList.remove('active');
-      } else if (tab === tabBidi) {
-        viewTranslator.style.display = 'none';
-        if (sentenceCard) sentenceCard.style.display = 'none';
-        viewBidi.classList.add('active');
+        viewBidi.classList.remove('view-enter');
+        setTimeout(() => {
+          viewTranslator.classList.remove('tab-hidden');
+          viewTranslator.classList.remove('view-exit');
+          void viewTranslator.offsetWidth;
+          viewTranslator.classList.add('view-enter');
+          if (sentenceCard) {
+            sentenceCard.classList.remove('view-exit');
+            sentenceCard.classList.add('view-enter');
+          }
+          setTimeout(() => {
+            viewTranslator.classList.remove('view-enter');
+            if (sentenceCard) sentenceCard.classList.remove('view-enter');
+          }, motionDur(400));
+        }, motionDur(40));
+
+      } else {
+        // Salida viewTranslator → entrada viewBidi
+        viewTranslator.classList.add('view-exit');
+        if (sentenceCard) sentenceCard.classList.add('view-exit');
+        setTimeout(() => {
+          viewTranslator.classList.add('tab-hidden');
+          viewBidi.classList.add('active');
+          void viewBidi.offsetWidth;
+          viewBidi.classList.add('view-enter');
+          setTimeout(() => viewBidi.classList.remove('view-enter'), motionDur(400));
+        }, motionDur(200));
       }
     }
 
@@ -1780,9 +2526,10 @@
       { sena: 'MILLON', desc: 'Gesto de salto doble sobre la palma (cantidad millón)', cat: 'NÚMERO', zona: 'ESPACIO CENTRAL' }
     ];
 
-    INFO_SENAS.forEach(item => {
+    INFO_SENAS.forEach((item, i) => {
       const row = document.createElement('div');
-      row.className = 'sign-item';
+      row.className = 'sign-item animate-on-enter';
+      row.dataset.staggerIndex = String(i % 12);
       const labelMostrar = item.sena === 'NN' ? 'Ñ (NN)' : item.sena.replace(/_/g, ' ');
       row.innerHTML = `
         <div class="sign-info">
@@ -1791,7 +2538,10 @@
         </div>
         <button class="btn-sign-play" data-sena="${item.sena}">🔊</button>
       `;
-      row.querySelector('.btn-sign-play').addEventListener('click', () => {
+      const btn = row.querySelector('.btn-sign-play');
+      btn.addEventListener('pointerdown', (ev) => createRipple(ev, btn));
+      btn.addEventListener('click', () => {
+        flashSuccess(btn, 400);
         const textoHablar = item.sena === 'NN' ? 'Eñe' : item.sena;
         emitirFeedback(textoHablar, { vibrar: true, hablar: true });
       });
@@ -1925,8 +2675,7 @@
           if (!hasDismissedSplash) {
             hasDismissedSplash = true;
             setTimeout(() => {
-              splashScreen.classList.add('fade-out');
-              setTimeout(() => splashScreen.remove(), 600);
+              dismissSplashAnimated(splashScreen);
             }, 550);
           }
         };
@@ -2088,6 +2837,11 @@
       actualizarUI(mejorPrediccion, mejorDesc, activeHands.length, isPreparingHand, handSpeed);
     }
 
+    // actualizarUI orquesta la máquina de estados visual del reconocedor LSC:
+    //   PREPARANDO → INTERPRETANDO/SOSTÉN → CONFIRMADO → REPOSO
+    // Todas las mutaciones son className / width% + background para activar las transitions CSS
+    // (background, width se ejecutan ~15fps del acumulador; no son animaciones keyframes).
+    // En CONFIRMADO dispara pulse-confirmed (GPU-safe: transform + ::after pulseRing).
     function actualizarUI(pred, desc, numManos, isPreparingHand, handSpeed = 0) {
       if (desc && desc.zona) {
         zoneIndicatorText.textContent = desc.labelZona || desc.zona;
@@ -2096,6 +2850,7 @@
       }
 
       if (isPreparingHand) {
+        // Estado inicial / mano en borde → 0 confianza, barra roja mínima
         statePill.className = 'state-pill state-transition';
         statePillText.textContent = 'PREPARANDO...';
         predTitle.textContent = '---';
@@ -2109,7 +2864,7 @@
 
       const resAcum = acumuladorLSC.update(pred, performance.now(), handSpeed);
 
-      // SEÑA CONFIRMADA
+      // SEÑA CONFIRMADA: pulse en viewport-card (GPU-only transform + ring) + agrega a oración
       if (resAcum.emitir) {
         statePill.className = 'state-pill state-confirmed';
         statePillText.textContent = '✓ CONFIRMADO';
@@ -2121,10 +2876,11 @@
 
         const vpCard = document.querySelector('.viewport-card');
         if (vpCard) {
+          // Trigger reflow para reiniciar keyframe sin frameworks
           vpCard.classList.remove('pulse-confirmed');
           void vpCard.offsetWidth;
           vpCard.classList.add('pulse-confirmed');
-          setTimeout(() => vpCard.classList.remove('pulse-confirmed'), 700);
+          setTimeout(() => vpCard.classList.remove('pulse-confirmed'), motionDur(700));
         }
 
         agregarPalabraAOracion(resAcum.sena);
@@ -2132,7 +2888,7 @@
         return;
       }
 
-      // ESTADO REPOSO
+      // ESTADO REPOSO: sin seña activa, resetea progreso
       if (pred && (pred.estado === 'REPOSO' || pred.isNeutralHand || pred.isMotionGated)) {
         statePill.className = 'state-pill state-idle';
         statePillText.textContent = 'MANO LIBRE';
@@ -2144,7 +2900,7 @@
         return;
       }
 
-      // EN PROGRESO DE RECONOCIMIENTO (SOSTÉN DELIBERADO)
+      // EN PROGRESO DE RECONOCIMIENTO (SOSTÉN DELIBERADO): barra crece lineal
       if (resAcum.isSign && resAcum.progress > 0) {
         statePill.className = 'state-pill state-interpreting';
         statePillText.textContent = resAcum.progress >= 0.5 ? '⏳ SOSTÉN LA SEÑA...' : '⚡ INTERPRETANDO...';
@@ -2166,6 +2922,9 @@
     }
 
     // DIBUJO CINEMÁTICO COLOMBIA
+    // Renderizado por-frame sobre canvas (~30-60fps). Se evita cualquier animación CSS/Leyout
+    // dentro del bucle; el único cambio visual es ctx.clear + draw. Respeta 60fps moviendo
+    // la capa canvas a su propio layer (will-change implícito canvas).
     function dibujarFeedbackVisual(pts, colorScheme, isBehind) {
       if (cleanVisionMode) {
         const w = canvas.width;
@@ -2208,6 +2967,34 @@
 
     // INICIALIZACIÓN
     window.addEventListener('DOMContentLoaded', () => {
+      // 1) Motion system: marca elementos estáticos lazy animate para entrada suave
+      document.querySelectorAll(
+        '.viewport-card, .hero-card, .sentence-card, .category-selector-bar, ' +
+        '.cat-pill, .custom-input, header, .tabs-bar'
+      ).forEach((el, i) => {
+        el.classList.add('animate-on-enter');
+        el.dataset.staggerIndex = String(i % 8);
+      });
+      // 2) Ripple en todos los interactivos (no lazy; inmediato)
+      try { installRipple(); } catch (e) {}
+      // 3) Lazy animate on-enter (cuando entra al viewport — IO)
+      try { initLazyAnimate(); } catch (e) {}
+      // 4) Re-observe cuando se abre un drawer/modal para animar su contenido
+      [drawerDictionary, drawerSettings].forEach(el => {
+        if (!el) return;
+        el.addEventListener('transitionend', (e) => {
+          if (e.propertyName !== 'opacity' || !el.classList.contains('active')) return;
+          try {
+            el.querySelectorAll('.sign-item.animate-on-enter:not(.visible), .setting-row').forEach((n, i) => {
+              if (!n.classList.contains('animate-on-enter')) n.classList.add('animate-on-enter');
+              if (!n.dataset.staggerIndex) n.dataset.staggerIndex = String(i % 16);
+              n.style.transitionDelay = (i * 30) + 'ms';
+              requestAnimationFrame(() => n.classList.add('visible'));
+            });
+          } catch (er) {}
+        });
+      });
+      // 5) Start sistema cámara + IA
       startCamera();
       initMediaPipe();
     });
