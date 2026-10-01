@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "version": "7.0.0",
+  "min_shell_version": "6.2.0",
+  "created_at": "2026-10-01T12:46:09.562362+00:00",
+  "files": {
+    "icon-192.png": {
+      "sha256": "466d453e926d493cc02d4872dafe2c173c6b344328e980284b3df1a1bb9cc33c",
+      "bytes": 37080
+    },
+    "icon-512.png": {
+      "sha256": "57b661f8ce3c9844857a014e520075e3b500de99019a57f550916435583f7c54",
+      "bytes": 206543
+    },
+    "index.html": {
+      "sha256": "5922ad93af1b58cf8888e7b13f8420fa24f017c3ae4310fcb296b26aad754477",
+      "bytes": 112965
+    },
+    "logo.png": {
+      "sha256": "57b661f8ce3c9844857a014e520075e3b500de99019a57f550916435583f7c54",
+      "bytes": 206543
+    },
+    "logo_gestual_full.png": {
+      "sha256": "0f09031644575285f779b88641f81994dee21909a124f0ef92ccbff01707a6ac",
+      "bytes": 166713
+    },
+    "logo_simbolo.png": {
+      "sha256": "57b661f8ce3c9844857a014e520075e3b500de99019a57f550916435583f7c54",
+      "bytes": 206543
+    },
+    "logo_trans.png": {
+      "sha256": "57b661f8ce3c9844857a014e520075e3b500de99019a57f550916435583f7c54",
+      "bytes": 206543
+    },
+    "manifest.json": {
+      "sha256": "99d2f3e7b84808c42e13405affd2ea3b9028bc4b9d84416a8270141a82fb3521",
+      "bytes": 621
+    },
+    "modelo_ia_cliente.js": {
+      "sha256": "8322113ab687d4ff67f978a10115b34d7860832d27851af67bf6182eaf31155f",
+      "bytes": 8685247
+    },
+    "motor_inferencia_local.js": {
+      "sha256": "74ee505ecd43b7e081590761f52b52471bed6a00e3ed6f3d21975f0dd63b0522",
+      "bytes": 63326
+    },
+    "sw.js": {
+      "sha256": "c0bc73718d3d3076cc1e21e06e473569509caf775c9c6fab319c16d9abd9983b",
+      "bytes": 1033
+    }
+  }
+}

@@ -1,4 +1,5 @@
 # Seña LSC v4.0 — Sistema Inteligente de Lengua de Señas Colombiana
+> Arquitectura operativa y proceso reproducible de datos/entrenamiento: [ARQUITECTURA_OPERATIVA_V7.md](ARQUITECTURA_OPERATIVA_V7.md).
 > **Traducción de LSC en tiempo real 100% On-Device (Zero Servidor, Zero Latencia)**  
 > Con Inteligencia Artificial Multimodal 109D, Rastreo Bimanual con Oclusión y App Nativa Android con Accesibilidad Universal.
 

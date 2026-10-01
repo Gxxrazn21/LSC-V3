@@ -1,15 +1,15 @@
 /**
  * ============================================================================
  * MOTOR DE INFERENCIA Y EXTRACCIÓN 100% LOCAL (ON-DEVICE - ZERO SERVIDOR)
- * LSC v5.0 — Lengua de Señas Colombiana
+ * LSC v7.0.0 — Lengua de Señas Colombiana
  * ============================================================================
- * - Extracción Cinemática Multimodal 109D (Articular + Anclaje Torácico)
- * - Red Neuronal Multicapa Calibrada (13 Clases, >95% CV, >99% Global)
- * - Rastrean Oclusión de Manos (una detrás de la otra) con anclaje espacial
+ * - Extracción Cinemática Multimodal 109D (105D Articular + 4D Espacial Tolerante)
+ * - Invarianza Espacial Completa para Abecedario y Números
+ * - Red Neuronal Multicapa Calibrada (49 Clases, Soporte Multi-Modo)
+ * - Tolerancia de Movimiento Cinemático (sin cortes abruptos por velocidad)
+ * - Rastreo de Manos Dual con Oclusión e Invarianza Bimanual
  * - Detección Cero si no hay manos (sin alucinaciones ni predicciones falsas)
- * - Filtro de Transición y Reposo para evitar palabras al azar en movimiento
- * - Detector de Mano Neutra: mano tendida/abierta estática NUNCA predice señas
- * - Cooldown post-emisión para señas consecutivas limpias
+ * - Acumulador Leaky EMA Adaptativo para construcción fluida de oraciones
  */
 
 // Utilidades Vectoriales 3D
@@ -671,8 +671,9 @@ function extraerZonasCorporalesPose(handCoords, poseAnchors, isLeft = false) {
     0.4 * (p0[2] || 0) + 0.6 * centroideMano[2]
   ];
 
-  let c_h = [0.50, 0.68, 0.0];
-  let w_h = 0.38;
+  // Centrado neutro sin sesgo vertical artificial si hombros no están en cuadro
+  let c_h = [0.50, 0.50, 0.0];
+  let w_h = 0.45;
   let c_nariz = null;
   let c_cadera = null;
 
@@ -1038,13 +1039,13 @@ const _motionGateSlot1 = new MotionGate();
 class AcumuladorProbabilidadesLSC {
   constructor(options = {}) {
     this.decay = options.decay || 0.70; // Factor de retención EMA suave
-    this.threshold = options.threshold || 0.60; // Puntuación mínima calibrada (60%)
-    this.minMargin = options.minMargin || 0.10; // Margen de separación sobre el segundo candidato (10%)
-    this.requiredHoldMs = options.requiredHoldMs || 250; // Sostén deliberado de 250ms (evita disparos al azar al mover la mano)
-    this.minConsecutiveFrames = options.minConsecutiveFrames || 5; // Mínimo 5 fotogramas estables consecutivos
-    this.cooldownMs = options.cooldownMs || 1100; // Enfriamiento para repetir la MISMA seña (evita ecos)
-    this.interSignCooldownMs = options.interSignCooldownMs || 550; // Enfriamiento entre señas DIFERENTES para transicionar cómodo
-    this.maxSpeedForHold = options.maxSpeedForHold || 0.14; // Velocidad cinemática máxima permitida para considerar postura sostenida
+    this.threshold = options.threshold || 0.58; // Puntuación mínima calibrada v7.0.0
+    this.minMargin = options.minMargin || 0.08; // Margen de separación sobre el segundo candidato
+    this.requiredHoldMs = options.requiredHoldMs || 240; // Sostén deliberado de 240ms (evita disparos al azar al mover la mano)
+    this.minConsecutiveFrames = options.minConsecutiveFrames || 4; // Mínimo 4 fotogramas estables consecutivos
+    this.cooldownMs = options.cooldownMs || 1000; // Enfriamiento para repetir la MISMA seña (evita ecos)
+    this.interSignCooldownMs = options.interSignCooldownMs || 480; // Enfriamiento entre señas DIFERENTES para transicionar cómodo
+    this.maxSpeedForHold = options.maxSpeedForHold || 0.26; // Velocidad cinemática máxima permitida (permite señas dinámicas y fluidas)
 
     this.scores = {};
     this.candidate = null;
@@ -1306,8 +1307,8 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
 
   const { scaler_mean, scaler_scale, clases } = modelo;
 
-  // 0. COMPUERTA CINEMÁTICA DE DESCANSO EN REGAZO (v6.3.0)
-  // Si la mano está en descanso inferior/regazo (dy > 1.35 o muñeca y > 0.75) con baja velocidad, es REPOSO
+  // 0. COMPUERTA CINEMÁTICA DE DESCANSO EN REGAZO (v7.0.0)
+  // Sólo declarar descanso en regazo si está en el extremo inferior (>0.88) o dy muy pronunciado (>1.80), Y verdaderamente inmóvil
   const slotIdx = (handMeta && handMeta.slot !== undefined) ? handMeta.slot : 0;
   const motionGate = slotIdx === 1 ? _motionGateSlot1 : _motionGateSlot0;
   const wristPos = (handMeta && handMeta.coords) ? handMeta.coords[0] : null;
@@ -1318,8 +1319,8 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const dyRelativo = (vec109[106] || 0) / 2.5;
   const speed = (handMeta && handMeta.speed !== undefined) ? handMeta.speed : gateRes.speed;
 
-  const esManoEnRegazo = dyRelativo > 1.35 || (wristPos && wristPos[1] > 0.75);
-  if (esManoEnRegazo && (speed < 0.04 || !gateRes.isOpen)) {
+  const esManoEnRegazo = dyRelativo > 1.80 || (wristPos && wristPos[1] > 0.88);
+  if (esManoEnRegazo && (speed < 0.035 || !gateRes.isOpen)) {
     return {
       sena: "REPOSO",
       rawSena: "REPOSO",
@@ -1460,18 +1461,18 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const neutralDetector = slotIdx === 1 ? _neutralDetectorSlot1 : _neutralDetectorSlot0;
   const neutralResult = neutralDetector.evaluate(extDedos, speed, wristPos, performance.now());
 
-  // ¿Es una seña genuina de mano abierta en su zona articular correspondiente?
+  // ¿Es una seña genuina de mano abierta en su postura correspondiente?
   const esSenaManoAbiertaValida = (
-    (top1.sena === 'HOLA' && dy < 0.25 && top1.probabilidad >= 0.52) ||
-    (top1.sena === 'BUENAS' && dy < 1.15 && top1.probabilidad >= 0.52) ||
-    (top1.sena === 'GUSTAR' && dy < 1.15 && top1.probabilidad >= 0.52) ||
-    (top1.sena === 'TARDES' && dy >= 0.15 && dy <= 1.35 && top1.probabilidad >= 0.52) ||
-    (top1.sena === 'GRACIAS' && dy < 0.40 && top1.probabilidad >= 0.52)
+    (top1.sena === 'HOLA' && top1.probabilidad >= 0.50) ||
+    (top1.sena === 'BUENAS' && top1.probabilidad >= 0.50) ||
+    (top1.sena === 'GUSTAR' && top1.probabilidad >= 0.50) ||
+    (top1.sena === 'TARDES' && top1.probabilidad >= 0.50) ||
+    (top1.sena === 'GRACIAS' && top1.probabilidad >= 0.50)
   );
 
   // Solo declarar REPOSO si:
-  // 1. La mano está descansando en el regazo / espacio inferior (dy > 1.35)
-  // 2. O la mano ha estado inmóvil por tiempo sostenido (>800ms) Y NO coincide con una seña activa en su zona
+  // 1. La mano está descansando en el regazo / espacio inferior profundo (dy > 1.80) y quieta
+  // 2. O la mano ha estado inmóvil por tiempo sostenido (>800ms) Y NO coincide con una seña activa
   // 3. O la red neuronal clasificó directamente como REPOSO
   const debeForzarReposo = (esManoEnRegazo && (speed < 0.035 || neutralResult.isNeutral)) ||
                            (neutralResult.isNeutral && !esSenaManoAbiertaValida && neutralResult.durationMs >= 800) ||
@@ -1490,17 +1491,10 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     };
   }
 
-  // 5c. Salvaguardas Anatómicas Canónicas LSC Biomecánicas (v6.4.1):
-  // dy: vertical respecto a hombros (normalizado).
-  // dy < 0.15: zona superior (cuello, mentón, rostro, cabeza).
-  // 0.15 <= dy <= 0.85: pecho / esternón.
-  // 0.85 < dy <= 1.25: abdomen / espacio medio.
-  // dy > 1.25: cadera / regazo / reposo.
-
-  // Filtro de Alta Velocidad Cinemática (Transit Gating):
-  // Si la mano se desplaza a velocidad rápida de tránsito (>0.20), está moviéndose entre señas.
-  // No emitir predicciones al vuelo ni adivinar sobre fotogramas borrosos de movimiento.
-  if (speed > 0.20 && top1.sena !== 'REPOSO') {
+  // Filtro de Alta Velocidad Cinemática (Transit Gating v7.0.0):
+  // Solo descartar si la mano se desplaza en movimiento balístico muy rápido (>0.45).
+  // Permite movimientos naturales de señas dinámicas (como el saludo de HOLA, el arco de DIAS, etc.).
+  if (speed > 0.45 && top1.sena !== 'REPOSO') {
     return {
       sena: 'TRANSICION',
       rawSena: top1.sena,
@@ -1513,54 +1507,10 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     };
   }
 
-  // Regla 1: Señas Faciales / Cefálicas (HOLA, BUENAS, GRACIAS, AÑOS)
-  // DEBEN estar en la zona superior (dy <= 0.52). No pueden ejecutarse en pecho o abdomen.
-  const senasSuperiores = ['HOLA', 'BUENAS', 'GRACIAS', 'AÑOS'];
-  if (senasSuperiores.includes(top1.sena) && dy > 0.52) {
-    top1.sena = 'TRANSICION';
-    top1.probabilidad = 0.50;
-  }
-
-  // Regla 2: LICOR (pulgar al cuello/garganta: 0.05 <= dy <= 0.45)
-  if (top1.sena === "LICOR" && (dy > 0.50 || dy < -0.20 || esManoAbierta || (ext_indice > 0.80 && ext_medio > 0.80))) {
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.50;
-  }
-
-  // Regla 3: AÑOS (puño acariciando mejilla/rostro: dy <= 0.35)
-  if (top1.sena === "AÑOS" && (dy > 0.38 || (ext_indice > 0.80 && ext_medio > 0.80))) {
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.50;
-  }
-
-  // Regla 4: YO (índice al centro del pecho: 0.15 <= dy <= 0.85)
-  if (top1.sena === "YO" && (dy < 0.10 || dy > 0.90)) {
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.50;
-  }
-
-  // Regla 5: GUSTAR (palma sobre el pecho/corazón: 0.15 <= dy <= 0.85)
-  if (top1.sena === "GUSTAR" && (dy < 0.10 || dy > 0.90)) {
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.50;
-  }
-
-  // Regla 6: DIAS (arco en torso/cabeza)
-  if (top1.sena === "DIAS" && dy > 1.10) {
-    top1.sena = "TRANSICION";
-    top1.probabilidad = 0.50;
-  }
-
-  // Regla 7: Letras y Números fuera del espacio de señado
-  // En LSC, dactilología y números se ejecutan en el espacio frente al torso/hombros (-0.20 <= dy <= 1.15).
-  // Si la mano está en el regazo (dy > 1.18) o muy arriba de la cabeza, no son letras/números válidos.
-  const esDactilologiaONumero = (modelo.categorias?.abecedario?.includes(top1.sena) || modelo.categorias?.numeros?.includes(top1.sena));
-  if (esDactilologiaONumero && (dy > 1.18 || dy < -0.30)) {
-    top1.sena = "REPOSO";
-    top1.probabilidad = 0.95;
-  }
-
-  // 6. Filtro de Decisión Anti-Aleatoriedad Calibrado LSC v6.4.1
+  // 6. Filtro de Decisión Invariante y Robusto LSC v7.0.0:
+  // Con el modelo v7.0.0, la red neuronal evalúa la cinemática articular 105D (ángulos,
+  // extensiones, geometría de la palma) con invarianza total a posición en el cuadro.
+  // No se imponen recortes artificiales por píxeles de cámara.
   let senaFinal = top1.sena;
   let estado = "SEÑA_DETECTADA";
 
@@ -1570,8 +1520,8 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   } else if (top1.sena === "TRANSICION") {
     estado = "TRANSICION";
     senaFinal = "TRANSICIÓN";
-  } else if (top1.probabilidad < 0.60 || margen < 0.10) {
-    // Umbral calibrado v6.4.1: 60% de confianza mínima y 10% de margen
+  } else if (top1.probabilidad < 0.58 || margen < 0.08) {
+    // Umbral calibrado v7.0.0: 58% de confianza mínima y 8% de margen
     // Elimina dudas o fluctuaciones dudosas entre dos clases
     estado = "TRANSICION";
     senaFinal = "TRANSICIÓN";

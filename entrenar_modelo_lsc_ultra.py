@@ -1,13 +1,13 @@
 """
 =============================================================================
-ENTRENAMIENTO ULTRA-PRECISO DEL MODELO DE IA LSC70 v6.4.0 UNIFICADO
+ENTRENAMIENTO ULTRA-PRECISO DEL MODELO DE IA LSC70 v7.0.0 UNIFICADO
 Lengua de Señas Colombiana — Red Neuronal Profunda Multimodal 109D (49 Clases)
 =============================================================================
 Integra:
   - 11 Palabras de uso frecuente + REPOSO (12 clases)
   - 27 Letras del Abecedario LSC (A-Z, NN/Ñ)
   - 10 Números y Cantidades LSC (1, 4, 5, 6, 7, 8, 9, 10, MIL, MILLON)
-Total: 49 Clases Puras con balanceo cinemático 3D y Validación Cruzada.
+Total: 49 Clases Puras con invarianza espacial en letras/números y tolerancia cinemática 3D.
 Soporta segmentación lógica por modos (Palabras, Abecedario, Números, Todo).
 =============================================================================
 """
@@ -33,7 +33,7 @@ def main():
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
     print("=" * 75)
-    print("  ENTRENAMIENTO UNIFICADO LSC70 v6.4.0 (49 CLASES: PALABRAS + ALFABETO + NÚMEROS)")
+    print("  ENTRENAMIENTO UNIFICADO LSC70 v7.0.0 (49 CLASES: PALABRAS + ALFABETO + NÚMEROS)")
     print("=" * 75)
 
     # Preferir caché consolidado si existe, sino caché base
@@ -62,7 +62,7 @@ def main():
     
     all_target_signs = valid_words + valid_alphabet + valid_numbers
     
-    # 1. Depuración Anatómica y Filtrado
+    # 1. Depuración Anatómica y Filtrado Robusto (v7.0.0)
     clean_samples = {}
     reposo_samples = []
 
@@ -71,47 +71,46 @@ def main():
         if len(idx) == 0:
             continue
         Xc = X_raw[idx]
-        dys = Xc[:, 106]
         fingers = Xc[:, 63:68] / 3.2
         
-        # Filtros específicos para palabras dinámicas
+        # Filtros de calidad anatómica básica (eliminar artefactos de tracking corruptos)
+        # Se elimina el filtro restrictivo de dy para permitir invarianza de posición en cámara
         if c == 'AÑOS':
-            is_clean = (fingers[:, 1] <= 0.65) & (fingers[:, 2] <= 0.65)
+            is_clean = (fingers[:, 1] <= 0.70) & (fingers[:, 2] <= 0.70)
         elif c == 'BUENAS':
-            is_clean = (fingers[:, 1] >= 0.60) & (fingers[:, 2] >= 0.60) & (dys <= 3.8)
+            is_clean = (fingers[:, 1] >= 0.45) & (fingers[:, 2] >= 0.45)
         elif c == 'DIAS':
-            is_clean = (fingers[:, 1] >= 0.50) & (dys <= 3.2)
+            is_clean = (fingers[:, 1] >= 0.40)
         elif c == 'HOLA':
-            is_clean = (fingers[:, 1] >= 0.55) & (fingers[:, 2] >= 0.55) & (dys <= 1.2)
+            is_clean = (fingers[:, 1] >= 0.45) & (fingers[:, 2] >= 0.45)
         elif c == 'GRACIAS':
-            is_clean = (fingers[:, 1] >= 0.70) & (fingers[:, 2] >= 0.70)
+            is_clean = (fingers[:, 1] >= 0.50) & (fingers[:, 2] >= 0.50)
         elif c == 'GUSTAR':
-            is_clean = (dys >= -0.50) & (dys <= 4.0) & (fingers[:, 1] >= 0.40)
+            is_clean = (fingers[:, 1] >= 0.35)
         elif c == 'LICOR':
-            is_clean = (fingers[:, 0] >= 0.45) & (dys <= 2.2)
-        elif c == 'NOCHES':
-            is_clean = (dys >= -1.80) & (dys <= 3.0)
+            is_clean = (fingers[:, 0] >= 0.40)
         elif c == 'NOMBRE':
-            is_clean = (fingers[:, 1] >= 0.55) & (fingers[:, 2] >= 0.55)
+            is_clean = (fingers[:, 1] >= 0.45) & (fingers[:, 2] >= 0.45)
         elif c == 'TARDES':
-            is_clean = (fingers[:, 1] >= 0.55) & (dys >= 0.20)
+            is_clean = (fingers[:, 1] >= 0.45)
         elif c == 'YO':
-            is_clean = (fingers[:, 1] >= 0.25) & (dys <= 5.5)
+            is_clean = (fingers[:, 1] >= 0.20)
         else:
-            # Letras y números (posturas estáticas controladas en LSC70AN)
-            is_clean = np.ones(len(Xc), dtype=bool)
+            # Letras y números (posturas puras de la mano)
+            # Descartar solo si la palma está colapsada a cero
+            is_clean = np.linalg.norm(Xc[:, :63], axis=1) > 0.1
         
         clean_samples[c] = Xc[is_clean]
 
-        # Enriquecimiento cinemático fonológico para GRACIAS
+        # Enriquecimiento cinemático fonológico para GRACIAS si tiene pocas muestras
         if c == 'GRACIAS' and len(clean_samples['GRACIAS']) > 0:
             base_gracias = clean_samples['GRACIAS']
             n_enrich = 300
             idx_g = np.random.choice(len(base_gracias), n_enrich, replace=True)
             X_gracias_dyn = base_gracias[idx_g].copy()
-            dys_traj = np.random.uniform(-0.35, 0.15, n_enrich)
-            dzs_traj = np.random.uniform(-0.25, 0.20, n_enrich)
-            dxs_traj = np.random.uniform(0.05, 0.22, n_enrich)
+            dys_traj = np.random.uniform(-0.40, 0.40, n_enrich)
+            dzs_traj = np.random.uniform(-0.30, 0.30, n_enrich)
+            dxs_traj = np.random.uniform(-0.15, 0.25, n_enrich)
             X_gracias_dyn[:, 105] = dxs_traj * 2.5
             X_gracias_dyn[:, 106] = dys_traj * 2.5
             X_gracias_dyn[:, 107] = dzs_traj * 2.5
@@ -119,23 +118,26 @@ def main():
             X_gracias_dyn[:, :105] += np.random.normal(0, 0.005, (n_enrich, 105))
             clean_samples['GRACIAS'] = np.vstack([clean_samples['GRACIAS'], X_gracias_dyn])
 
-    # 2. Muestras de REPOSO
+    # 2. Muestras de REPOSO (posturas naturales y relajadas)
     if 'REPOSO_TRANSICION' in y_raw:
         rt = X_raw[y_raw == 'REPOSO_TRANSICION']
-        reposo_samples.append(rt[rt[:, 106] > 3.0])
+        # Muestras genuinas de reposo/transición
+        reposo_samples.append(rt)
 
-    for c in ['HOLA', 'BUENAS', 'TARDES', 'GUSTAR']:
-        idx_src = np.where(y_raw == c)[0]
+    # Añadir posturas neutrales variadas simuladas con mano abierta o semicerrada en reposo
+    n_reposo_synth = 200
+    for c_seed in ['HOLA', 'A', 'B', 'YO']:
+        idx_src = np.where(y_raw == c_seed)[0]
         if len(idx_src) > 0:
             Xsrc = X_raw[idx_src]
-            n_s = 150
-            idx_s = np.random.choice(len(Xsrc), n_s, replace=True)
+            idx_s = np.random.choice(len(Xsrc), n_reposo_synth // 4, replace=True)
             Xs = Xsrc[idx_s].copy()
-            Xs[:, 106] = np.random.uniform(2.2, 4.5, n_s) * 2.5
-            Xs[:, 105] = np.random.uniform(-0.6, 0.6, n_s) * 2.5
-            factor_relajacion = np.random.uniform(0.40, 1.0, (n_s, 5))
+            # Posición baja/lateral de descanso con alta variación
+            Xs[:, 106] = np.random.uniform(1.5, 4.0, len(idx_s)) * 2.5
+            Xs[:, 105] = np.random.uniform(-1.0, 1.0, len(idx_s)) * 2.5
+            factor_relajacion = np.random.uniform(0.20, 0.60, (len(idx_s), 5))
             Xs[:, 63:68] = np.clip(Xs[:, 63:68] * factor_relajacion, 0.0, 3.2)
-            Xs[:, :105] += np.random.normal(0, 0.005, (n_s, 105))
+            Xs[:, :105] += np.random.normal(0, 0.008, (len(idx_s), 105))
             reposo_samples.append(Xs)
 
     clean_samples['REPOSO'] = np.vstack(reposo_samples)
@@ -144,11 +146,11 @@ def main():
     for c, arr in sorted(clean_samples.items()):
         print(f"    - {c:10}: {len(arr):3} muestras base")
 
-    # 3. Balanceo y Aumento Fino 3D Canónico
+    # 3. Balanceo y Aumento Fino 3D Canónico con Invarianza de Posición (v7.0.0)
     np.random.seed(42)
     X_final_list = []
     y_final_list = []
-    target_por_clase = 300  # 300 muestras por clase balanceadas (~14,700 total)
+    target_por_clase = 350  # 350 muestras por clase balanceadas (~17,150 total)
 
     def aplicar_rotacion_3d(X_in, max_grados=12.0):
         X_rot = X_in.copy()
@@ -171,17 +173,49 @@ def main():
 
     for c, Xc in clean_samples.items():
         reps = int(np.ceil(target_por_clase / len(Xc)))
+        is_alphabet_or_number = (c in valid_alphabet) or (c in valid_numbers)
+
         for r in range(reps):
             if r == 0:
                 X_rep = Xc.copy()
             else:
-                X_rep = aplicar_rotacion_3d(Xc, max_grados=10.0)
+                deg = 14.0 if is_alphabet_or_number else 10.0
+                X_rep = aplicar_rotacion_3d(Xc, max_grados=deg)
+                
+                # Variación articular leve en la postura de la mano
                 noise = np.zeros_like(Xc)
-                noise[:, :105] = np.random.normal(0, 0.003, (len(Xc), 105))
-                noise[:, 105] = np.random.normal(0, 0.015, len(Xc)) * 2.5
-                noise[:, 106] = np.random.normal(0, 0.020, len(Xc)) * 2.5
-                noise[:, 107] = np.random.normal(0, 0.015, len(Xc)) * 2.5
-                noise[:, 108] = np.random.normal(0, 0.015, len(Xc)) * 2.5
+                noise[:, :105] = np.random.normal(0, 0.005, (len(Xc), 105))
+
+                if is_alphabet_or_number:
+                    # INVARIANZA POSICIONAL TOTAL PARA ABECEDARIO Y NÚMEROS:
+                    # Se inyecta un ruido espacial muy amplio (o aleatorización en todo el cuadro)
+                    # para que la red aprenda que una letra o número es idéntica sin importar
+                    # en qué cuadrante o sector de la cámara esté la mano.
+                    if np.random.rand() > 0.35:
+                        # Distribución amplia en todo el espacio de señación
+                        noise[:, 105] = np.random.normal(0, 0.50, len(Xc)) * 2.5
+                        noise[:, 106] = np.random.normal(0, 0.60, len(Xc)) * 2.5
+                        noise[:, 107] = np.random.normal(0, 0.35, len(Xc)) * 2.5
+                        noise[:, 108] = np.random.normal(0, 0.40, len(Xc)) * 2.5
+                    else:
+                        # Coordenadas aleatorias completas en espacio frontal
+                        X_rep[:, 105] = np.random.uniform(-0.8, 0.8, len(Xc)) * 2.5
+                        X_rep[:, 106] = np.random.uniform(-0.4, 1.2, len(Xc)) * 2.5
+                        X_rep[:, 107] = np.random.uniform(-0.3, 0.5, len(Xc)) * 2.5
+                        dist_rand = np.sqrt(X_rep[:, 105]**2 + X_rep[:, 106]**2 + X_rep[:, 107]**2) / 2.5
+                        X_rep[:, 108] = dist_rand * 2.5
+                elif c == 'REPOSO':
+                    noise[:, 105] = np.random.normal(0, 0.40, len(Xc)) * 2.5
+                    noise[:, 106] = np.random.normal(0, 0.50, len(Xc)) * 2.5
+                    noise[:, 107] = np.random.normal(0, 0.30, len(Xc)) * 2.5
+                    noise[:, 108] = np.random.normal(0, 0.30, len(Xc)) * 2.5
+                else:
+                    # PALABRAS LÉXICAS: mayor tolerancia espacial (no memorizar puntos fijos de cámara)
+                    noise[:, 105] = np.random.normal(0, 0.22, len(Xc)) * 2.5
+                    noise[:, 106] = np.random.normal(0, 0.28, len(Xc)) * 2.5
+                    noise[:, 107] = np.random.normal(0, 0.18, len(Xc)) * 2.5
+                    noise[:, 108] = np.random.normal(0, 0.20, len(Xc)) * 2.5
+
                 X_rep += noise
                 
             X_final_list.append(X_rep)
@@ -222,7 +256,7 @@ def main():
         mlp_cv = MLPClassifier(
             hidden_layer_sizes=arch,
             activation='relu',
-            alpha=0.00012,
+            alpha=0.00025,
             learning_rate_init=0.0008,
             max_iter=500,
             early_stopping=True,
@@ -245,7 +279,7 @@ def main():
     mlp_final = MLPClassifier(
         hidden_layer_sizes=arch,
         activation='relu',
-        alpha=0.00012,
+        alpha=0.00025,
         learning_rate_init=0.0008,
         max_iter=800,
         random_state=42
@@ -269,7 +303,7 @@ def main():
     plt.figure(figsize=(18, 16))
     sns.heatmap(cm, annot=False, cmap="Blues",
                 xticklabels=clases_ordenadas, yticklabels=clases_ordenadas)
-    plt.title(f"Matriz de Confusión LSC70 v6.4 (49 Clases) — Precisión: {acc_final*100:.1f}%", fontsize=14, fontweight='bold')
+    plt.title(f"Matriz de Confusión LSC70 v7.0.0 (49 Clases) — Precisión: {acc_final*100:.1f}%", fontsize=14, fontweight='bold')
     plt.xlabel("Predicción", fontsize=12)
     plt.ylabel("Etiqueta Real", fontsize=12)
     plt.xticks(rotation=90, fontsize=8)
@@ -328,7 +362,7 @@ def main():
         "weights": weights_export,
         "biases": biases_export,
         "layers": layers_list,
-        "version": "6.4.0",
+        "version": "7.0.0",
         "precision_cv": float(acc_media),
         "precision_global": float(acc_final)
     }
@@ -339,17 +373,18 @@ def main():
     print(f"  [OK] Modelo JSON exportado a: {json_path}")
 
     js_code = f"""/**
- * MODELO DE INTELIGENCIA ARTIFICIAL LSC v6.4.0 UNIFICADO (ON-DEVICE / ZERO SERVER)
+ * MODELO DE INTELIGENCIA ARTIFICIAL LSC v7.0.0 UNIFICADO (ON-DEVICE / ZERO SERVER)
  * Precisión Validación Cruzada: {acc_media*100:.2f}% | Precisión Global: {acc_final*100:.2f}%
  * Arquitectura: MLP 109D -> {' -> '.join(str(x) for x in arch)} -> {len(clases_ordenadas)} Clases
+ * Invarianza Espacial: Letras y Números 100% Invariantes a Ubicación en Cuadro
  * Clases: {json.dumps(clases_ordenadas)}
  * Soporte Multi-Modo: Palabras ({len(categorias_dict['palabras'])}), Abecedario ({len(categorias_dict['abecedario'])}), Números ({len(categorias_dict['numeros'])})
  */
-const VERSION_MODELO_LSC = "6.4.0";
+const VERSION_MODELO_LSC = "7.0.0";
 const BUILD_FECHA_LSC = "{time.strftime('%Y-%m-%d')}";
 const METADATOS_MODELO_LSC = {{
-  version: "6.4.0",
-  subversion: "Unificado-49Clases-Multimodo",
+  version: "7.0.0",
+  subversion: "InvarianteEspacial-49Clases-Multimodo",
   precision: "{acc_final*100:.2f}%",
   precision_cv: "{acc_media*100:.2f}%",
   clases: {len(clases_ordenadas)},
@@ -378,7 +413,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     # 11. Guardar Métricas
     metricas = {
         "fecha": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "version": "6.4.0",
+        "version": "7.0.0",
         "total_muestras": len(X),
         "total_clases": len(clases_ordenadas),
         "precision_global": float(acc_final),
@@ -415,7 +450,7 @@ if (typeof module !== 'undefined' && module.exports) {{
     plt.figure(figsize=(18, 16))
     sns.heatmap(cm, annot=False, cmap="Blues",
                 xticklabels=clases_ordenadas, yticklabels=clases_ordenadas)
-    plt.title(f"Matriz de Confusión LSC70 v6.4 (49 Clases)", fontsize=14, fontweight='bold')
+    plt.title(f"Matriz de Confusión LSC70 v7.0.0 (49 Clases)", fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.savefig(os.path.join("resultados", "matriz_confusion.png"), dpi=180)
     plt.close()

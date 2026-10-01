@@ -1,0 +1,7 @@
+.agents/
+.codex/
+.tools/
+venv_lsc/
+graphify-out/
+modelos_guardados/
+resultados/

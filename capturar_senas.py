@@ -26,11 +26,13 @@ import os
 import sys
 import time
 import argparse
+from pathlib import Path
 import numpy as np
 import cv2
 
 from motor_lsc import ExtractorLandmarks, clasificar_cuadrante, CamaraLSC
 from motor_lsc.extractor import preprocesar_imagen_anti_ruido
+from utils.dataset_manifest import append_sample_record
 
 # ─────────────────────────────────────────────────────────────
 # CONFIGURACIÓN
@@ -261,7 +263,8 @@ def pantalla_transicion(cap, sena, idx_sena, duracion=2.5):
 # LOOP DE CAPTURA POR SEÑA
 # ─────────────────────────────────────────────────────────────
 
-def capturar_sena(extractor, cap, sena, idx_sena, n_total, dir_sena, modo_auto):
+def capturar_sena(extractor, cap, sena, idx_sena, n_total, dir_sena, modo_auto,
+                  capture_context):
     """
     Loop de captura para una seña. Retorna True si completó (o se saltó),
     False si el usuario quiere salir completamente.
@@ -330,6 +333,19 @@ def capturar_sena(extractor, cap, sena, idx_sena, n_total, dir_sena, modo_auto):
                 n_guardadas += 1
                 ruta = os.path.join(dir_sena, f"muestra_{n_guardadas:03d}.npy")
                 np.save(ruta, vector)
+                append_sample_record(
+                    capture_context["manifest_path"],
+                    Path(ruta),
+                    label=sena,
+                    signer_id=capture_context["signer_id"],
+                    session_id=capture_context["session_id"],
+                    device_id=capture_context["device_id"],
+                    lighting=capture_context["lighting"],
+                    camera_index=capture_context["camera_index"],
+                    sharpness=nitidez,
+                    extractor_version="lsc-109d-mediapipe-v1",
+                    consent=capture_context["consent"],
+                )
                 print(f"  OK  Muestra {n_guardadas}/{n_total} -> {os.path.basename(ruta)}")
                 fase = "capturado"
                 t_capturado = time.time()
@@ -404,7 +420,26 @@ def main():
                         help="Iniciar en modo auto-captura")
     parser.add_argument("--forzar", action="store_true", default=False,
                         help="Sobreescribir muestras existentes")
+    parser.add_argument("--signer-id", required=True,
+                        help="Seudónimo estable del firmante (no uses nombre real)")
+    parser.add_argument("--session-id", default=None,
+                        help="ID de sesión; por defecto se crea uno con fecha y hora UTC")
+    parser.add_argument("--device-id", default="desktop-camera",
+                        help="Identificador no personal de cámara/dispositivo")
+    parser.add_argument("--lighting", default="unspecified",
+                        help="Condición de iluminación, ej. interior-led")
+    parser.add_argument("--manifest", default=os.path.join("datasets", "capturado", "manifest.jsonl"),
+                        help="Manifiesto JSONL que registra procedencia y calidad")
+    parser.add_argument("--consent", action="store_true",
+                        help="Confirma que el firmante autorizó la captura para entrenamiento")
     args = parser.parse_args()
+
+    if not args.consent:
+        parser.error("Debes indicar --consent antes de capturar datos para entrenamiento.")
+    if args.signer_id.strip().lower() in {"", "anon", "unknown", "desconocido"}:
+        parser.error("--signer-id debe ser un seudónimo estable y no identificable.")
+    if args.session_id is None:
+        args.session_id = time.strftime("session-%Y%m%dT%H%M%SZ", time.gmtime())
 
     senas = [s.upper() for s in args.senas] if args.senas else SENAS_OBJETIVO
     # Sin validación restrictiva — acepta cualquier nombre de seña
@@ -416,6 +451,8 @@ def main():
     print(f"  Muestras/sena: {args.muestras}")
     print(f"  Modo inicial : {'AUTO' if args.auto else 'MANUAL'}")
     print(f"  Senas        : {senas}")
+    print(f"  Firmante     : {args.signer_id} | Sesión: {args.session_id}")
+    print(f"  Manifiesto   : {args.manifest}")
     print("=" * 60)
     print()
     print("  CONTROLES:")
@@ -461,6 +498,15 @@ def main():
     print("  MediaPipe OK\n")
 
     modo_auto = args.auto
+    capture_context = {
+        "manifest_path": Path(args.manifest),
+        "signer_id": args.signer_id.strip(),
+        "session_id": args.session_id.strip(),
+        "device_id": args.device_id.strip(),
+        "lighting": args.lighting.strip(),
+        "camera_index": args.camera,
+        "consent": args.consent,
+    }
 
     # Loop por señas
     for idx, sena in enumerate(senas):
@@ -471,7 +517,8 @@ def main():
             pantalla_transicion(cap, sena, idx)
 
         continuar = capturar_sena(
-            extractor, cap, sena, idx, args.muestras, dir_sena, modo_auto
+            extractor, cap, sena, idx, args.muestras, dir_sena, modo_auto,
+            capture_context,
         )
         if not continuar:
             print("\n  Captura interrumpida por el usuario.")

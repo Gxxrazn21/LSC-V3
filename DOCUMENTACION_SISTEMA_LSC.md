@@ -1,4 +1,5 @@
 # Sistema Seña LSC v4.5 — Documentación Técnica Integral
+> **Estado histórico / investigación.** Este documento describe el prototipo Conformer v4.5 y no representa la APK ni el modelo de producción actual. Para el flujo vigente consulta [ARQUITECTURA_OPERATIVA_V7.md](ARQUITECTURA_OPERATIVA_V7.md).
 *Traductor Automático de Lengua de Señas Colombiana (LSC) a Texto y Voz 100% On-Device con Arquitectura Conformer Multi-Stream, Preentrenamiento MaskFeat, Validación Signer-Independent, Decodificación Continua CTC, Mejora de Imagen Zero-DCE y Despliegue Móvil Cuantizado*
 
 ---

@@ -26,7 +26,7 @@ class MainActivity : FlutterActivity(), TextToSpeech.OnInitListener {
         tts = TextToSpeech(this, this)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 1001)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 1001)
         }
     }
 
