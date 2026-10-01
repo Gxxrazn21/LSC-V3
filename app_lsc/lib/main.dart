@@ -37,6 +37,20 @@ class LSCApp extends StatelessWidget {
   }
 }
 
+class OtaUpdateResult {
+  final bool success;
+  final String fromVersion;
+  final String toVersion;
+  final String? errorMessage;
+
+  const OtaUpdateResult({
+    required this.success,
+    required this.fromVersion,
+    required this.toVersion,
+    this.errorMessage,
+  });
+}
+
 class LSCHomePage extends StatefulWidget {
   const LSCHomePage({super.key});
 
@@ -49,14 +63,12 @@ class _LSCHomePageState extends State<LSCHomePage> {
   static const _shellVersion = '7.0.0';
   HttpServer? _server;
   late final WebViewController _controller;
-  bool _serverReady = false;
   bool _splashVisible = true; // controla el fade-out gradual del splash nativo
   String _statusMessage = 'Iniciando Gestual Vision AI v7.0...';
 
   // Gestión de Live Sync y Recursos OTA
   String _pcHost = '192.168.1.15:8000';
   bool _isLiveMode = false;
-  bool _hasDownloadedAssets = false;
 
   @override
   void initState() {
@@ -73,17 +85,17 @@ class _LSCHomePageState extends State<LSCHomePage> {
     return assetsDir;
   }
 
-  Future<void> _checkDownloadedAssets() async {
+  Future<bool> _checkDownloadedAssets() async {
     try {
       final activeAssets = await _getActiveAssetsDir();
       final indexFile = activeAssets == null
           ? null
           : File('${activeAssets.path}/index.html');
       final exists = indexFile != null && await indexFile.exists();
-      if (mounted) {
-        setState(() => _hasDownloadedAssets = exists);
-      }
-    } catch (_) {}
+      return exists;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<Directory?> _getActiveAssetsDir() async {
@@ -184,7 +196,6 @@ class _LSCHomePageState extends State<LSCHomePage> {
             onPageStarted: (String url) => debugPrint('Página cargando: $url'),
             onPageFinished: (String url) {
               debugPrint('Página lista: $url');
-              setState(() => _serverReady = true);
               // Fade-out gradual del splash nativo (350ms) y luego lo ocultamos
               Future.delayed(const Duration(milliseconds: 380), () {
                 if (mounted) setState(() => _splashVisible = false);
@@ -286,82 +297,126 @@ class _LSCHomePageState extends State<LSCHomePage> {
   static const String _defaultCloudBase =
       'https://raw.githubusercontent.com/Gxxrazn21/LSC-V3/main/web';
 
-  Future<bool> _downloadResourcesFromCloud({String? baseUrl}) async {
-    final base = (baseUrl != null && baseUrl.isNotEmpty)
-        ? baseUrl
-        : _defaultCloudBase;
-    try {
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 25);
-      final baseUri = Uri.parse(base.endsWith('/') ? base : '$base/');
-      if (baseUri.scheme != 'https') return false;
-      final manifestRequest = await client.getUrl(
-        baseUri.resolve('release-manifest.json?nocache=${DateTime.now().millisecondsSinceEpoch}'),
-      );
-      final manifestResponse = await manifestRequest.close();
-      if (manifestResponse.statusCode != 200) return false;
-      final manifestBytes = await consolidateHttpClientResponseBytes(manifestResponse);
-      final manifest = jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>;
-      if (manifest['schema_version'] != 1 ||
-          manifest['version'] is! String ||
-          !_isShellCompatible(manifest['min_shell_version'] as String? ?? '0.0.0')) {
-        return false;
-      }
-      final version = manifest['version'] as String;
-      final files = manifest['files'];
-      if (!RegExp(r'^[0-9A-Za-z._-]+$').hasMatch(version) || files is! Map) return false;
+  Future<OtaUpdateResult> _downloadResourcesFromCloud({String? baseUrl}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final fromVersion = prefs.getString('pref_active_release') ?? '6.3.0';
 
-      final assetsRoot = await _getWebAssetsDir();
-      final staging = Directory('${assetsRoot.path}/.staging-$version');
-      if (await staging.exists()) await staging.delete(recursive: true);
-      await staging.create(recursive: true);
+    final bases = [
+      (baseUrl != null && baseUrl.isNotEmpty) ? baseUrl : _defaultCloudBase,
+      'https://raw.githubusercontent.com/Gxxrazn21/LSC-V3/main/estilo',
+    ];
+
+    String lastError = 'No se pudo conectar con el repositorio';
+
+    for (final base in bases) {
+      HttpClient? client;
       try {
-        for (final entry in files.entries) {
-          final fileName = entry.key;
-          final details = entry.value;
-          if (fileName is! String || !_isSafeAssetPath(fileName) || details is! Map) {
-            throw const FormatException('Manifiesto OTA inválido');
-          }
-          final expectedHash = details['sha256'];
-          if (expectedHash is! String || !RegExp(r'^[a-f0-9]{64}$').hasMatch(expectedHash)) {
-            throw const FormatException('Checksum OTA inválido');
-          }
-          final request = await client.getUrl(baseUri.resolve(fileName));
-          final response = await request.close();
-          if (response.statusCode != 200) throw HttpException('No se pudo descargar $fileName');
-          final bytes = await consolidateHttpClientResponseBytes(response);
-          if (sha256.convert(bytes).toString() != expectedHash) {
-            throw const FormatException('Checksum OTA no coincide');
-          }
-          await File('${staging.path}/$fileName').writeAsBytes(bytes, flush: true);
+        client = HttpClient();
+        client.connectionTimeout = const Duration(seconds: 45);
+        final baseUri = Uri.parse(base.endsWith('/') ? base : '$base/');
+        if (baseUri.scheme != 'https') continue;
+
+        final manifestRequest = await client.getUrl(
+          baseUri.resolve('release-manifest.json?nocache=${DateTime.now().millisecondsSinceEpoch}'),
+        );
+        final manifestResponse = await manifestRequest.close();
+        if (manifestResponse.statusCode != 200) {
+          lastError = 'HTTP ${manifestResponse.statusCode} al obtener release-manifest.json';
+          continue;
         }
-        if (!await File('${staging.path}/index.html').exists()) {
-          throw const FormatException('El release no contiene index.html');
+
+        final manifestBytes = await consolidateHttpClientResponseBytes(manifestResponse);
+        final manifest = jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>;
+        if (manifest['schema_version'] != 1 ||
+            manifest['version'] is! String ||
+            !_isShellCompatible(manifest['min_shell_version'] as String? ?? '0.0.0')) {
+          lastError = 'Manifiesto no compatible con la versión de la APK';
+          continue;
         }
-        final release = Directory('${assetsRoot.path}/releases/$version');
-        if (await release.exists()) await release.delete(recursive: true);
-        await release.parent.create(recursive: true);
-        await staging.rename(release.path);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('pref_active_release', version);
-      } catch (_) {
+
+        final toVersion = manifest['version'] as String;
+        final files = manifest['files'];
+        if (!RegExp(r'^[0-9A-Za-z._-]+$').hasMatch(toVersion) || files is! Map) {
+          lastError = 'Versión de manifiesto inválida';
+          continue;
+        }
+
+        final assetsRoot = await _getWebAssetsDir();
+        final staging = Directory('${assetsRoot.path}/.staging-$toVersion');
         if (await staging.exists()) await staging.delete(recursive: true);
-        rethrow;
+        await staging.create(recursive: true);
+
+        try {
+          for (final entry in files.entries) {
+            final fileName = entry.key;
+            final details = entry.value;
+            if (fileName is! String || !_isSafeAssetPath(fileName) || details is! Map) {
+              throw const FormatException('Manifiesto OTA inválido');
+            }
+            final expectedHash = details['sha256'];
+            if (expectedHash is! String || !RegExp(r'^[a-f0-9]{64}$').hasMatch(expectedHash)) {
+              throw const FormatException('Checksum OTA inválido');
+            }
+            final request = await client.getUrl(baseUri.resolve(fileName));
+            final response = await request.close();
+            if (response.statusCode != 200) {
+              throw HttpException('No se pudo descargar $fileName (HTTP ${response.statusCode})');
+            }
+            final bytes = await consolidateHttpClientResponseBytes(response);
+            if (sha256.convert(bytes).toString() != expectedHash) {
+              throw const FormatException('Checksum OTA no coincide');
+            }
+            await File('${staging.path}/$fileName').writeAsBytes(bytes, flush: true);
+          }
+
+          if (!await File('${staging.path}/index.html').exists()) {
+            throw const FormatException('El release no contiene index.html');
+          }
+
+          final release = Directory('${assetsRoot.path}/releases/$toVersion');
+          if (await release.exists()) await release.delete(recursive: true);
+          await release.parent.create(recursive: true);
+          await staging.rename(release.path);
+
+          await prefs.setString('pref_previous_version', fromVersion);
+          await prefs.setString('pref_active_release', toVersion);
+          await _checkDownloadedAssets();
+
+          return OtaUpdateResult(
+            success: true,
+            fromVersion: fromVersion,
+            toVersion: toVersion,
+          );
+        } catch (e) {
+          if (await staging.exists()) await staging.delete(recursive: true);
+          lastError = e.toString();
+          debugPrint('Error descargando archivos OTA desde $base: $e');
+        }
+      } catch (e) {
+        lastError = e.toString();
+        debugPrint('Error conectando a $base: $e');
       } finally {
-        client.close(force: true);
+        client?.close(force: true);
       }
-      await _checkDownloadedAssets();
-      return true;
-    } catch (e) {
-      debugPrint('Error descargando recursos OTA de la nube: $e');
-      return false;
     }
+
+    return OtaUpdateResult(
+      success: false,
+      fromVersion: fromVersion,
+      toVersion: '7.0.0',
+      errorMessage: lastError,
+    );
   }
 
-  void _showSyncModal() {
+  void _showSyncModal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentInstalledVersion = prefs.getString('pref_active_release') ?? '6.3.0';
+    final previousVersion = prefs.getString('pref_previous_version');
     final textController = TextEditingController(text: _pcHost);
     bool downloading = false;
     bool showAdvanced = false;
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -374,6 +429,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final port = _server?.port ?? 8765;
+            final isLatest = currentInstalledVersion == '7.0.0';
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20,
@@ -397,7 +454,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                           ),
                           SizedBox(width: 10),
                           Text(
-                            'Actualización & Nube LSC v7.0',
+                            'Actualización & Nube LSC',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -418,36 +475,58 @@ class _LSCHomePageState extends State<LSCHomePage> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E293B),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(
+                        color: isLatest
+                            ? const Color(0xFF00FF9D).withValues(alpha: 0.3)
+                            : const Color(0xFF00E5FF).withValues(alpha: 0.3),
+                      ),
                     ),
-                    child: Row(
-                       children: [
-                        Icon(
-                          _hasDownloadedAssets
-                              ? Icons.check_circle
-                              : Icons.phone_android,
-                          color: _hasDownloadedAssets
-                              ? const Color(0xFF00FF9D)
-                              : const Color(0xFF00E5FF),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _hasDownloadedAssets
-                                ? 'Versión Nube IA v7.0 (Invarianza Espacial & UI Fluida)'
-                                : 'Ejecutando versión embebida de la APK (IA v7.0)',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              isLatest ? Icons.check_circle : Icons.system_update,
+                              color: isLatest
+                                  ? const Color(0xFF00FF9D)
+                                  : const Color(0xFF00E5FF),
+                              size: 20,
                             ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                isLatest
+                                    ? 'Versión Activa: v$currentInstalledVersion (Al día)'
+                                    : 'Actualización Disponible: v$currentInstalledVersion ➔ v7.0.0',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isLatest
+                                      ? const Color(0xFF00FF9D)
+                                      : const Color(0xFF00E5FF),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          isLatest
+                              ? (previousVersion != null
+                                  ? 'Has pasado exitosamente de v$previousVersion a v$currentInstalledVersion.'
+                                  : 'Ejecutando la versión más reciente con Invarianza Espacial y 49 clases.')
+                              : 'Al actualizar pasarás de la versión v$currentInstalledVersion a la versión v7.0.0.',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // BOTÓN 1 PRINCIPAL: ACTUALIZACIÓN AUTOMÁTICA DESDE LA NUBE (CERO CONFIGURACIÓN)
+                  // BOTÓN 1 PRINCIPAL: ACTUALIZACIÓN AUTOMÁTICA DESDE LA NUBE
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -472,8 +551,10 @@ class _LSCHomePageState extends State<LSCHomePage> {
                           : const Icon(Icons.cloud_download, size: 22),
                       label: Text(
                         downloading
-                            ? 'Descargando modelo desde la nube...'
-                            : '☁️ Actualizar Modelo desde la Nube',
+                            ? 'Descargando e instalando modelo v7.0.0...'
+                            : (isLatest
+                                ? '☁️ Reinstalar / Sincronizar v7.0.0'
+                                : '☁️ Actualizar: Pasar de v$currentInstalledVersion a v7.0.0'),
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
@@ -488,13 +569,12 @@ class _LSCHomePageState extends State<LSCHomePage> {
                               final nav = Navigator.of(ctx);
 
                               setModalState(() => downloading = true);
-                              final ok = await _downloadResourcesFromCloud();
+                              final result = await _downloadResourcesFromCloud();
                               setModalState(() => downloading = false);
 
-                              if (ok) {
-                                final prefs =
-                                    await SharedPreferences.getInstance();
-                                await prefs.setBool('pref_is_live_mode', false);
+                              if (result.success) {
+                                final p = await SharedPreferences.getInstance();
+                                await p.setBool('pref_is_live_mode', false);
 
                                 if (!mounted) return;
                                 setState(() {
@@ -505,16 +585,33 @@ class _LSCHomePageState extends State<LSCHomePage> {
                                 await _controller.clearCache();
                                 _controller.loadRequest(
                                   Uri.parse(
-                                    'http://127.0.0.1:$port/index.html?v=${DateTime.now().millisecondsSinceEpoch}',
+                                    'http://127.0.0.1:$port/index.html?from=${result.fromVersion}&to=${result.toVersion}&v=${DateTime.now().millisecondsSinceEpoch}',
                                   ),
                                 );
+
+                                // Diálogo y SnackBar explícitos indicando la transición de versión
                                 messenger.showSnackBar(
                                   SnackBar(
-                                    content: const Text(
-                                      '✅ ¡Interfaz y modelo actualizados a Gestual Vision AI v7.0!',
+                                    content: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            '🎉 ¡Actualizado con éxito! Pasaste de v${result.fromVersion} a v${result.toVersion}.',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    backgroundColor: Colors.green,
-                                    duration: const Duration(seconds: 4),
+                                    backgroundColor: const Color(0xFF10B981),
+                                    duration: const Duration(seconds: 5),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(14),
@@ -530,8 +627,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                               } else {
                                 messenger.showSnackBar(
                                   SnackBar(
-                                    content: const Text(
-                                      '❌ No se pudo descargar. Verifica que tengas conexión a internet.',
+                                    content: Text(
+                                      '❌ Error al descargar: ${result.errorMessage ?? "Verifica tu conexión"}',
                                     ),
                                     backgroundColor: Colors.redAccent,
                                     behavior: SnackBarBehavior.floating,
@@ -599,6 +696,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
                             final nav = Navigator.of(ctx);
                             final prefs = await SharedPreferences.getInstance();
                             await prefs.setBool('pref_is_live_mode', false);
+                            await prefs.remove('pref_active_release');
+                            await prefs.remove('pref_previous_version');
                             final assetsDir = await _getWebAssetsDir();
                             if (await assetsDir.exists()) {
                               await assetsDir.delete(recursive: true);

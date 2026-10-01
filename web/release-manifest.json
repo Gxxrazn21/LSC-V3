@@ -2,7 +2,7 @@
   "schema_version": 1,
   "version": "7.0.0",
   "min_shell_version": "6.2.0",
-  "created_at": "2026-10-01T12:46:09.562362+00:00",
+  "created_at": "2026-10-01T13:40:21.275443+00:00",
   "files": {
     "icon-192.png": {
       "sha256": "466d453e926d493cc02d4872dafe2c173c6b344328e980284b3df1a1bb9cc33c",
@@ -13,8 +13,8 @@
       "bytes": 206543
     },
     "index.html": {
-      "sha256": "5922ad93af1b58cf8888e7b13f8420fa24f017c3ae4310fcb296b26aad754477",
-      "bytes": 112965
+      "sha256": "30c2a5f3d625fbead6810141b010486056412e65ff9c6c983dff0cf921b2699f",
+      "bytes": 119089
     },
     "logo.png": {
       "sha256": "57b661f8ce3c9844857a014e520075e3b500de99019a57f550916435583f7c54",
