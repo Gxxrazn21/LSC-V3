@@ -1,0 +1,7 @@
+{
+  "name": "lsc-e2e",
+  "private": true,
+  "description": "Prueba de punta a punta del pipeline LSC en Chrome headless",
+  "scripts": { "test": "node probar_pipeline_navegador.js" },
+  "dependencies": { "puppeteer-core": "^24.0.0" }
+}

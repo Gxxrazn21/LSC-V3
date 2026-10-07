@@ -1,83 +1,150 @@
-# Seña LSC v4.0 — Sistema Inteligente de Lengua de Señas Colombiana
-> Arquitectura operativa y proceso reproducible de datos/entrenamiento: [ARQUITECTURA_OPERATIVA_V7.md](ARQUITECTURA_OPERATIVA_V7.md).
-> **Traducción de LSC en tiempo real 100% On-Device (Zero Servidor, Zero Latencia)**  
-> Con Inteligencia Artificial Multimodal 109D, Rastreo Bimanual con Oclusión y App Nativa Android con Accesibilidad Universal.
+# Gestual Vision — Traductor de Lengua de Señas Colombiana (LSC)
 
-📱 **Descarga directa del APK para instalar en tu celular:**  
-👉 **[`Sena_LSC_v3_Android.apk`](file:///c:/Proyectos_Trae/entrenamiento/Sena_LSC_v3_Android.apk)** *(157 MB, compatible con Android 7.0+)*
+App Android (Flutter + WebView) que reconoce señas de LSC con la cámara del
+celular. La detección de manos (MediaPipe) y la red neuronal corren en el
+propio teléfono.
 
-📖 **Documentación Técnica Completa:**  
-👉 Consulta el manual detallado en **[`DOCUMENTACION_SISTEMA_LSC.md`](file:///c:/Proyectos_Trae/entrenamiento/DOCUMENTACION_SISTEMA_LSC.md)**
+- **APK:** `Gestual_Vision_v8.1.0.apk` (Android, ~48 MB)
+- **Versión:** 8.1.0
 
----
+## Qué reconoce
 
-## Características Principales
+47 señas, agrupadas en los modos de la app:
 
-1. **Inferencia 100% On-Device (Sin Internet ni Servidor)**:
-   * Todo el procesamiento de video, detección de landmarks 3D con MediaPipe y la propagación en la red neuronal multicapa (MLP) ocurren directamente en el teléfono móvil en menos de **0.8 ms** por fotograma.
-2. **Modelo de IA de Alta Precisión (v4.0)**:
-   * **Validación Cruzada Estratificada (5-Fold CV)**: **92.03% (± 1.51%)** promedio.
-   * **Precisión Global de Producción**: **99.87%** | **F1-Score**: **99.87%**.
-   * **Depuración Anatómica**: Filtrado de los datos residuales de manos en reposo del dataset LSC70.
-   * **Clases Guardianas Anti-Ruido**: `REPOSO` y `TRANSICION` para garantizar que la app permanezca en silencio y no invente palabras al mover las manos.
-3. **Rastreo Bimanual Inteligente con Oclusión**:
-   * Rastreo simultáneo de ambas manos (Derecha en Neón Cyan, Izquierda en Neón Fucsia) estabilizado con **Filtro OneEuro adaptativo**.
-   * **Blindaje "Sin Manos"**: Si no hay manos frente a la cámara, el sistema no inventa puntos ni predice nada.
-   * **Algoritmo de Oclusión (`updateOccluded`)**: Si una mano pasa detrás de la otra, el sistema la mantiene anclada cinemáticamente en profundidad $Z$ durante hasta 25 fotogramas (~800 ms) sin perder el seguimiento.
-4. **Accesibilidad Universal para la Comunidad Sorda y Oyentes**:
-   * **Audio Nativo por Altavoz Android**: Síntesis de voz en español mediante el motor del sistema operativo (`android.speech.tts.TextToSpeech` vía Kotlin Platform Channel).
-   * **Vibración Háptica (45 ms)**: Confirmación táctil física en la mano para que la persona sorda sienta el reconocimiento de la seña.
-   * **Flash Visual Perimetral (250 ms)**: Borde verde esmeralda brillante en la pantalla.
-   * **Acumulador de Oraciones (Sentence Builder)**: Construcción de frases completas con chips interactivos y pronunciación continua.
-   * **Modo Bidireccional "Oyente ➔ Sordo"**: Pantalla gigante de alto contraste OLED (fondo 100% negro con texto amarillo neón de 44px) y botones de respuesta rápida.
+| Modo | Señas |
+|---|---|
+| Palabras (10) | AÑOS, BUENAS, DIAS, GUSTAR, HOLA, LICOR, NOCHES, NOMBRE, TARDES, YO |
+| Abecedario (27) | A–Z y Ñ |
+| Números (10) | 1, 4, 5, 6, 7, 8, 9, 10, MIL, MILLON |
 
----
+Además está la clase REPOSO (manos abajo o sin intención de señar). El
+constructor de frases une BUENAS + DIAS/TARDES/NOCHES en "Buenos días",
+"Buenas tardes" y "Buenas noches", y junta las letras deletreadas en una
+palabra.
 
-## Métricas del Modelo de IA (13 Clases)
+## Qué tan bien funciona (medido honestamente)
 
-| Seña / Estado | Precisión | Recall | F1-Score |
-|---|:---:|:---:|:---:|
-| **HOLA** | **99.2%** | 100% | 99.6% |
-| **GRACIAS** | **100%** | 100% | 100% |
-| **BUENAS** | **100%** | 99.8% | 99.9% |
-| **DIAS** | **100%** | 100% | 100% |
-| **TARDES** | **100%** | 99.8% | 99.9% |
-| **NOCHES** | **100%** | 100% | 100% |
-| **YO** | **100%** | 100% | 100% |
-| **NOMBRE** | **100%** | 100% | 100% |
-| **GUSTAR** | **100%** | 100% | 100% |
-| **LICOR** | **100%** | 99.8% | 99.9% |
-| **ANNOS** | **100%** | 100% | 100% |
-| **REPOSO** | **100%** | 100% | 100% |
-| **TRANSICION** | **99.2%** | 98.8% | 99.0% |
+El modelo se evaluó con **personas que nunca vio durante el entrenamiento**
+(GroupKFold por persona, 70 personas del dataset LSC70, sin datos sintéticos):
 
-*Matriz de confusión disponible en:* [`modelos_guardados/matriz_confusion.png`](file:///c:/Proyectos_Trae/entrenamiento/modelos_guardados/matriz_confusion.png)
+| Escenario (solo señas, sin contar REPOSO) | Acierto por cuadro |
+|---|---|
+| Modo Palabras | 80,4 % |
+| Modo Abecedario | 84,3 % |
+| Modo Números | 86,8 % |
+| Modo Todo (47 señas a la vez) | 78,6 % |
 
----
+En la app la seña solo se confirma cuando se sostiene varios cuadros, así que la
+experiencia real suele ser mejor que el acierto por cuadro. Si los hombros no
+salen en cámara, el acierto baja unos 10 puntos; por eso la app pide alejarse
+cuando no los ve.
 
-## Inicio Rápido
+### Validador de señas parecidas
 
-### Instalar la App en tu Teléfono Móvil
-1. Conecta tu teléfono Android a la computadora o envíate el archivo [`Sena_LSC_v3_Android.apk`](file:///c:/Proyectos_Trae/entrenamiento/Sena_LSC_v3_Android.apk) por Telegram / WhatsApp.
-2. Abre el archivo en el teléfono y selecciona **Instalar / Actualizar**.
-3. Otorga los permisos de **Cámara** y ¡listo! Puedes traducir señas en tiempo real.
+Algunas señas solo se diferencian por el movimiento (N/Ñ, I/J, DÍAS/NOCHES) o
+por un detalle fino de la mano (1/6, 4/9, donde el 6 y el 9 son el 1 y el 4
+con las puntas dobladas). Cuando la app confirma una seña de uno de estos
+grupos, una segunda etapa revisa los últimos 1,5 s: combina las
+probabilidades medias del grupo con el movimiento de la muñeca, el índice y el
+meñique, y elige dentro del grupo.
 
-### Re-entrenar el Modelo de IA
-```bash
-# Activar entorno virtual
-venv_lsc\Scripts\activate
+Los grupos salen de la matriz de confusión. Un validador solo se activa si
+mejora la precisión con personas no vistas (por secuencia completa):
 
-# Ejecutar entrenamiento ultra-preciso
-python -u entrenar_modelo_lsc_ultra.py
+| Grupo | Sin validador | Con validador |
+|---|---|---|
+| N / Ñ | 65,9 % | 94,2 % |
+| 1 / 6 | 77,9 % | 91,4 % |
+| AÑOS / DÍAS / NOCHES / TARDES | 82,2 % | 93,5 % |
+| I / J / Y | 88,1 % | 92,4 % |
+| G / H / R | 91,9 % | 95,2 % |
+| 4 / 9 | 90,0 % | 92,1 % |
+
+F/L, S/Z y C/E se descartaron porque el validador no mejoraba. W/8 y V/7 solo
+se confunden en el modo Todo, porque una es letra y la otra número; en su
+propio modo no compiten.
+
+**Limitaciones conocidas.** Los rasgos de movimiento se aprendieron con
+secuencias de 6 cuadros del dataset; en la app se calculan sobre la ventana de
+1,5 s anterior a la confirmación. Conviene validarlo con usuarios reales.
+Señar lento y sostener el final de la seña ayuda.
+Señas como GRACIAS o BIEN no están incluidas porque no hay datos de varias
+personas. Para añadirlas, ver "Agregar señas nuevas".
+
+**Conexión.** Los modelos de MediaPipe (Hands y Pose) se descargan del CDN
+jsdelivr la primera vez que abres la app, así que esa primera apertura necesita
+internet. Después la inferencia ocurre en el teléfono.
+
+Las métricas completas por clase y la matriz de confusión están en
+`resultados/` (`metricas_actuales.json`, `reporte_clasificacion.txt` y
+`matriz_confusion.png`).
+
+## Estructura
+
+```
+web/                     Fuente única del frontend (index.html, motor, modelo)
+  motor_inferencia_local.js   Vector 109D, rasgos de movimiento, red neuronal, validador y filtros
+  diseno_v8.css               Capa visual (paleta, tipografía Atkinson Hyperlegible, modo oscuro)
+  modelo_ia_cliente.js        Pesos del modelo (generado, no editar)
+docs/ estilo/            Copias publicadas (GitHub Pages y OTA). No editar a mano.
+app_lsc/                 App Flutter; assets/web es copia publicada de web/
+scripts/
+  extraer_landmarks_lsc70.py  Imágenes LSC70 -> landmarks crudos (MediaPipe)
+  vectorizar_landmarks.js     Landmarks -> vectores 109D con el MISMO código de la app
+  publish_web_release.py      Copia web/ a docs/, estilo/ y app_lsc/assets/web + manifiesto OTA
+  analizar_confusiones.py     Compara el modelo con expertos por grupo de señas parecidas
+entrenar_modelo_lsc.py   Entrenamiento con validación por persona y exportación
+capturar_senas.py        Captura de señas nuevas con la webcam
+servidor_sync_movil.py   Sirve web/ en la red local para probar en el celular
+tests/e2e/               Prueba de punta a punta en Chrome (MediaPipe JS + modelo)
 ```
 
-### Compilar el APK con Flutter
+## Reentrenar el modelo
+
+Requiere `datasets/LSC70/` (LSC70W y LSC70AN), Python con
+`requirements.txt` y Node.js.
+
 ```bash
-cd app_lsc
-flutter build apk --debug
-copy /Y build\app\outputs\flutter-apk\app-debug.apk ..\Sena_LSC_v3_Android.apk
+python scripts/extraer_landmarks_lsc70.py      # ~15 min, genera datasets/landmarks_lsc70.jsonl
+node scripts/vectorizar_landmarks.js           # genera datasets/vectores_lsc70_109d.json
+python entrenar_modelo_lsc.py                  # valida por persona y exporta web/modelo_ia_cliente.js
+python scripts/publish_web_release.py --version 8.1.1
+cd app_lsc && flutter build apk --release
 ```
 
----
+Los vectores se calculan con `web/motor_inferencia_local.js`, la misma función
+que ejecuta la app. Así el modelo ve en el entrenamiento exactamente lo mismo
+que verá en el celular. Si cambias la extracción de características en el
+motor, vuelve a correr los pasos 2 y 3.
 
-Para conocer todos los detalles de diseño, cinemática 109D, filtros OneEuro, código de inferencia en JavaScript y canales nativos en Kotlin, lee la **[`DOCUMENTACION_SISTEMA_LSC.md`](file:///c:/Proyectos_Trae/entrenamiento/DOCUMENTACION_SISTEMA_LSC.md)**.
+## Agregar señas nuevas
+
+```bash
+python capturar_senas.py --persona P01 --senas GRACIAS BIEN --muestras 30
+python capturar_senas.py --persona P02 --senas GRACIAS BIEN --muestras 30
+# ... repite con al menos 8–10 personas distintas
+node scripts/vectorizar_landmarks.js
+python entrenar_modelo_lsc.py
+```
+
+Las capturas van a `datasets/capturas_propias.jsonl`, que el vectorizador
+incluye automáticamente. Para que la seña aparezca en un modo, agrégala a la
+lista correspondiente (`PALABRAS`, `ABECEDARIO` o `NUMEROS`) en
+`entrenar_modelo_lsc.py` y descríbela en `INFO_SENAS` en `web/index.html`.
+
+## Prueba de punta a punta
+
+```bash
+python -m http.server 8766                     # desde la raíz, en otra terminal
+npm --prefix tests/e2e install
+node tests/e2e/probar_pipeline_navegador.js Per03,Per30   # señas por cuadro
+node tests/e2e/probar_validador_navegador.js              # validador de señas parecidas
+node tests/e2e/capturas_ui.js <carpeta>                   # capturas de la interfaz
+```
+
+## Actualizaciones OTA
+
+La app descarga `release-manifest.json` y los archivos de `web/` (con `estilo/`
+como respaldo) desde la rama `main` de GitHub. Después de publicar con
+`publish_web_release.py` y hacer push a `main`, las apps instaladas se
+actualizan sin reinstalar el APK.

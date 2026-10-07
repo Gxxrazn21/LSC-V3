@@ -1,4 +1,43 @@
-# CHANGELOG — Gestual Vision AI / Traductor LSC v6.2 Motion
+# CHANGELOG — Gestual Vision (Traductor LSC)
+
+## [8.1.0] — 2026-10-06
+### Modelo: validador de señas parecidas
+- Nueva segunda etapa: cuando se confirma una seña de un grupo confundible, una regresión logística decide dentro del grupo con las probabilidades medias de los últimos 1,5 s y rasgos de movimiento (muñeca, índice y meñique, normalizados por los hombros).
+- Los grupos se detectan solos desde la matriz de confusión y un validador solo se activa si mejora con personas no vistas: N/Ñ 65,9 → 94,2 %, 1/6 77,9 → 91,4 %, AÑOS/DÍAS/NOCHES/TARDES 82,2 → 93,5 %, I/J/Y 88,1 → 92,4 %, G/H/R 91,9 → 95,2 %, 4/9 90,0 → 92,1 %.
+- Los rasgos de movimiento los calcula `extraerRasgosMovimiento` en el motor JS, la misma función en entrenamiento y en la app.
+
+### Interfaz
+- Rediseño: paleta Papel/Tinta/Cobalto con Maíz reservado para la confirmación, modo oscuro automático y tipografía Atkinson Hyperlegible empaquetada (funciona sin internet).
+- La seña reconocida va en una tarjeta flotante sobre la cámara; al confirmar, la palabra "se estampa" con un subrayado maíz.
+- Íconos SVG en lugar de emojis, control segmentado para las pestañas, hojas inferiores para el catálogo y los ajustes, textos en minúscula legible y nombres con tilde (DÍAS, Ñ, MILLÓN).
+- La sincronización en la nube pasa a Ajustes, así la cabecera queda limpia.
+
+
+## [8.0.0] — 2026-10-06
+### Modelo
+- Modelo nuevo entrenado con 70 personas reales del dataset LSC70: 47 señas (10 palabras, 27 letras y 10 números) más REPOSO.
+- Validación honesta por persona (GroupKFold), solo señas y con personas nunca vistas: Palabras 80,4 %, Abecedario 84,3 %, Números 86,8 %, Todo 78,6 %. Se quitan las métricas anteriores (88 % / 99 %), que medían datos ya vistos en el entrenamiento.
+- REPOSO se acota a 2.500 cuadros para que no infle la métrica ni sesgue la red.
+- Los vectores de entrenamiento se calculan con el mismo `motor_inferencia_local.js` de la app (paridad exacta), y cada muestra se usa con ambas manos (espejo).
+- Se retiran GRACIAS, BIEN y los saludos compuestos sintéticos, que tenían datos de una sola persona. Los saludos ahora se arman en el constructor de frases (BUENAS + DIAS → "Buenos días").
+
+### App
+- Con dos manos visibles, la mano en reposo ya no opaca a la que está señando.
+- El detector de mano neutra ya no bloquea señas con la mano abierta (B, 4, 5) en Abecedario y Números.
+- El filtro de "mano en regazo" ya no depende de la posición en el cuadro (solo de la distancia a los hombros).
+- Aviso "Aléjate un poco: que se vean tus hombros" cuando la pose no detecta los hombros.
+- OTA: un release descargado más viejo que el APK ya no lo tapa, y la nube solo instala versiones más nuevas que la activa.
+- Los números de una cifra ya no se pegan como letras deletreadas.
+- Contadores de modos, diccionario y versión salen del modelo cargado. Se elimina el aviso falso de actualización en instalaciones nuevas.
+- Accesibilidad: zoom permitido, `aria-label` en botones de icono, región `aria-live` para la seña detectada y respuestas rápidas como botones reales. La fila de acciones ya no se desborda en pantallas angostas.
+
+### Proyecto
+- Pipeline reproducible: `scripts/extraer_landmarks_lsc70.py` → `scripts/vectorizar_landmarks.js` → `entrenar_modelo_lsc.py` → `scripts/publish_web_release.py`.
+- Nuevo `capturar_senas.py` (landmarks crudos, por persona) y prueba E2E en `tests/e2e/`.
+- Se elimina el motor Python legado (`motor_lsc/`, servidor FastAPI, Docker), los scripts de auditoría, los modelos y cachés viejos y la documentación desactualizada.
+
+---
+
 Registro cronológico de todas las mejoras de interfaz, animaciones, rendimiento y accesibilidad aplicadas.
 
 ---

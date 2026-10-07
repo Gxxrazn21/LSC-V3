@@ -54,10 +54,8 @@ def main():
     parser.add_argument("--port", type=int, default=8000, help="Puerto de escucha (default: 8000)")
     args = parser.parse_args()
 
-    # Directorio que contiene los recursos web del app
-    directorio_web = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_lsc", "assets", "web")
-    if not os.path.exists(directorio_web):
-        directorio_web = os.path.join(os.path.dirname(os.path.abspath(__file__)), "estilo")
+    # Fuente canónica del frontend (los demás destinos se sincronizan desde aquí)
+    directorio_web = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 
     os.chdir(directorio_web)
     ip_pc = obtener_ip_local()

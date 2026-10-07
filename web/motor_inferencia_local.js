@@ -819,6 +819,64 @@ function extraerDescriptorMultimodal(handCoords, poseAnchors, isLeft = false) {
 }
 
 /**
+ * Rasgos de movimiento de una seña a partir de una secuencia de cuadros
+ * [{ coords: 21x3, pose: {hombro_izq, hombro_der} }] en orden temporal.
+ * Por cada punto (muñeca, punta del índice, punta del meñique), en anchos de
+ * hombro: rango horizontal, rango vertical, |desplazamiento neto horizontal| y
+ * desplazamiento neto vertical. El valor absoluto en X hace los rasgos
+ * independientes de la mano usada; los rangos no dependen de los FPS.
+ * Los usa el validador de señas parecidas (N/Ñ, I/J, DÍAS/NOCHES, 1/6...).
+ */
+const PUNTOS_MOVIMIENTO = [0, 8, 20];
+function extraerRasgosMovimiento(cuadros) {
+  if (!cuadros || cuadros.length < 3) return null;
+  const series = PUNTOS_MOVIMIENTO.map(() => []);
+  for (const { coords, pose } of cuadros) {
+    let cx = 0.5, cy = 0.5, w = 0.45;
+    if (pose && pose.hombro_izq && pose.hombro_der) {
+      cx = 0.5 * (pose.hombro_izq[0] + pose.hombro_der[0]);
+      cy = 0.5 * (pose.hombro_izq[1] + pose.hombro_der[1]);
+      w = Math.max(Vec3.norm2d(pose.hombro_izq[0] - pose.hombro_der[0], pose.hombro_izq[1] - pose.hombro_der[1]), 0.10);
+    }
+    PUNTOS_MOVIMIENTO.forEach((p, i) => series[i].push([(coords[p][0] - cx) / w, (coords[p][1] - cy) / w]));
+  }
+  const rasgos = [];
+  for (const s of series) {
+    const xs = s.map(q => q[0]), ys = s.map(q => q[1]);
+    rasgos.push(
+      Math.max(...xs) - Math.min(...xs),
+      Math.max(...ys) - Math.min(...ys),
+      Math.abs(xs[xs.length - 1] - xs[0]),
+      ys[ys.length - 1] - ys[0]
+    );
+  }
+  return rasgos;
+}
+
+/**
+ * Validador de señas parecidas. Si la seña confirmada pertenece a un grupo que
+ * el modelo suele confundir, decide dentro del grupo con una regresión
+ * logística entrenada sobre [probabilidades medias del grupo, rasgos de movimiento].
+ * Devuelve la seña elegida (o la original si no aplica).
+ */
+function validarSenaParecida(sena, probsMedias, rasgos, modelo, permitidas) {
+  const grupos = modelo && modelo.validadores;
+  if (!grupos || !probsMedias || !rasgos) return sena;
+  const g = grupos.find(v => v.clases.includes(sena));
+  if (!g) return sena;
+  const idx = g.clases.map(c => modelo.clases.indexOf(c));
+  const x = idx.map(i => probsMedias[i]).concat(rasgos);
+  let mejor = sena, mejorLogit = -Infinity;
+  g.clases.forEach((c, k) => {
+    if (permitidas && !permitidas.has(c)) return;
+    let z = g.b[k];
+    for (let j = 0; j < x.length; j++) z += g.w[k][j] * ((x[j] - g.media[j]) / g.escala[j]);
+    if (z > mejorLogit) { mejorLogit = z; mejor = c; }
+  });
+  return mejor;
+}
+
+/**
  * ============================================================================
  * DETECTOR DE MANO NEUTRA (v5.0)
  * ============================================================================
@@ -1319,7 +1377,8 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const dyRelativo = (vec109[106] || 0) / 2.5;
   const speed = (handMeta && handMeta.speed !== undefined) ? handMeta.speed : gateRes.speed;
 
-  const esManoEnRegazo = dyRelativo > 1.80 || (wristPos && wristPos[1] > 0.88);
+  // Solo criterio corporal (relativo a hombros); la posición en el cuadro depende de la cámara
+  const esManoEnRegazo = dyRelativo > 1.80;
   if (esManoEnRegazo && (speed < 0.035 || !gateRes.isOpen)) {
     return {
       sena: "REPOSO",
@@ -1384,6 +1443,15 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     }
   }
 
+  // Probabilidades sin filtro de modo: las usa el validador de señas parecidas,
+  // que se entrenó con la distribución completa
+  let maxSin = -Infinity;
+  for (let j = 0; j < num_clases; j++) if (logits[j] > maxSin) maxSin = logits[j];
+  const probsSinModo = new Array(num_clases);
+  let sumSin = 0;
+  for (let j = 0; j < num_clases; j++) { probsSinModo[j] = Math.exp(logits[j] - maxSin); sumSin += probsSinModo[j]; }
+  for (let j = 0; j < num_clases; j++) probsSinModo[j] /= sumSin;
+
   // Filtrado condicional por modo/categoría activa (Palabras, Abecedario, Números, Todo)
   const modoActivo = (typeof window !== 'undefined' && window.MODO_LSC_ACTIVO) ? window.MODO_LSC_ACTIVO : 'todo';
   if (modoActivo !== 'todo' && modelo.categorias && modelo.categorias[modoActivo]) {
@@ -1438,6 +1506,7 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
       entropia: entropia,
       estado: 'TRANSICIÓN',
       candidatos: candidatos.slice(0, 3),
+    probs: probsSinModo,
       isGuessing: true
     };
   }
@@ -1462,13 +1531,12 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
   const neutralResult = neutralDetector.evaluate(extDedos, speed, wristPos, performance.now());
 
   // ¿Es una seña genuina de mano abierta en su postura correspondiente?
-  const esSenaManoAbiertaValida = (
-    (top1.sena === 'HOLA' && top1.probabilidad >= 0.50) ||
-    (top1.sena === 'BUENAS' && top1.probabilidad >= 0.50) ||
-    (top1.sena === 'GUSTAR' && top1.probabilidad >= 0.50) ||
-    (top1.sena === 'TARDES' && top1.probabilidad >= 0.50) ||
-    (top1.sena === 'GRACIAS' && top1.probabilidad >= 0.50)
-  );
+  // En abecedario/números muchas señas son mano abierta y quieta (B, 4, 5), así que
+  // basta con que la red esté segura. En palabras solo las de mano abierta.
+  const modoGuarda = (typeof window !== 'undefined' && window.MODO_LSC_ACTIVO) || 'todo';
+  const PALABRAS_MANO_ABIERTA = ['HOLA', 'BUENAS', 'GUSTAR', 'TARDES'];
+  const esSenaManoAbiertaValida = top1.sena !== 'REPOSO' && top1.probabilidad >= 0.50 &&
+    (modoGuarda !== 'palabras' || PALABRAS_MANO_ABIERTA.includes(top1.sena));
 
   // Solo declarar REPOSO si:
   // 1. La mano está descansando en el regazo / espacio inferior profundo (dy > 1.80) y quieta
@@ -1502,6 +1570,7 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
       margen: 0,
       estado: 'TRANSICIÓN',
       candidatos: candidatos.slice(0, 3),
+    probs: probsSinModo,
       isTransitMotion: true,
       speed: speed
     };
@@ -1534,6 +1603,7 @@ function predecirRedNeuronal(vec109, modelo, handMeta) {
     margen: margen,
     estado: estado,
     candidatos: candidatos.slice(0, 3),
+    probs: probsSinModo,
     isNeutralHand: false,
     neutralDurationMs: 0
   };
@@ -1733,6 +1803,8 @@ if (typeof module !== 'undefined' && module.exports) {
     extraerDescriptorArticular,
     extraerZonasCorporalesPose,
     extraerDescriptorMultimodal,
+    extraerRasgosMovimiento,
+    validarSenaParecida,
     predecirRedNeuronal,
     OneEuroFilter,
     LandmarkStabilizer,
@@ -1751,6 +1823,8 @@ if (typeof module !== 'undefined' && module.exports) {
     extraerDescriptorArticular,
     extraerZonasCorporalesPose,
     extraerDescriptorMultimodal,
+    extraerRasgosMovimiento,
+    validarSenaParecida,
     predecirRedNeuronal,
     OneEuroFilter,
     LandmarkStabilizer,

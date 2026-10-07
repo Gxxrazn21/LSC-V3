@@ -60,7 +60,7 @@ class LSCHomePage extends StatefulWidget {
 
 class _LSCHomePageState extends State<LSCHomePage> {
   static const _nativeChannel = MethodChannel('com.lsc.app/native');
-  static const _shellVersion = '7.0.0';
+  static const _shellVersion = '8.1.0';
   HttpServer? _server;
   late final WebViewController _controller;
   bool _splashVisible = true; // controla el fade-out gradual del splash nativo
@@ -104,9 +104,27 @@ class _LSCHomePageState extends State<LSCHomePage> {
     if (version == null || !RegExp(r'^[0-9A-Za-z._-]+$').hasMatch(version)) {
       return null;
     }
+    // Un release OTA más viejo que el que trae la APK nunca debe tapar al empaquetado
+    if (_compareVersions(version, _shellVersion) <= 0) return null;
     final root = await _getWebAssetsDir();
     final candidate = Directory('${root.path}/releases/$version');
     return await candidate.exists() ? candidate : null;
+  }
+
+  static int _compareVersions(String a, String b) {
+    List<int> parse(String value) => value
+        .split('+').first
+        .split('-').first
+        .split('.')
+        .map((part) => int.tryParse(part) ?? 0)
+        .toList();
+    final pa = parse(a), pb = parse(b);
+    for (var i = 0; i < 3; i++) {
+      final x = i < pa.length ? pa[i] : 0;
+      final y = i < pb.length ? pb[i] : 0;
+      if (x != y) return x.compareTo(y);
+    }
+    return 0;
   }
 
   bool _isSafeAssetPath(String value) =>
@@ -277,6 +295,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
         mime = 'application/json; charset=utf-8';
       } else if (path.endsWith('.png')) {
         mime = 'image/png';
+      } else if (path.endsWith('.woff2')) {
+        mime = 'font/woff2';
       }
 
       return Response.ok(
@@ -299,7 +319,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
 
   Future<OtaUpdateResult> _downloadResourcesFromCloud({String? baseUrl}) async {
     final prefs = await SharedPreferences.getInstance();
-    final fromVersion = prefs.getString('pref_active_release') ?? '6.3.0';
+    final fromVersion = prefs.getString('pref_active_release') ?? _shellVersion;
 
     final bases = [
       (baseUrl != null && baseUrl.isNotEmpty) ? baseUrl : _defaultCloudBase,
@@ -338,6 +358,13 @@ class _LSCHomePageState extends State<LSCHomePage> {
         final files = manifest['files'];
         if (!RegExp(r'^[0-9A-Za-z._-]+$').hasMatch(toVersion) || files is! Map) {
           lastError = 'Versión de manifiesto inválida';
+          continue;
+        }
+        // Solo instalar si la nube trae algo más nuevo que lo que ya corre
+        final activa = prefs.getString('pref_active_release');
+        final actual = (activa != null && _compareVersions(activa, _shellVersion) > 0) ? activa : _shellVersion;
+        if (_compareVersions(toVersion, actual) <= 0) {
+          lastError = 'Ya tienes la versión más reciente (v$actual)';
           continue;
         }
 
@@ -403,14 +430,14 @@ class _LSCHomePageState extends State<LSCHomePage> {
     return OtaUpdateResult(
       success: false,
       fromVersion: fromVersion,
-      toVersion: '7.0.0',
+      toVersion: fromVersion,
       errorMessage: lastError,
     );
   }
 
   void _showSyncModal() async {
     final prefs = await SharedPreferences.getInstance();
-    final currentInstalledVersion = prefs.getString('pref_active_release') ?? '6.3.0';
+    final currentInstalledVersion = prefs.getString('pref_active_release') ?? _shellVersion;
     final previousVersion = prefs.getString('pref_previous_version');
     final textController = TextEditingController(text: _pcHost);
     bool downloading = false;
@@ -927,7 +954,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                             curve: Curves.elasticOut,
                             builder: (ctx, val, child) {
                               return Opacity(
-                                opacity: (val - 0.82) / 0.18,
+                                opacity: ((val - 0.82) / 0.18).clamp(0.0, 1.0),
                                 child: Transform.scale(
                                   scale: val,
                                   child: Image.asset(
@@ -948,7 +975,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                             curve: Curves.easeOutBack,
                             builder: (ctx, val, _) {
                               return Opacity(
-                                opacity: val,
+                                opacity: val.clamp(0.0, 1.0),
                                 child: Transform.translate(
                                   offset: Offset(0, (1 - val) * 18),
                                   child: const Text.rich(
@@ -985,7 +1012,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                             duration: const Duration(milliseconds: 850),
                             curve: Curves.easeOut,
                             builder: (ctx, val, _) => Opacity(
-                              opacity: val,
+                              opacity: val.clamp(0.0, 1.0),
                               child: const Text(
                                 '🇨🇴 Lengua de Señas Colombiana',
                                 style: TextStyle(
@@ -1005,7 +1032,7 @@ class _LSCHomePageState extends State<LSCHomePage> {
                             duration: const Duration(milliseconds: 900),
                             curve: Curves.easeOut,
                             builder: (ctx, val, _) => Opacity(
-                              opacity: val,
+                              opacity: val.clamp(0.0, 1.0),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 36,

@@ -1,0 +1,60 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Prueba pipeline LSC</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="../../web/modelo_ia_cliente.js"></script>
+<script src="../../web/motor_inferencia_local.js"></script>
+<script>
+  // Pasa una imagen por MediaPipe JS (Hands + Pose, igual que la app) y por el
+  // motor/modelo de web/. Devuelve la predicción de cada mano detectada.
+  const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+  hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+  const pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+  pose.setOptions({ modelComplexity: 0, minDetectionConfidence: 0.38 });
+  let ultimoHands = null, ultimoPose = null;
+  hands.onResults(r => { ultimoHands = r; });
+  pose.onResults(r => { ultimoPose = r; });
+
+  async function cargar(url) {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return img;
+  }
+
+  window.probar = async (url, modo, sinPose) => {
+    window.MODO_LSC_ACTIVO = modo || 'todo';
+    const img = await cargar(url);
+    // Dos pasadas: la primera estabiliza el tracking como lo haría el video
+    for (let i = 0; i < 2; i++) { await pose.send({ image: img }); await hands.send({ image: img }); }
+    const p = ultimoPose && ultimoPose.poseLandmarks;
+    const hombros = (p && !sinPose) ? {
+      nariz: [p[0].x, p[0].y, p[0].z], hombro_izq: [p[11].x, p[11].y, p[11].z], hombro_der: [p[12].x, p[12].y, p[12].z]
+    } : null;
+    const manos = (ultimoHands && ultimoHands.multiHandLandmarks) || [];
+    return manos.map((lms, i) => {
+      const coords = lms.map(q => [q.x, q.y, q.z]);
+      const label = ultimoHands.multiHandedness[i].label;
+      const desc = MotorLSCLocal.extraerDescriptorMultimodal(coords, hombros, label === 'Left');
+      const pred = MotorLSCLocal.predecirRedNeuronal(desc.vec109, window.MODELO_LSC, { slot: i, speed: 0, coords });
+      return { sena: pred.sena, raw: pred.rawSena || pred.sena, conf: pred.confianza, pose: !!hombros };
+    });
+  };
+  // Un cuadro de una secuencia: mano más alta (la que seña) con sus probabilidades
+  window.probarCuadro = async (url) => {
+    const img = await cargar(url);
+    for (let i = 0; i < 2; i++) { await pose.send({ image: img }); await hands.send({ image: img }); }
+    const p = ultimoPose && ultimoPose.poseLandmarks;
+    const manos = (ultimoHands && ultimoHands.multiHandLandmarks) || [];
+    if (!p || !manos.length) return null;
+    const hombros = { nariz: [p[0].x, p[0].y, p[0].z], hombro_izq: [p[11].x, p[11].y, p[11].z], hombro_der: [p[12].x, p[12].y, p[12].z] };
+    const i = manos.map((m, k) => k).sort((a, b) => manos[a][0].y - manos[b][0].y)[0];
+    const coords = manos[i].map(q => [q.x, q.y, q.z]);
+    const label = ultimoHands.multiHandedness[i].label;
+    const desc = MotorLSCLocal.extraerDescriptorMultimodal(coords, hombros, label === 'Left');
+    const pred = MotorLSCLocal.predecirRedNeuronal(desc.vec109, window.MODELO_LSC, { slot: 0, speed: 0, coords });
+    return pred.probs ? { probs: pred.probs, coords, pose: hombros } : null;
+  };
+  window.listo =hands.initialize().then(() => pose.initialize());
+</script>

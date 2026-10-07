@@ -47,3 +47,12 @@ test_*.png
 # Herramientas y salidas locales de Graphify
 .tools/
 graphify-out/
+
+# Datos derivados del pipeline (se regeneran con scripts/)
+datasets/landmarks_lsc70.jsonl
+datasets/vectores_lsc70_109d.json
+modelos_guardados/*.joblib
+tests/e2e/node_modules/
+
+# Respaldos automáticos de Blender
+*.blend1

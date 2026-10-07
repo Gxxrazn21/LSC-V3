@@ -2,14 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Gestual Vision AI | Lengua de Señas Colombiana (LSC v7.0)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Gestual Vision | Lengua de Señas Colombiana</title>
   <link rel="icon" type="image/png" href="logo_simbolo.png">
 
-  <!-- Tipografía Moderna de Alta Legibilidad -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <!-- Tipografía Nativa de Alto Rendimiento (Offline / Neobrutalismo) -->
+  <!-- Se utiliza system-ui en las variables CSS -->
 
   <!-- MediaPipe CDN (Ejecución GPU local vía WebGL/Wasm) -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -22,50 +20,53 @@
 
   <style>
     /* ==========================================================================
-       SISTEMA DE DISEÑO CLARO, VIBRANTE Y COLOMBIANO (UI/UX PRO MAX)
-       Paleta: Pearl Slate luminoso, Tarjetas Blanco Puro y Tricolor Colombiano
+       DIRECCIÓN A: SEÑALÉTICA URBANA (NEOBRUTALISMO ACCESIBLE)
+       Paleta: Blanco Hueso, Negro Carbón, Amarillo Tránsito y Azul Pacífico
+       Cero degradados, cero blurs. Sombras sólidas GPU-Safe.
        ========================================================================== */
     :root {
-      /* Fondo y Superficies Claras y Luminosas */
-      --bg-canvas: #f4f7fb;
-      --bg-canvas-subtle: #edf2f7;
-      --card-bg: #ffffff;
-      --card-bg-elevated: #ffffff;
-      --card-border: rgba(15, 23, 42, 0.08);
-      --card-border-active: rgba(245, 158, 11, 0.45);
-      --card-shadow: 0 4px 20px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
-      --card-shadow-hover: 0 10px 30px rgba(15, 23, 42, 0.08);
+      /* Fondo y Superficies Sólidas */
+      --bg-canvas: #F9F9F6;
+      --bg-canvas-subtle: #F0F0EA;
+      --card-bg: #FFFFFF;
+      --card-bg-elevated: #FFFFFF;
+      
+      /* Bordes y Sombras Neobrutalistas */
+      --card-border: 3px solid #1A1A1A;
+      --card-border-active: 3px solid #FFC700;
+      --card-shadow: 4px 4px 0px #1A1A1A;
+      --card-shadow-hover: 6px 6px 0px #1A1A1A;
 
-      /* Identidad Tricolor Colombiana Oficial */
-      --col-yellow: #f59e0b;
-      --col-yellow-dark: #d97706;
-      --col-yellow-light: #fffbeb;
-      --col-yellow-pill: #fef3c7;
-      --col-yellow-glow: rgba(245, 158, 11, 0.3);
+      /* Identidad "Señalética" de Alto Contraste */
+      --col-yellow: #FFC700;
+      --col-yellow-dark: #CCA000;
+      --col-yellow-light: #FFF4CC;
+      --col-yellow-pill: #FFEBA3;
+      --col-yellow-glow: transparent; /* Anulamos el glow costoso */
 
-      --col-blue: #1d4ed8;
-      --col-blue-dark: #1e40af;
-      --col-blue-light: #eff6ff;
-      --col-blue-pill: #dbeafe;
-      --col-blue-glow: rgba(29, 78, 216, 0.25);
+      --col-blue: #004AD7;
+      --col-blue-dark: #003399;
+      --col-blue-light: #E5EEFF;
+      --col-blue-pill: #CCE0FF;
+      --col-blue-glow: transparent;
 
-      --col-red: #e11d48;
-      --col-red-dark: #be123c;
-      --col-red-light: #fff1f2;
-      --col-red-pill: #ffe4e6;
-      --col-red-glow: rgba(225, 29, 72, 0.25);
+      --col-red: #D71920;
+      --col-red-dark: #991217;
+      --col-red-light: #FBE8E9;
+      --col-red-pill: #F7D1D2;
+      --col-red-glow: transparent;
 
-      /* Gradientes Oficiales Colombia */
-      --tricolor-flag: linear-gradient(90deg, #f59e0b 0%, #f59e0b 50%, #1d4ed8 50%, #1d4ed8 75%, #e11d48 75%, #e11d48 100%);
-      --tricolor-smooth: linear-gradient(90deg, #f59e0b 0%, #1d4ed8 55%, #e11d48 100%);
+      /* Gradiente reemplazado por bloque tricolor duro */
+      --tricolor-flag: linear-gradient(90deg, #FFC700 0%, #FFC700 33.3%, #004AD7 33.3%, #004AD7 66.6%, #D71920 66.6%, #D71920 100%);
+      --tricolor-smooth: var(--tricolor-flag);
 
-      /* Textos de Alto Contraste */
-      --text-main: #0f172a;       /* Slate 900 */
-      --text-muted: #475569;      /* Slate 600 */
-      --text-dim: #94a3b8;        /* Slate 400 */
-      --font-heading: 'Outfit', -apple-system, sans-serif;
-      --font-body: 'Inter', -apple-system, sans-serif;
-      --font-mono: 'Space Grotesk', monospace;
+      /* Textos Ultra Legibles */
+      --text-main: #1A1A1A;       /* Negro Carbón */
+      --text-muted: #4A4A4A;      /* Gris Asfalto */
+      --text-dim: #7A7A7A;        
+      --font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;pace;
 
       /* Físicas de Resorte Suaves (Framer Motion style) */
       --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
@@ -857,8 +858,26 @@
 
     .sentence-actions {
       display: grid;
-      grid-template-columns: 1.3fr 1fr 1fr 1fr;
-      gap: 8px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .sentence-actions .btn-action {
+      padding: 11px 4px;
+      gap: 4px;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 380px) {
+      .sentence-actions .btn-action { font-size: 12px; }
+      .sentence-actions .btn-action span { display: none; }
+    }
+
+    /* En pantallas angostas el botón de nube muestra solo el icono */
+    @media (max-width: 440px) {
+      .btn-cloud-sync { font-size: 0; gap: 0; }
+      .btn-cloud-sync span { font-size: 16px; }
     }
 
     .btn-action {
@@ -926,6 +945,10 @@
     }
 
     .quick-card {
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      width: 100%;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 16px;
@@ -1795,11 +1818,24 @@
       display: none !important;
     }
   </style>
+  <link rel="stylesheet" href="diseno_v8.css">
 </head>
 <body>
 
   <!-- Franja Tricolor Superior de Colombia -->
   <div class="tricolor-stripe"></div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-libro" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/><path d="M9 7h6"/></symbol>
+    <symbol id="i-ajustes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-mano" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0v5"/><path d="M14 10V4a2 2 0 0 0-4 0v6"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></symbol>
+    <symbol id="i-habla" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-girar" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></symbol>
+    <symbol id="i-espejo" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M8 7 4 12l4 5"/><path d="m16 7 4 5-4 5"/></symbol>
+    <symbol id="i-voz" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-borrar" viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="m18 9-6 6"/><path d="m12 9 6 6"/></symbol>
+    <symbol id="i-limpiar" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
+  </svg>
 
   <!-- Flash de Confirmación Luminoso -->
   <div class="screen-flash" id="screenFlash"></div>
@@ -1815,7 +1851,7 @@
         <p class="splash-subtitle">Traductor de Lengua de Señas Colombiana (LSC)</p>
       </div>
       <div class="splash-colombia-badge">
-        <span>🇨🇴</span> Colombia • Inteligencia On-Device v7.0
+        <span>🇨🇴</span> Colombia • Inteligencia en el dispositivo
       </div>
       <div class="splash-loader-bar">
         <div class="splash-loader-progress"></div>
@@ -1832,19 +1868,19 @@
       </div>
       <div class="brand-meta">
         <h1>Gestual Vision</h1>
-        <span id="headerLiveStatus">🇨🇴 LSC Colombia • v7.0</span>
+        <span id="headerLiveStatus">LSC Colombia</span>
       </div>
     </div>
     <div class="header-actions">
       <!-- BOTÓN DE ACTUALIZACIÓN DESDE LA NUBE (OTA LIVE SYNC) -->
-      <button class="btn-header btn-cloud-sync" id="btnCloudSync" title="Actualizar desde la Nube sin reinstalar APK">
+      <button class="btn-header btn-cloud-sync" id="btnCloudSync" title="Actualizar desde la Nube sin reinstalar APK" aria-label="Actualizar">
         <span>☁️</span> Actualizar
       </button>
-      <button class="btn-header" id="btnOpenDictionary" title="Catálogo de Señas">
-        <span>📖</span>
+      <button class="btn-header" id="btnOpenDictionary" title="Catálogo de Señas" aria-label="Catálogo de señas">
+        <svg class="icon" aria-hidden="true"><use href="#i-libro"/></svg>
       </button>
-      <button class="btn-header" id="btnOpenSettings" title="Ajustes">
-        <span>⚙️</span>
+      <button class="btn-header" id="btnOpenSettings" title="Ajustes" aria-label="Ajustes">
+        <svg class="icon" aria-hidden="true"><use href="#i-ajustes"/></svg>
       </button>
     </div>
   </header>
@@ -1852,10 +1888,10 @@
   <!-- PESTAÑAS DE MODO (DOS MODOS LIMPIOS Y CLAROS) -->
   <div class="tabs-bar">
     <button class="tab-btn active" id="tabTranslate">
-      <span>🖐️</span> Traductor LSC
+      <svg class="icon" aria-hidden="true"><use href="#i-mano"/></svg> Traductor
     </button>
     <button class="tab-btn" id="tabBidi">
-      <span>🗣️</span> Oyente ➔ Sordo
+      <svg class="icon" aria-hidden="true"><use href="#i-habla"/></svg> Oyente → Sordo
     </button>
   </div>
 
@@ -1867,10 +1903,10 @@
         <span class="update-notice-icon">🎉</span>
         <div class="update-notice-text">
           <strong id="updateNoticeTitle">¡Actualización Exitosa!</strong>
-          <span id="updateNoticeDetail">Has pasado de la versión v6.3.0 a la versión v7.0.0.</span>
+          <span id="updateNoticeDetail"></span>
         </div>
       </div>
-      <button class="update-notice-close" id="btnCloseUpdateNotice" title="Cerrar notificación">✕</button>
+      <button class="update-notice-close" id="btnCloseUpdateNotice" title="Cerrar notificación" aria-label="Cerrar notificación">✕</button>
     </div>
 
     <!-- VISTA 1: TRADUCTOR Y CÁMARA ULTRA-LIMPIA -->
@@ -1879,16 +1915,16 @@
       <!-- Selector de Modo / Categoría de Señas -->
       <div class="category-selector-bar" id="categorySelectorBar">
         <button class="cat-pill active" data-mode="palabras" id="catBtnPalabras" title="11 Señas Conversacionales + Reposo">
-          <span>💬</span> Palabras
+          Palabras
         </button>
         <button class="cat-pill" data-mode="abecedario" id="catBtnAbecedario" title="27 Letras del Alfabeto LSC (A-Z, Ñ)">
-          <span>🔤</span> Abecedario
+          Abecedario
         </button>
         <button class="cat-pill" data-mode="numeros" id="catBtnNumeros" title="10 Números y Cantidades LSC">
-          <span>🔢</span> Números
+          Números
         </button>
-        <button class="cat-pill" data-mode="todo" id="catBtnTodo" title="49 Clases Unificadas">
-          <span>🌐</span> Todo (49)
+        <button class="cat-pill" data-mode="todo" id="catBtnTodo" title="Todas las señas">
+          Todo
         </button>
       </div>
 
@@ -1910,8 +1946,8 @@
 
         <!-- Controles Flotantes Discretos de Cámara -->
         <div class="camera-controls">
-          <button class="btn-cam-circle" id="btnSwitchCam" title="Alternar Cámara">🔄</button>
-          <button class="btn-cam-circle" id="btnToggleMirror" title="Alternar Modo Espejo">🪞</button>
+          <button class="btn-cam-circle" id="btnSwitchCam" title="Alternar Cámara" aria-label="Alternar cámara"><svg class="icon" aria-hidden="true"><use href="#i-girar"/></svg></button>
+          <button class="btn-cam-circle" id="btnToggleMirror" title="Alternar Modo Espejo" aria-label="Alternar modo espejo"><svg class="icon" aria-hidden="true"><use href="#i-espejo"/></svg></button>
         </div>
       </div>
 
@@ -1919,7 +1955,7 @@
       <div class="hero-card">
         <div class="hero-top-row">
           <div class="state-pill state-idle" id="statePill">
-            <span id="statePillText">LISTO PARA SEÑAS</span>
+            <span id="statePillText">Listo para señar</span>
           </div>
           <div class="zone-indicator" id="zoneIndicator">
             <span>📍</span> <span id="zoneIndicatorText">Área de captura</span>
@@ -1927,7 +1963,7 @@
         </div>
 
         <div class="hero-main-row">
-          <div class="word-hero" id="predTitle">---</div>
+          <div class="word-hero" id="predTitle" aria-live="polite">—</div>
           <div class="confidence-meter-val" id="predConfidence">0%</div>
         </div>
 
@@ -1940,26 +1976,26 @@
     <!-- BANDEJA DE CONSTRUCCIÓN DE ORACIONES -->
     <div class="sentence-card">
       <div class="sentence-header">
-        <span>Frase Construida</span>
+        <span>Frase</span>
         <span style="color: var(--col-blue); font-weight: 800;" id="wordCountBadge">0 palabras</span>
       </div>
-      <div class="sentence-display" id="sentenceDisplay">
+      <div class="sentence-display" id="sentenceDisplay" aria-live="polite">
         <span class="empty-hint" id="emptySentenceHint">
           Las señas confirmadas se sumarán aquí para formar frases
         </span>
       </div>
       <div class="sentence-actions">
         <button class="btn-action btn-speak-all" id="btnSpeakAll" title="Pronunciar frase">
-          <span>🔊</span> Hablar
+          <svg class="icon" aria-hidden="true"><use href="#i-voz"/></svg> Hablar
         </button>
         <button class="btn-action btn-secondary" id="btnCopySentence" title="Copiar al portapapeles">
-          <span>📋</span> Copiar
+          <svg class="icon" aria-hidden="true"><use href="#i-copiar"/></svg> Copiar
         </button>
         <button class="btn-action btn-secondary" id="btnBackspace" title="Borrar última palabra">
-          <span>⌫</span> Borrar
+          <svg class="icon" aria-hidden="true"><use href="#i-borrar"/></svg> Borrar
         </button>
         <button class="btn-action btn-secondary" id="btnClearAll" title="Limpiar toda la oración">
-          <span>🗑️</span> Limpiar
+          <svg class="icon" aria-hidden="true"><use href="#i-limpiar"/></svg> Limpiar
         </button>
       </div>
     </div>
@@ -1967,33 +2003,33 @@
     <!-- VISTA 2: RESPUESTAS RÁPIDAS OYENTE ➔ SORDO -->
     <div class="bidi-panel" id="viewBidi">
       <div class="bidi-header">
-        Respuestas para Mostrar a la Persona Sorda:
+        Respuestas para mostrar a la persona sorda
       </div>
       <div class="quick-grid">
-        <div class="quick-card" data-reply="¡ENTENDIDO! MUCHAS GRACIAS.">
+        <button type="button" class="quick-card" data-reply="¡ENTENDIDO! MUCHAS GRACIAS.">
           <span class="quick-card-icon">👍</span>
           <span class="quick-card-text">¡Entendido!</span>
-        </div>
-        <div class="quick-card" data-reply="SÍ, CLARO QUE SÍ.">
+        </button>
+        <button type="button" class="quick-card" data-reply="SÍ, CLARO QUE SÍ.">
           <span class="quick-card-icon">✅</span>
           <span class="quick-card-text">Sí, claro</span>
-        </div>
-        <div class="quick-card" data-reply="NO, ESPERA UN MOMENTO POR FAVOR.">
+        </button>
+        <button type="button" class="quick-card" data-reply="NO, ESPERA UN MOMENTO POR FAVOR.">
           <span class="quick-card-icon">✋</span>
           <span class="quick-card-text">Espera un momento</span>
-        </div>
-        <div class="quick-card" data-reply="POR FAVOR REPITE LA SEÑA MÁS DESPACIO.">
+        </button>
+        <button type="button" class="quick-card" data-reply="POR FAVOR REPITE LA SEÑA MÁS DESPACIO.">
           <span class="quick-card-icon">🔄</span>
           <span class="quick-card-text">Repite por favor</span>
-        </div>
-        <div class="quick-card" data-reply="¿CÓMO TE PUEDO AYUDAR HOY?">
+        </button>
+        <button type="button" class="quick-card" data-reply="¿CÓMO TE PUEDO AYUDAR HOY?">
           <span class="quick-card-icon">🤝</span>
           <span class="quick-card-text">¿Cómo te ayudo?</span>
-        </div>
-        <div class="quick-card" data-reply="MUCHO GUSTO EN CONOCERTE.">
+        </button>
+        <button type="button" class="quick-card" data-reply="MUCHO GUSTO EN CONOCERTE.">
           <span class="quick-card-icon">👋</span>
           <span class="quick-card-text">Mucho gusto</span>
-        </div>
+        </button>
       </div>
 
       <div class="custom-reply-row">
@@ -2026,11 +2062,11 @@
         <p>Descarga e instala la última versión de la interfaz, modelo neuronal y calibraciones directamente desde la nube sin reinstalar la APK.</p>
         <div style="margin-top: 14px; background: #f8fafc; padding: 14px; border-radius: 14px; border: 1.5px solid #10b981;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-weight: 800; color: #065f46; font-size: 14px;">Gestual Vision v7.0.0 Colombia</div>
+            <div style="font-weight: 800; color: #065f46; font-size: 14px;">Gestual Vision <span id="cloudModalVersion"></span></div>
             <span style="background: #d1fae5; color: #065f46; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 8px;">ACTIVA</span>
           </div>
           <div id="cloudModalVersionDetail" style="font-size: 12px; color: #047857; margin-top: 6px; font-weight: 600;">
-            Has pasado exitosamente de v6.3.0 a v7.0.0 con Invarianza Espacial y 49 clases puras.
+            
           </div>
         </div>
       </div>
@@ -2044,14 +2080,14 @@
   <div class="drawer-modal" id="drawerSettings">
     <div class="drawer-content">
       <div class="drawer-header">
-        <div class="drawer-title">Ajustes & Accesibilidad</div>
+        <div class="drawer-title">Ajustes</div>
         <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseSettings">✕</span>
       </div>
 
       <div class="setting-row">
         <div>
-          <div class="setting-label">🔊 Voz Nativa Android OS</div>
-          <div class="setting-desc">Pronuncia por el altavoz la seña confirmada</div>
+          <div class="setting-label">Voz</div>
+          <div class="setting-desc">Dice en voz alta cada seña confirmada</div>
         </div>
         <div class="toggle-switch active" id="toggleAutoVoice">
           <div class="toggle-knob"></div>
@@ -2060,8 +2096,8 @@
 
       <div class="setting-row">
         <div>
-          <div class="setting-label">📳 Vibración Háptica</div>
-          <div class="setting-desc">Pulso táctil en la mano al confirmar seña</div>
+          <div class="setting-label">Vibración</div>
+          <div class="setting-desc">Vibra al confirmar una seña</div>
         </div>
         <div class="toggle-switch active" id="toggleHaptic">
           <div class="toggle-knob"></div>
@@ -2070,8 +2106,8 @@
 
       <div class="setting-row">
         <div>
-          <div class="setting-label">🔔 Chime de Confirmación</div>
-          <div class="setting-desc">Sonido sutil de confirmación para oyentes</div>
+          <div class="setting-label">Sonido de confirmación</div>
+          <div class="setting-desc">Tono corto para las personas oyentes</div>
         </div>
         <div class="toggle-switch active" id="toggleChime">
           <div class="toggle-knob"></div>
@@ -2080,8 +2116,8 @@
 
       <div class="setting-row">
         <div>
-          <div class="setting-label">⚡ Flash Luminoso</div>
-          <div class="setting-desc">Borde visual de confirmación para personas sordas</div>
+          <div class="setting-label">Destello visual</div>
+          <div class="setting-desc">Ilumina el borde al confirmar, pensado para personas sordas</div>
         </div>
         <div class="toggle-switch active" id="toggleFlash">
           <div class="toggle-knob"></div>
@@ -2090,7 +2126,7 @@
 
       <div class="setting-row">
         <div>
-          <div class="setting-label">✨ Modo Cámara Limpia</div>
+          <div class="setting-label">Ocultar trazos de la mano</div>
           <div class="setting-desc">Oculta puntos y líneas sobre las manos</div>
         </div>
         <div class="toggle-switch active" id="toggleCleanVision">
@@ -2099,10 +2135,10 @@
       </div>
 
       <div style="margin-top: 10px; padding: 14px; background: var(--col-blue-light); border: 1px solid rgba(29, 78, 216, 0.2); border-radius: 14px;">
-        <div style="font-weight: 800; color: var(--col-blue); font-size: 13px;">Actualización Directa desde la Nube</div>
-        <p style="font-size: 11px; color: var(--text-muted); margin: 4px 0 10px 0;">Recibe mejoras continuas de IA sin transferir APKs.</p>
+        <div style="font-weight: 800; color: var(--col-blue); font-size: 13px;">Actualizaciones</div>
+        <p style="font-size: 11px; color: var(--text-muted); margin: 4px 0 10px 0;">Descarga la última versión del modelo y la interfaz sin reinstalar la app.</p>
         <button class="btn-action btn-secondary" id="btnDrawerSync" style="width: 100%; font-size: 12px; padding: 9px; background: #ffffff;">
-          <span>☁️</span> Abrir Gestor de Nube
+          Buscar actualización
         </button>
       </div>
     </div>
@@ -2112,7 +2148,7 @@
   <div class="drawer-modal" id="drawerDictionary">
     <div class="drawer-content">
       <div class="drawer-header">
-        <div class="drawer-title">Catálogo de Señas (11 Señas Calibradas)</div>
+        <div class="drawer-title" id="tituloCatalogo">Catálogo de señas</div>
         <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseDictionary">✕</span>
       </div>
       <div class="signs-list" id="signsListContainer"></div>
@@ -2262,10 +2298,11 @@
     // (flashSuccess / flashError) se aplican en los callers y honran el guard JS.
     function emitirFeedback(texto, opciones = {}) {
       if (hapticEnabled && opciones.vibrar !== false) {
+        const pattern = opciones.duracionVib || 15; // 15ms base para "tick"
         if (window.NativeBridge) {
-          window.NativeBridge.postMessage(JSON.stringify({ action: 'vibrate', duration: opciones.duracionVib || 45 }));
+          window.NativeBridge.postMessage(JSON.stringify({ action: 'vibrate', duration: Array.isArray(pattern) ? pattern[0] : pattern }));
         } else if ('vibrate' in navigator) {
-          navigator.vibrate(opciones.duracionVib || 45);
+          navigator.vibrate(pattern);
         }
       }
 
@@ -2334,8 +2371,76 @@
     const btnBackspace = document.getElementById('btnBackspace');
     const btnClearAll = document.getElementById('btnClearAll');
 
+    // NLP LIGERO ON-DEVICE (GLOSA -> ESPAÑOL NATURAL) v7.1
+    const reglasGramaticaLSC = [
+      { patron: ["YO", "GUSTAR", "LICOR"], reemplazo: ["Me", "gusta", "el", "licor."] },
+      { patron: ["YO", "NOMBRE"], reemplazo: ["Mi", "nombre", "es"] },
+      { patron: ["HOLA", "BUENAS", "DIAS"], reemplazo: ["Hola,", "buenos", "días."] },
+      { patron: ["HOLA", "BUENAS", "TARDES"], reemplazo: ["Hola,", "buenas", "tardes."] },
+      { patron: ["HOLA", "BUENAS", "NOCHES"], reemplazo: ["Hola,", "buenas", "noches."] },
+      { patron: ["YO", "AÑOS"], reemplazo: ["Tengo", "años."] },
+      { patron: ["BUENAS", "DIAS"], reemplazo: ["Buenos", "días."] },
+      { patron: ["BUENAS", "TARDES"], reemplazo: ["Buenas", "tardes."] },
+      { patron: ["BUENAS", "NOCHES"], reemplazo: ["Buenas", "noches."] }
+    ];
+
+    function traducirGlosaAEspanol(tokensBrutos) {
+      let tokens = [...tokensBrutos];
+      let huboCambio = true;
+      while (huboCambio) {
+        huboCambio = false;
+        for (let r of reglasGramaticaLSC) {
+          const len = r.patron.length;
+          if (tokens.length >= len) {
+            for (let i = 0; i <= tokens.length - len; i++) {
+              let coincide = true;
+              for (let j = 0; j < len; j++) {
+                if (tokens[i + j].toUpperCase().replace(/_/g, ' ') !== r.patron[j]) {
+                  coincide = false;
+                  break;
+                }
+              }
+              if (coincide) {
+                tokens.splice(i, len, ...r.reemplazo);
+                huboCambio = true;
+                break;
+              }
+            }
+          }
+          if (huboCambio) break;
+        }
+      }
+
+      // Agrupar letras del abecedario sueltas (Dactilología) en una sola palabra
+      let resultadoFinal = [];
+      let bufferAbecedario = "";
+      
+      for (let i = 0; i < tokens.length; i++) {
+        let t = tokens[i];
+        let esLetra = /^([A-Z]|NN)$/.test(t);
+        if (esLetra) {
+          bufferAbecedario += (t === 'NN' ? 'ñ' : t.toLowerCase());
+        } else {
+          if (bufferAbecedario !== "") {
+            resultadoFinal.push(bufferAbecedario.charAt(0).toUpperCase() + bufferAbecedario.slice(1));
+            bufferAbecedario = "";
+          }
+          resultadoFinal.push(t);
+        }
+      }
+      if (bufferAbecedario !== "") {
+        resultadoFinal.push(bufferAbecedario.charAt(0).toUpperCase() + bufferAbecedario.slice(1));
+      }
+      
+      return resultadoFinal;
+    }
+
+    let oracionTokensLSCBruto = [];
+
     function agregarPalabraAOracion(palabra) {
-      oracionTokens.push(palabra);
+      if (palabra === 'TRANSICION' || palabra === 'TRANSICIÓN' || palabra === 'REPOSO') return;
+      oracionTokensLSCBruto.push(palabra);
+      oracionTokens = traducirGlosaAEspanol(oracionTokensLSCBruto);
       renderizarOracion();
     }
 
@@ -2408,13 +2513,14 @@
       navigator.clipboard?.writeText(textoCompleto);
       flashSuccess(btnCopySentence, 1700);
       btnCopySentence.innerHTML = '<span>✓</span> ¡Copiado!';
-      setTimeout(() => btnCopySentence.innerHTML = '<span>📋</span> Copiar', 1600);
+      setTimeout(() => btnCopySentence.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-copiar"/></svg> Copiar', 1600);
       emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 35 });
     });
 
     btnBackspace.addEventListener('click', () => {
-      if (oracionTokens.length > 0) {
-        oracionTokens.pop();
+      if (oracionTokensLSCBruto.length > 0) {
+        oracionTokensLSCBruto.pop();
+        oracionTokens = traducirGlosaAEspanol(oracionTokensLSCBruto);
         flashSuccess(btnBackspace, 350);
         renderizarOracion();
         emitirFeedback('', { hablar: false, vibrar: true, duracionVib: 25 });
@@ -2425,7 +2531,8 @@
 
     if (btnClearAll) {
       btnClearAll.addEventListener('click', () => {
-        if (oracionTokens.length > 0) {
+        if (oracionTokensLSCBruto.length > 0) {
+          oracionTokensLSCBruto = [];
           oracionTokens = [];
           flashSuccess(btnClearAll, 500);
           renderizarOracion();
@@ -2562,16 +2669,38 @@
         emitirFeedback('', { hablar: false, duracionVib: 25 });
         const statePillText = document.getElementById('statePillText');
         if (statePillText) {
-          const labels = {
-            palabras: 'MODO: PALABRAS (11)',
-            abecedario: 'MODO: ABECEDARIO (27)',
-            numeros: 'MODO: NÚMEROS (10)',
-            todo: 'MODO: TODO (49)'
-          };
-          statePillText.textContent = labels[pill.dataset.mode] || 'LISTO PARA SEÑAS';
+          const n = contarSenasModo(pill.dataset.mode);
+          statePillText.textContent = n ? `Modo ${pill.textContent.trim().replace(/ \(\d+\)$/, '').toLowerCase()}: ${n} señas` : 'Listo para señar';
         }
       });
     });
+
+    // Nombre legible de una glosa del modelo (NN -> Ñ, tildes)
+    const NOMBRES_SENA = { NN: 'Ñ', DIAS: 'DÍAS', MILLON: 'MILLÓN' };
+    function capitalizar(t) { t = String(t).toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); }
+    function nombreSena(sena) { return NOMBRES_SENA[sena] || String(sena).replace(/_/g, ' '); }
+
+    // Cuenta las señas reales del modelo por modo (sin contar REPOSO)
+    function contarSenasModo(modo) {
+      const m = window.MODELO_LSC;
+      if (!m) return 0;
+      const lista = (m.categorias && m.categorias[modo]) || m.clases;
+      return lista.filter(c => c !== 'REPOSO').length;
+    }
+    catPills.forEach(pill => {
+      const n = contarSenasModo(pill.dataset.mode);
+      if (!n) { pill.hidden = true; return; }
+      pill.title = `${n} señas`;
+      if (pill.dataset.mode === 'todo') pill.lastChild.textContent = ` Todo (${n})`;
+    });
+    {
+      const meta = window.METADATOS_MODELO_LSC || {};
+      const v = window.VERSION_MODELO_LSC || '';
+      document.getElementById('headerLiveStatus').textContent = `LSC Colombia • v${v}`;
+      document.getElementById('cloudModalVersion').textContent = `v${v}`;
+      document.getElementById('cloudModalVersionDetail').textContent =
+        `${contarSenasModo('todo')} señas · precisión con personas nuevas ${meta.precision_cv || '—'}`;
+    }
 
     // Diccionario de Señas LSC Calibradas (49 Clases Totales)
     const drawerDictionary = document.getElementById('drawerDictionary');
@@ -2586,7 +2715,6 @@
       { sena: 'DIAS', desc: 'Mano en arco frontal representando la salida del sol', cat: 'PALABRA', zona: 'PECHO' },
       { sena: 'TARDES', desc: 'Mano descendiendo suavemente en el espacio frontal', cat: 'PALABRA', zona: 'ESPACIO MEDIO' },
       { sena: 'NOCHES', desc: 'Ambas manos descendiendo juntas frente al pecho', cat: 'PALABRA', zona: 'ESPACIO CENTRAL' },
-      { sena: 'GRACIAS', desc: 'Yemas de los dedos tocando el mentón proyectadas al frente', cat: 'PALABRA', zona: 'MENTÓN / ROSTRO' },
       { sena: 'GUSTAR', desc: 'Palma abierta sobre el corazón con suave roce circular', cat: 'PALABRA', zona: 'PECHO' },
       { sena: 'NOMBRE', desc: 'Mano en forma de H o extendida en el espacio lateral', cat: 'PALABRA', zona: 'ESPACIO MEDIO' },
       { sena: 'YO', desc: 'Dedo índice apuntando directamente al centro del pecho', cat: 'PALABRA', zona: 'PECHO' },
@@ -2635,17 +2763,18 @@
       { sena: 'MILLON', desc: 'Gesto de salto doble sobre la palma (cantidad millón)', cat: 'NÚMERO', zona: 'ESPACIO CENTRAL' }
     ];
 
-    INFO_SENAS.forEach((item, i) => {
+    const clasesModelo = new Set((window.MODELO_LSC && window.MODELO_LSC.clases) || []);
+    INFO_SENAS.filter(item => clasesModelo.has(item.sena)).forEach((item, i) => {
       const row = document.createElement('div');
       row.className = 'sign-item animate-on-enter';
       row.dataset.staggerIndex = String(i % 12);
-      const labelMostrar = item.sena === 'NN' ? 'Ñ (NN)' : item.sena.replace(/_/g, ' ');
+      const labelMostrar = nombreSena(item.sena);
       row.innerHTML = `
         <div class="sign-info">
-          <h4>${labelMostrar} <span style="font-size: 10px; font-weight: 700; color: var(--col-blue); background: var(--col-blue-pill); padding: 2px 6px; border-radius: 6px; margin-left: 4px;">${item.cat}</span></h4>
-          <p>${item.desc} · <b style="color: var(--col-blue);">${item.zona}</b></p>
+          <h4>${labelMostrar} <span class="sign-cat">${capitalizar(item.cat)}</span></h4>
+          <p>${item.desc}</p><p class="sign-zona">${capitalizar(item.zona)}</p>
         </div>
-        <button class="btn-sign-play" data-sena="${item.sena}">🔊</button>
+        <button class="btn-sign-play" data-sena="${item.sena}" aria-label="Pronunciar ${labelMostrar}"><svg class="icon" aria-hidden="true"><use href="#i-voz"/></svg></button>
       `;
       const btn = row.querySelector('.btn-sign-play');
       btn.addEventListener('pointerdown', (ev) => createRipple(ev, btn));
@@ -2657,6 +2786,7 @@
       signsListContainer.appendChild(row);
     });
 
+    document.getElementById('tituloCatalogo').textContent = `Catálogo de señas (${contarSenasModo('todo')})`;
     btnOpenDictionary.addEventListener('click', () => drawerDictionary.classList.add('active'));
     btnCloseDictionary.addEventListener('click', () => drawerDictionary.classList.remove('active'));
 
@@ -2708,7 +2838,7 @@
 
       if (!banner || !titleEl || !detailEl) return;
 
-      const CURRENT_VERSION = '7.0.0';
+      const CURRENT_VERSION = window.VERSION_MODELO_LSC || '0.0.0';
       const urlParams = new URLSearchParams(window.location.search);
       const fromParam = urlParams.get('from');
       const toParam = urlParams.get('to');
@@ -2724,8 +2854,12 @@
         debeMostrar = true;
         fromVer = fromParam;
         toVer = toParam;
-      } else if (!savedVersion || savedVersion !== CURRENT_VERSION) {
-        fromVer = savedVersion || '6.3.0';
+      } else if (!savedVersion) {
+        // Instalación nueva: registrar versión sin mostrar aviso de actualización
+        localStorage.setItem('gv_installed_version', CURRENT_VERSION);
+        localStorage.setItem('gv_last_notified_version', CURRENT_VERSION);
+      } else if (savedVersion !== CURRENT_VERSION) {
+        fromVer = savedVersion;
         toVer = CURRENT_VERSION;
         debeMostrar = true;
       } else if (lastNotified !== CURRENT_VERSION) {
@@ -2740,12 +2874,12 @@
         localStorage.setItem('gv_last_notified_version', toVer);
 
         titleEl.textContent = `🎉 ¡Actualizado de v${fromVer} a v${toVer}!`;
-        detailEl.innerHTML = `Has pasado exitosamente de <b>v${fromVer}</b> a <b>v${toVer}</b>. Invarianza espacial activa (detecta sin importar dónde esté tu mano) y 49 clases unificadas.`;
+        detailEl.innerHTML = `Nuevo modelo entrenado con 70 personas reales: ${contarSenasModo('todo')} señas (palabras, abecedario y números).`;
         banner.style.display = 'flex';
 
         const detailModal = document.getElementById('cloudModalVersionDetail');
         if (detailModal) {
-          detailModal.textContent = `Has pasado exitosamente de v${fromVer} a v${toVer} (Invarianza Espacial y 49 clases puras).`;
+          detailModal.textContent = `Versión v${toVer} · ${contarSenasModo('todo')} señas · precisión con personas nuevas ${(window.METADATOS_MODELO_LSC||{}).precision_cv||''}`;
         }
 
         if (closeBtn) {
@@ -2796,16 +2930,17 @@
     let currentFps = 60;
     let hasDismissedSplash = false;
 
-    // Acumulador Leaky EMA de Probabilidades LSC con Sostén Deliberado (v7.0.0)
+    // Acumulador Leaky EMA de Probabilidades LSC con Sostén Deliberado (v7.1)
+    // Se ha priorizado la CALIDAD SOBRE LA VELOCIDAD para construir oraciones limpias
     const acumuladorLSC = new MotorLSCLocal.AcumuladorProbabilidadesLSC({
-      decay: 0.70,
-      threshold: 0.58,
-      minMargin: 0.08,
-      requiredHoldMs: 240, // 240ms de postura sostenida deliberada (evita ráfagas al azar)
-      minConsecutiveFrames: 4, // Mínimo 4 fotogramas estables consecutivos
-      cooldownMs: 1000, // Enfriamiento al repetir la MISMA seña
-      interSignCooldownMs: 480, // Enfriamiento entre señas DIFERENTES para construir frases limpio
-      maxSpeedForHold: 0.26 // Permite movimientos dinámicos fluidos sin pausar la acumulación
+      decay: 0.65, // Decae un poco más rápido para limpiar fantasmas
+      threshold: 0.70, // Mayor exigencia: 70% de certeza neuronal mínima
+      minMargin: 0.12, // Exige 12% de margen frente a la 2da opción
+      requiredHoldMs: 400, // 400ms de postura sostenida deliberada (evita saltos al azar rápidos)
+      minConsecutiveFrames: 8, // Mínimo 8 fotogramas estables consecutivos
+      cooldownMs: 1200, // Enfriamiento post-palabra más largo
+      interSignCooldownMs: 800, // 800ms entre señas diferentes para permitir reposo cómodo
+      maxSpeedForHold: 0.18 // Exige mano más estática, no balística
     });
 
     function adjustMirroring() {
@@ -2847,7 +2982,7 @@
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
           adjustMirroring();
-          camStatusText.textContent = '🇨🇴 En vivo • 60 FPS';
+          camStatusText.textContent = 'En vivo';
           camStatusDot.classList.add('active');
 
           if (!hasDismissedSplash) {
@@ -2907,6 +3042,8 @@
               hombro_izq: [res.poseLandmarks[11].x, res.poseLandmarks[11].y, res.poseLandmarks[11].z],
               hombro_der: [res.poseLandmarks[12].x, res.poseLandmarks[12].y, res.poseLandmarks[12].z],
             };
+          } else {
+            ultimosHombros = null; // hombros fuera de cuadro: no usar una referencia vieja
           }
         });
       }
@@ -2960,13 +3097,14 @@
 
       // CASO: SIN MANOS
       if (activeHands.length === 0) {
+        cameraHintPill.textContent = 'Ubica tus manos frente a la cámara';
         cameraHintPill.classList.remove('hidden');
         camStatusDot.classList.remove('active');
-        camStatusText.textContent = `🇨🇴 En vivo • ${currentFps} FPS`;
+        camStatusText.textContent = `En vivo · ${currentFps} FPS`;
 
         statePill.className = 'state-pill state-idle';
-        statePillText.textContent = 'LISTO PARA SEÑAS';
-        predTitle.textContent = '---';
+        statePillText.textContent = 'Listo para señar';
+        predTitle.textContent = '—';
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = '0%';
         progressBar.style.width = '0%';
@@ -2977,12 +3115,19 @@
       }
 
       // MANOS DETECTADAS
-      cameraHintPill.classList.add('hidden');
+      // Sin hombros visibles las señas de palabras pierden su referencia corporal
+      if (!ultimosHombros) {
+        cameraHintPill.textContent = 'Aléjate un poco: que se vean tus hombros';
+        cameraHintPill.classList.remove('hidden');
+      } else {
+        cameraHintPill.classList.add('hidden');
+      }
       camStatusDot.classList.add('active');
-      camStatusText.textContent = `🇨🇴 ${activeHands.length === 2 ? '2 Manos' : '1 Mano'} • ${currentFps} FPS`;
+      camStatusText.textContent = `${activeHands.length === 2 ? '2 manos' : '1 mano'} · ${currentFps} FPS`;
 
       let mejorPrediccion = null;
       let mejorDesc = null;
+      let mejorCoords = null;
 
       activeHands.forEach(hand => {
         const isLeftHand = hand.isLeft || false;
@@ -2997,21 +3142,33 @@
 
         const manoActualVisible = !hand.isOccluded && !hand.isBehind;
         const mejorActualVisible = mejorPrediccion ? !mejorPrediccion._isBehind : false;
+        // La mano que descansa (REPOSO) nunca debe opacar a la que está señando
+        const esReposo = p => p.sena === 'REPOSO';
 
         if (!mejorPrediccion) {
           mejorPrediccion = { ...pred, _isBehind: isBehind };
           mejorDesc = desc;
+          mejorCoords = hand.coords;
+        } else if (esReposo(mejorPrediccion) !== esReposo(pred)) {
+          if (esReposo(mejorPrediccion)) {
+            mejorPrediccion = { ...pred, _isBehind: isBehind };
+            mejorDesc = desc;
+          mejorCoords = hand.coords;
+          }
         } else if (manoActualVisible && !mejorActualVisible) {
           mejorPrediccion = { ...pred, _isBehind: isBehind };
           mejorDesc = desc;
+          mejorCoords = hand.coords;
         } else if (pred.confianza > mejorPrediccion.confianza) {
           mejorPrediccion = { ...pred, _isBehind: isBehind };
           mejorDesc = desc;
+          mejorCoords = hand.coords;
         }
       });
 
       const isPreparingHand = activeHands.some(h => (h.framesVisible !== undefined && h.framesVisible < 2) || h.isNearBoundary);
       const handSpeed = activeHands.reduce((max, h) => Math.max(max, h.speed || 0), 0);
+      registrarCuadroSena(mejorPrediccion, mejorCoords, now);
       actualizarUI(mejorPrediccion, mejorDesc, activeHands.length, isPreparingHand, handSpeed);
     }
 
@@ -3020,6 +3177,29 @@
     // Todas las mutaciones son className / width% + background para activar las transitions CSS
     // (background, width se ejecutan ~15fps del acumulador; no son animaciones keyframes).
     // En CONFIRMADO dispara pulse-confirmed (GPU-safe: transform + ::after pulseRing).
+    // VALIDADOR DE SEÑAS PARECIDAS
+    // Guarda ~1.5 s de cuadros (probabilidades + mano + hombros). Al confirmar una
+    // seña de un grupo confundible (N/Ñ, I/J, DÍAS/NOCHES, 1/6...), decide dentro
+    // del grupo usando las probabilidades medias y el movimiento de esa ventana.
+    const VENTANA_SENA_MS = 1500;
+    let bufferSena = [];
+    function registrarCuadroSena(pred, coords, t) {
+      bufferSena = bufferSena.filter(c => t - c.t <= VENTANA_SENA_MS);
+      if (!pred || !pred.probs || !coords || pred.sena === 'REPOSO') return;
+      bufferSena.push({ t, probs: pred.probs, coords, pose: ultimosHombros });
+    }
+    function validarSenaConfirmada(sena) {
+      const modelo = window.MODELO_LSC;
+      if (!modelo || !modelo.validadores || bufferSena.length < 3) return sena;
+      const n = modelo.clases.length;
+      const medias = new Array(n).fill(0);
+      bufferSena.forEach(c => { for (let j = 0; j < n; j++) medias[j] += c.probs[j] / bufferSena.length; });
+      const rasgos = MotorLSCLocal.extraerRasgosMovimiento(bufferSena);
+      const modo = window.MODO_LSC_ACTIVO || 'todo';
+      const permitidas = modelo.categorias && modelo.categorias[modo] ? new Set(modelo.categorias[modo]) : null;
+      return MotorLSCLocal.validarSenaParecida(sena, medias, rasgos, modelo, permitidas);
+    }
+
     function actualizarUI(pred, desc, numManos, isPreparingHand, handSpeed = 0) {
       if (desc && desc.zona) {
         zoneIndicatorText.textContent = desc.labelZona || desc.zona;
@@ -3030,10 +3210,10 @@
       if (isPreparingHand) {
         // Estado inicial / mano en borde → 0 confianza, barra roja mínima
         statePill.className = 'state-pill state-transition';
-        statePillText.textContent = 'PREPARANDO...';
-        predTitle.textContent = '---';
+        statePillText.textContent = 'Preparando…';
+        predTitle.textContent = '—';
         predTitle.classList.remove('confirmed');
-        predConfidence.textContent = '---';
+        predConfidence.textContent = '';
         progressBar.style.width = '10%';
         progressBar.style.background = 'var(--col-red)';
         if (typeof acumuladorLSC !== 'undefined') acumuladorLSC.decayAll();
@@ -3044,9 +3224,11 @@
 
       // SEÑA CONFIRMADA: pulse en viewport-card (GPU-only transform + ring) + agrega a oración
       if (resAcum.emitir) {
+        resAcum.sena = validarSenaConfirmada(resAcum.sena);
+        bufferSena = [];
         statePill.className = 'state-pill state-confirmed';
-        statePillText.textContent = '✓ CONFIRMADO';
-        predTitle.textContent = resAcum.sena.replace(/_/g, ' ');
+        statePillText.textContent = 'Confirmado';
+        predTitle.textContent = nombreSena(resAcum.sena);
         predTitle.classList.add('confirmed');
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = '100%';
@@ -3069,8 +3251,8 @@
       // ESTADO REPOSO: sin seña activa, resetea progreso
       if (pred && (pred.estado === 'REPOSO' || pred.isNeutralHand || pred.isMotionGated)) {
         statePill.className = 'state-pill state-idle';
-        statePillText.textContent = 'MANO LIBRE';
-        predTitle.textContent = '---';
+        statePillText.textContent = 'Mano en reposo';
+        predTitle.textContent = '—';
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = '0%';
         progressBar.style.width = '0%';
@@ -3081,20 +3263,20 @@
       // EN PROGRESO DE RECONOCIMIENTO (SOSTÉN DELIBERADO): barra crece lineal
       if (resAcum.isSign && resAcum.progress > 0) {
         statePill.className = 'state-pill state-interpreting';
-        statePillText.textContent = resAcum.progress >= 0.5 ? '⏳ SOSTÉN LA SEÑA...' : '⚡ INTERPRETANDO...';
-        predTitle.textContent = resAcum.sena.replace(/_/g, ' ');
+        statePillText.textContent = resAcum.progress >= 0.5 ? 'Sostén la seña…' : 'Interpretando…';
+        predTitle.textContent = nombreSena(resAcum.sena);
         predTitle.classList.remove('confirmed');
         predConfidence.textContent = `${Math.round(resAcum.score * 100)}%`;
         progressBar.style.width = `${Math.round(resAcum.progress * 100)}%`;
         progressBar.style.background = 'var(--tricolor-smooth)';
       } else {
         statePill.className = 'state-pill state-transition';
-        statePillText.textContent = resAcum.inCooldown ? 'ESPERA...' : 'MOVIMIENTO';
+        statePillText.textContent = resAcum.inCooldown ? 'Espera…' : 'En movimiento';
         predTitle.textContent = (pred && pred.sena && pred.sena !== 'TRANSICION' && pred.sena !== 'REPOSO')
-          ? pred.sena.replace(/_/g, ' ')
-          : '---';
+          ? nombreSena(pred.sena)
+          : '—';
         predTitle.classList.remove('confirmed');
-        predConfidence.textContent = pred ? `${Math.round((pred.confianza || 0) * 100)}%` : '---';
+        predConfidence.textContent = pred ? `${Math.round((pred.confianza || 0) * 100)}%` : '';
         progressBar.style.width = '0%';
       }
     }
@@ -3132,12 +3314,21 @@
       ];
 
       ctx.save();
-      ctx.strokeStyle = isBehind ? 'rgba(225, 29, 72, 0.6)' : 'rgba(245, 158, 11, 0.75)';
-      ctx.lineWidth = 2.5;
+      // Neobrutalismo: Líneas Negras gruesas de alto contraste
+      ctx.strokeStyle = isBehind ? '#666666' : '#1A1A1A';
+      ctx.lineWidth = 4;
       conexiones.forEach(([a, b]) => {
         ctx.beginPath();
         ctx.moveTo(pts[a][0] * w, pts[a][1] * h);
         ctx.lineTo(pts[b][0] * w, pts[b][1] * h);
+        ctx.stroke();
+      });
+      // Puntos Blancos encima de las líneas negras
+      ctx.fillStyle = '#FFFFFF';
+      pts.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p[0]*w, p[1]*h, 4, 0, 2*Math.PI);
+        ctx.fill();
         ctx.stroke();
       });
       ctx.restore();

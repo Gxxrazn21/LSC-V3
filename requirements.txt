@@ -1,33 +1,7 @@
-# =============================================================
-# REQUIREMENTS - LSC v3.0 (Sistema de Reconocimiento de Señas Colombiana)
-#
-# Entorno validado:
-#   Python 3.11 / 3.12 / 3.13
-#   Windows 10/11, Ubuntu 22.04+
-# =============================================================
-
-# --- Visión por computadora y Landmarks (MediaPipe Holistic) ---
-# MediaPipe >=0.10.14: incluye HolisticLandmarker con Tasks API mejorada
-mediapipe>=0.10.14
+# Pipeline de datos y entrenamiento del modelo LSC (Python 3.11+)
+mediapipe==0.10.14        # extracción de landmarks (scripts/extraer_landmarks_lsc70.py, capturar_senas.py)
 opencv-python>=4.10.0
-
-# --- Procesamiento Numérico y Vectorial ---
 numpy>=1.24.0,<2.0.0
-scipy>=1.11.0
 scikit-learn>=1.4.0
-pandas>=2.0.0
-
-# --- Servidor Web y WebSockets (App Seña Android) ---
-fastapi>=0.110.0
-uvicorn>=0.28.0
-websockets>=12.0
-
-# --- Síntesis de Voz Local (TTS Offline) ---
-pyttsx3>=2.90
-
-# --- Visualización y Utilidades ---
-Pillow>=10.0.0
-matplotlib>=3.8.0
-seaborn>=0.13.0
 joblib>=1.3.0
-tqdm>=4.66.0
+matplotlib>=3.8.0
