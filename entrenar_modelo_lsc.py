@@ -30,7 +30,7 @@ from sklearn.model_selection import GroupKFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
-VERSION = "8.2.0"
+VERSION = "8.3.0"
 VECTORES = os.path.join("datasets", "vectores_lsc70_109d.json")
 ARQ = (256, 128)
 MAX_REPOSO = 2500  # REPOSO es ~1/3 de los cuadros: se acota para no inflar métricas ni sesgar la red

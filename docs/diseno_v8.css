@@ -505,3 +505,8 @@ header {
 .sign-item.reproduciendo { background: var(--maize-soft) !important; box-shadow: inset 4px 0 0 var(--maize); }
 .avatar-estado[hidden] { display: none !important; }
 [hidden] { display: none !important; }
+
+/* El panel del avatar vive dentro de una hoja: siempre visible, sin animación de entrada diferida */
+.avatar-panel .animate-on-enter, .catalogo-filtros .animate-on-enter { opacity: 1 !important; transform: none !important; }
+#drawerDictionary .avatar-panel, #drawerDictionary .catalogo-filtros, #drawerDictionary .drawer-header { flex-shrink: 0; }
+.catalogo-filtros { min-height: 44px; align-items: center; }

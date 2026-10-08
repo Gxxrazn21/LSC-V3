@@ -60,7 +60,7 @@ class LSCHomePage extends StatefulWidget {
 
 class _LSCHomePageState extends State<LSCHomePage> {
   static const _nativeChannel = MethodChannel('com.lsc.app/native');
-  static const _shellVersion = '8.2.0';
+  static const _shellVersion = '8.3.0';
   HttpServer? _server;
   late final WebViewController _controller;
   bool _splashVisible = true; // controla el fade-out gradual del splash nativo

@@ -4,8 +4,8 @@ App Android (Flutter + WebView) que reconoce señas de LSC con la cámara del
 celular. La detección de manos (MediaPipe) y la red neuronal corren en el
 propio teléfono.
 
-- **APK:** `Gestual_Vision_v8.2.0.apk` (Android)
-- **Versión:** 8.2.0
+- **APK:** `Gestual_Vision_v8.3.0.apk` (Android)
+- **Versión:** 8.3.0
 
 ## Qué reconoce
 
@@ -31,21 +31,49 @@ completa; si no, la deletrea letra por letra (las letras o números sin seña se
 avisan).
 
 El avatar no "sabe" las señas por el clasificador, que solo reconoce. Los
-movimientos salen del dataset LSC70: para cada seña,
-`scripts/generar_senas_avatar.py` elige la grabación más representativa entre
-las 70 personas y la vuelve a pasar por MediaPipe en 3D. Con eso calcula la
-dirección de brazo, antebrazo, palma y cada falange cuadro a cuadro
-(`web/senas_avatar.json`), y `web/avatar_lsc.js` la traslada a los 44 huesos
-del esqueleto. HOLA usa la animación hecha a mano del `.glb`.
+movimientos salen del dataset LSC70 (`scripts/generar_senas_avatar.py`):
 
-- **Corrección manual:** MediaPipe no resuelve bien el puño cerrado, así que
-  la A se corrige a mano (dedos cerrados hacia la palma). En las demás, la
-  flexión de los dedos doblados se amplifica un 35 %.
-- **Revisión:** se comparó cada seña del avatar con la foto de referencia.
-  Coinciden claramente L, M, N, Ñ, P, R, T, V, W, Y, YO, 5, 7, 8 y 9; el resto
-  es aproximado. Conviene que una persona que sepa LSC lo revise.
-- **Rendimiento:** mientras el catálogo está abierto se pausan la cámara y el
-  reconocimiento, y el avatar solo dibuja mientras se ve.
+- **Medición.** Las grabaciones se pasan por MediaPipe en 3D y todo se expresa
+  en el marco del torso de la persona, no de la cámara.
+- **Altura y lado** de codo y muñeca: se toman de la imagen 2D, porque el
+  modelo 3D baja la muñeca de forma sistemática.
+- **Profundidad:** sale del largo de los huesos; del 3D solo se usa hacia qué
+  lado va.
+- **Letras y números estáticos:** la forma de la mano es la mediana de 12
+  personas y queda fija, sin temblor.
+- **Señas con movimiento:** usan la trayectoria de una persona, suavizada.
+- **Dedos:** se guardan como ángulos por articulación, con zona muerta para
+  que los dedos estirados queden rectos, límites anatómicos y la punta
+  acoplada a la articulación media.
+
+`web/avatar_lsc.js` lo ejecuta así:
+
+- **Brazo:** IK de dos huesos. El codo se elige para quedar cerca del dato,
+  con la muñeca lo más recta posible y fuera del cuerpo.
+- **Muñeca:** con límites (70°); el giro se reparte entre antebrazo y mano.
+- **Colisiones:** manos y antebrazos no atraviesan el torso ni la cabeza
+  (volúmenes medidos de la propia malla), y las dos manos no se cruzan.
+- **Movimiento:** resortes críticamente amortiguados, que dan inercia natural
+  sin rebotes. Al deletrear, la mano no baja entre letras.
+- **Vida:** parpadeo y respiración.
+
+HOLA usa la animación hecha a mano del `.glb`.
+
+- **Corrección manual:** solo el puño de la A, que MediaPipe no resuelve.
+  Antes de corregir otras se verificó con las fotos (por ejemplo, en LSC la U
+  es índice + meñique, no índice + medio).
+- **Verificación automática:** `node tests/e2e/diagnostico_avatar.js` mide, en
+  las 47 señas:
+  - **Penetración en el cuerpo:** máximo 2,5 cm, y es la animación hecha a mano.
+  - **Temblor de dedos en señas sostenidas:** 0°.
+  - **Flexión de muñeca:** como máximo 70°.
+- **Revisión visual:** `tests/e2e/capturas_avatar.js` y `tira_avatar.js`
+  comparan con la foto de referencia y muestran la seña cuadro a cuadro.
+  Conviene que una persona que sepa LSC lo revise.
+- **Rendimiento:** simular un cuadro cuesta unos 0,2 ms. Con el catálogo
+  abierto se pausan la cámara y el reconocimiento.
+- **Párpados:** el modelo los trae sin color de piel; la app los pinta al
+  cargar (el `.glb` original no se modifica).
 
 ## Qué tan bien funciona (medido honestamente)
 
@@ -172,6 +200,8 @@ node tests/e2e/probar_pipeline_navegador.js Per03,Per30   # señas por cuadro
 node tests/e2e/probar_validador_navegador.js              # validador de señas parecidas
 node tests/e2e/capturas_ui.js <carpeta> 360               # interfaz a 360 px, textos y avatar
 PRIMER_PLANO=1 node tests/e2e/capturas_avatar.js <carpeta> A L Y   # primer plano de la mano del avatar
+node tests/e2e/diagnostico_avatar.js                     # penetración, muñeca y temblor en las 47 señas
+PASOS=8 node tests/e2e/tira_avatar.js <carpeta> NOCHES M   # la seña cuadro a cuadro
 ```
 
 ## Actualizaciones OTA

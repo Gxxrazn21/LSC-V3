@@ -1,5 +1,20 @@
 # CHANGELOG — Gestual Vision (Traductor LSC)
 
+## [8.3.0] — 2026-10-07
+### Avatar más natural
+- Brazo por IK de dos huesos con el codo elegido para que la muñeca quede recta y fuera del cuerpo (antes cada hueso apuntaba por separado y la muñeca se torcía).
+- Muñeca con límites anatómicos y giro repartido entre antebrazo y mano: desaparece la deformación de la mano en M, N y Ñ.
+- Colisiones con torso y cabeza (volúmenes medidos de la malla) y entre las dos manos: en NOCHES y DÍAS las manos ya no atraviesan el pecho. La penetración máxima bajó a 2,5 cm, en la animación hecha a mano.
+- Dedos rotados sobre su eje de flexión real, calibrado desde el esqueleto. Las letras y números estáticos usan la forma de mano mediana de 12 personas y quedan firmes (temblor 0°).
+- Altura de la mano tomada de la imagen 2D y profundidad del largo de los huesos, porque el modelo 3D de MediaPipe bajaba y adelantaba la muñeca.
+- Resortes críticamente amortiguados, sin arcos raros al entrar a una seña. Al deletrear, la mano se mantiene en el espacio de señas.
+- Parpadeo, con párpados pintados en tono piel porque el modelo los traía grises, y respiración.
+- Diagnóstico automático por seña (`tests/e2e/diagnostico_avatar.js`).
+
+### Interfaz
+- El campo "Escribe para señar" y los filtros del catálogo ya no quedan ocultos ni comprimidos.
+
+
 ## [8.2.0] — 2026-10-07
 ### Avatar que seña
 - El catálogo incluye un avatar 3D (Hombreblender/avatar_lsc.glb, optimizado de 13,5 a 4,3 MB) que ejecuta cualquiera de las 47 señas al tocarla.

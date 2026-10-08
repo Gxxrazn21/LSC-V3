@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "8.2.0",
+  "version": "8.3.0",
   "min_shell_version": "6.2.0",
-  "created_at": "2026-10-08T00:04:18.749104+00:00",
+  "created_at": "2026-10-08T02:27:52.838873+00:00",
   "files": {
     "atkinson-400.woff2": {
       "sha256": "b09653e3ba9d95e26da5c408979f40451990a4573ce5f96abe6982e2fcb09e6c",
@@ -17,16 +17,16 @@
       "bytes": 4255956
     },
     "avatar_lsc.js": {
-      "sha256": "52a656c7fe48d906fb5c556e19f5b9a65919ac8d94a14465f0c18af15facd840",
-      "bytes": 12898
+      "sha256": "e8501c42339cf2d3e586a16a27acb3263434a01112e23f8fe9d0e39a4603e723",
+      "bytes": 32776
     },
     "BufferGeometryUtils.js": {
       "sha256": "c25b7930e570e9ec56173cd3b866ec8d2e10016630db3937efb439daf1cedbf6",
       "bytes": 31768
     },
     "diseno_v8.css": {
-      "sha256": "f1fab9a41cbcd8baef1c91381617ce7977ad3f19329ac3586b482fab06ab6928",
-      "bytes": 18856
+      "sha256": "97b0cf8213d060a039ba47d025f04dd95b91c267926d5dc5ba4355335b50108d",
+      "bytes": 19268
     },
     "GLTFLoader.js": {
       "sha256": "5bc183f5f98ebcd9e98c18977dab4a675db9fd8a6bcaa5d84898586033bb9979",
@@ -65,7 +65,7 @@
       "bytes": 621
     },
     "modelo_ia_cliente.js": {
-      "sha256": "2dd7511b11bbf18ac17d80feb6b275dadb98142c8d686158debc08c0a73b2ac7",
+      "sha256": "dd88dc500d1399d252ee2823388503b1eb41609fae2e1d6da3b979cf9997e94a",
       "bytes": 1372101
     },
     "motor_inferencia_local.js": {
@@ -73,8 +73,8 @@
       "bytes": 68585
     },
     "senas_avatar.json": {
-      "sha256": "19b4f65659fbab286834dc54be32a17c40f0811196818406144af581fd13451f",
-      "bytes": 170790
+      "sha256": "2aafe6a4f66a645865a51cd5585b8176290db68e898bfa5d0cc91b507e28014b",
+      "bytes": 54319
     },
     "sw.js": {
       "sha256": "c0bc73718d3d3076cc1e21e06e473569509caf775c9c6fab319c16d9abd9983b",
