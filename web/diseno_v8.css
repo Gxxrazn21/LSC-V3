@@ -255,7 +255,9 @@ header {
   letter-spacing: -0.02em !important;
   color: var(--ink) !important;
   padding-bottom: 6px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
 }
 .word-hero::after {
   content: "";
@@ -448,3 +450,58 @@ header {
   vertical-align: middle;
 }
 .sign-zona { margin-top: 4px !important; color: var(--cobalt) !important; font-weight: 700; font-size: 13px; }
+
+/* ---------- Texto que siempre encaja (nunca se parte una palabra) ---------- */
+.hero-main-row { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.hero-main-row .word-hero { flex: 1 1 auto; min-width: 0; }
+.hero-main-row .confidence-meter-val { flex: none; }
+.fullscreen-text, .sentence-display, .quick-card-text, .sign-info h4, .update-notice-text, .drawer-title,
+.brand-meta h1, .setting-label, .avatar-subtitulo {
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+  hyphens: none !important;
+}
+.word-chip, .cat-pill, .tab-btn, .btn-action, .state-pill, .zone-indicator { white-space: nowrap !important; }
+.sign-info { min-width: 0; }
+.sign-info h4 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; }
+.sign-info p { overflow-wrap: break-word; }
+.fullscreen-text { max-width: 92vw !important; text-align: center; line-height: 1.15 !important; }
+.sentence-display { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+
+/* ---------- Avatar en el catálogo ---------- */
+#drawerDictionary .drawer-content { max-height: 92vh !important; }
+.avatar-panel {
+  position: sticky; top: -20px; z-index: 3;
+  background: var(--surface);
+  margin: 0 -20px; padding: 0 20px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.avatar-escena {
+  position: relative;
+  height: min(42vh, 340px);
+  border-radius: 22px;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 20%, var(--surface) 0%, var(--paper) 70%);
+}
+.avatar-escena canvas { width: 100% !important; height: 100% !important; display: block; }
+.avatar-estado {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft); font-weight: 700;
+}
+.avatar-subtitulo {
+  margin: 10px 2px 8px;
+  min-height: 1.4em;
+  font-size: 18px; font-weight: 700; color: var(--ink);
+  text-align: center;
+}
+.avatar-deletrear { display: flex; gap: 8px; }
+.avatar-deletrear .custom-input { flex: 1; min-width: 0; }
+.avatar-deletrear .btn-action { flex: none; padding: 0 18px !important; }
+.catalogo-filtros { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0; scrollbar-width: none; }
+.catalogo-filtros::-webkit-scrollbar { display: none; }
+.catalogo-filtros .cat-pill { flex: none; }
+.sign-item { cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; }
+.sign-item.reproduciendo { background: var(--maize-soft) !important; box-shadow: inset 4px 0 0 var(--maize); }
+.avatar-estado[hidden] { display: none !important; }
+[hidden] { display: none !important; }

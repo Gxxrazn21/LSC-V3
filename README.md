@@ -4,8 +4,8 @@ App Android (Flutter + WebView) que reconoce señas de LSC con la cámara del
 celular. La detección de manos (MediaPipe) y la red neuronal corren en el
 propio teléfono.
 
-- **APK:** `Gestual_Vision_v8.1.0.apk` (Android, ~48 MB)
-- **Versión:** 8.1.0
+- **APK:** `Gestual_Vision_v8.2.0.apk` (Android)
+- **Versión:** 8.2.0
 
 ## Qué reconoce
 
@@ -21,6 +21,31 @@ Además está la clase REPOSO (manos abajo o sin intención de señar). El
 constructor de frases une BUENAS + DIAS/TARDES/NOCHES en "Buenos días",
 "Buenas tardes" y "Buenas noches", y junta las letras deletreadas en una
 palabra.
+
+## Avatar que seña
+
+En el catálogo de señas hay un avatar 3D (`web/avatar_lsc.glb`, generado desde
+`Hombreblender/`). Al tocar una seña de la lista, el avatar la ejecuta. También
+puedes escribir un texto: si la palabra está en el vocabulario, la seña
+completa; si no, la deletrea letra por letra (las letras o números sin seña se
+avisan).
+
+El avatar no "sabe" las señas por el clasificador, que solo reconoce. Los
+movimientos salen del dataset LSC70: para cada seña,
+`scripts/generar_senas_avatar.py` elige la grabación más representativa entre
+las 70 personas y la vuelve a pasar por MediaPipe en 3D. Con eso calcula la
+dirección de brazo, antebrazo, palma y cada falange cuadro a cuadro
+(`web/senas_avatar.json`), y `web/avatar_lsc.js` la traslada a los 44 huesos
+del esqueleto. HOLA usa la animación hecha a mano del `.glb`.
+
+- **Corrección manual:** MediaPipe no resuelve bien el puño cerrado, así que
+  la A se corrige a mano (dedos cerrados hacia la palma). En las demás, la
+  flexión de los dedos doblados se amplifica un 35 %.
+- **Revisión:** se comparó cada seña del avatar con la foto de referencia.
+  Coinciden claramente L, M, N, Ñ, P, R, T, V, W, Y, YO, 5, 7, 8 y 9; el resto
+  es aproximado. Conviene que una persona que sepa LSC lo revise.
+- **Rendimiento:** mientras el catálogo está abierto se pausan la cámara y el
+  reconocimiento, y el avatar solo dibuja mientras se ve.
 
 ## Qué tan bien funciona (medido honestamente)
 
@@ -85,6 +110,11 @@ Las métricas completas por clase y la matriz de confusión están en
 web/                     Fuente única del frontend (index.html, motor, modelo)
   motor_inferencia_local.js   Vector 109D, rasgos de movimiento, red neuronal, validador y filtros
   diseno_v8.css               Capa visual (paleta, tipografía Atkinson Hyperlegible, modo oscuro)
+  avatar_lsc.js               Avatar 3D: carga el .glb y convierte las señas en rotaciones de huesos
+  avatar_lsc.glb              Avatar optimizado (texturas WebP 1024 px, 4.3 MB)
+  senas_avatar.json           Movimientos de las 47 señas para el avatar (generado)
+  three.module.min.js, GLTFLoader.js, BufferGeometryUtils.js   three.js r169 local (sin internet)
+Hombreblender/           Fuente del avatar en Blender (.blend, .glb original, scripts)
   modelo_ia_cliente.js        Pesos del modelo (generado, no editar)
 docs/ estilo/            Copias publicadas (GitHub Pages y OTA). No editar a mano.
 app_lsc/                 App Flutter; assets/web es copia publicada de web/
@@ -93,6 +123,7 @@ scripts/
   vectorizar_landmarks.js     Landmarks -> vectores 109D con el MISMO código de la app
   publish_web_release.py      Copia web/ a docs/, estilo/ y app_lsc/assets/web + manifiesto OTA
   analizar_confusiones.py     Compara el modelo con expertos por grupo de señas parecidas
+  generar_senas_avatar.py     Dataset LSC70 -> movimientos del avatar (web/senas_avatar.json)
 entrenar_modelo_lsc.py   Entrenamiento con validación por persona y exportación
 capturar_senas.py        Captura de señas nuevas con la webcam
 servidor_sync_movil.py   Sirve web/ en la red local para probar en el celular
@@ -139,7 +170,8 @@ python -m http.server 8766                     # desde la raíz, en otra termina
 npm --prefix tests/e2e install
 node tests/e2e/probar_pipeline_navegador.js Per03,Per30   # señas por cuadro
 node tests/e2e/probar_validador_navegador.js              # validador de señas parecidas
-node tests/e2e/capturas_ui.js <carpeta>                   # capturas de la interfaz
+node tests/e2e/capturas_ui.js <carpeta> 360               # interfaz a 360 px, textos y avatar
+PRIMER_PLANO=1 node tests/e2e/capturas_avatar.js <carpeta> A L Y   # primer plano de la mano del avatar
 ```
 
 ## Actualizaciones OTA

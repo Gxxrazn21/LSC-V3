@@ -5,3 +5,11 @@ venv_lsc/
 graphify-out/
 modelos_guardados/
 resultados/
+
+# Dependencias externas incluidas como archivos (three.js) y datos generados
+**/three.module.min.js
+**/GLTFLoader.js
+**/BufferGeometryUtils.js
+**/senas_avatar.json
+**/modelo_ia_cliente.js
+tests/e2e/node_modules/

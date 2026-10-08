@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Prueba avatar LSC</title>
+<style>body{margin:0;background:#EEF1F5} #v{width:420px;height:520px}</style>
+<script type="importmap">{ "imports": { "three": "../../web/three.module.min.js" } }</script>
+<div id="v"></div>
+<script type="module">
+  import { AvatarLSC } from '../../web/avatar_lsc.js';
+  const av = new AvatarLSC(document.getElementById('v'));
+  window.listo = av.cargar('../../web/avatar_lsc.glb', '../../web/senas_avatar.json').then(() => { window.av = av; av.iniciar(); return av.nombresHuesos(); });
+</script>

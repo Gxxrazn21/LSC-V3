@@ -15,6 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 
   <!-- Modelo Neuronal y Motor de Inferencia On-Device -->
+  <script type="importmap">{ "imports": { "three": "./three.module.min.js" } }</script>
   <script src="modelo_ia_cliente.js"></script>
   <script src="motor_inferencia_local.js"></script>
 
@@ -2151,6 +2152,22 @@
         <div class="drawer-title" id="tituloCatalogo">Catálogo de señas</div>
         <span style="cursor: pointer; font-size: 20px; color: var(--text-muted);" id="btnCloseDictionary">✕</span>
       </div>
+      <section class="avatar-panel" aria-label="Avatar que seña">
+        <div class="avatar-escena" id="avatarEscena">
+          <div class="avatar-estado" id="avatarEstado">Cargando avatar…</div>
+        </div>
+        <div class="avatar-subtitulo" id="avatarSubtitulo" aria-live="polite">Toca una seña de la lista para verla</div>
+        <form class="avatar-deletrear" id="formDeletrear" autocomplete="off">
+          <input class="custom-input" id="inputDeletrear" name="texto" maxlength="40" placeholder="Escribe para señar" aria-label="Texto para que el avatar lo señe">
+          <button class="btn-action btn-speak-all" type="submit">Señar</button>
+        </form>
+      </section>
+      <div class="catalogo-filtros" id="filtrosCatalogo">
+        <button type="button" class="cat-pill active" data-filtro="todas">Todas</button>
+        <button type="button" class="cat-pill" data-filtro="PALABRA">Palabras</button>
+        <button type="button" class="cat-pill" data-filtro="LETRA">Letras</button>
+        <button type="button" class="cat-pill" data-filtro="NÚMERO">Números</button>
+      </div>
       <div class="signs-list" id="signsListContainer"></div>
     </div>
   </div>
@@ -2550,9 +2567,22 @@
     const customReplyInput = document.getElementById('customReplyInput');
     const btnSendCustomReply = document.getElementById('btnSendCustomReply');
 
+    // Achica la letra hasta que ninguna palabra se salga del ancho (nunca se parte una palabra)
+    function ajustarTexto(el, maxPx, minPx) {
+      if (!el) return;
+      let px = maxPx;
+      el.style.setProperty('font-size', px + 'px', 'important');
+      while (px > minPx && el.scrollWidth > el.clientWidth + 1) {
+        px -= 2;
+        el.style.setProperty('font-size', px + 'px', 'important');
+      }
+    }
+    window.ajustarTexto = ajustarTexto;
+
     function mostrarRespuestaGigante(texto) {
       fullscreenText.textContent = texto;
       fullscreenModal.classList.add('active');
+      requestAnimationFrame(() => ajustarTexto(fullscreenText, Math.min(64, window.innerWidth * 0.14), 22));
       flashSuccess(fullscreenText, 800);
       emitirFeedback(texto, { vibrar: true, hablar: true, duracionVib: 60 });
     }
@@ -2677,6 +2707,18 @@
 
     // Nombre legible de una glosa del modelo (NN -> Ñ, tildes)
     const NOMBRES_SENA = { NN: 'Ñ', DIAS: 'DÍAS', MILLON: 'MILLÓN' };
+    // La seña principal siempre cabe completa en su tarjeta (BUENAS no se parte en BUENA + S)
+    {
+      const titulo = document.getElementById('predTitle');
+      let ultimo = '';
+      const encajar = () => {
+        if (titulo.textContent === ultimo && !titulo.dataset.forzar) return;
+        ultimo = titulo.textContent;
+        ajustarTexto(titulo, Math.min(64, Math.max(44, window.innerWidth * 0.15)), 24);
+      };
+      new MutationObserver(encajar).observe(titulo, { childList: true, characterData: true, subtree: true });
+      window.addEventListener('resize', () => { ultimo = ''; encajar(); });
+    }
     function capitalizar(t) { t = String(t).toLowerCase(); return t.charAt(0).toUpperCase() + t.slice(1); }
     function nombreSena(sena) { return NOMBRES_SENA[sena] || String(sena).replace(/_/g, ' '); }
 
@@ -2776,6 +2818,14 @@
         </div>
         <button class="btn-sign-play" data-sena="${item.sena}" aria-label="Pronunciar ${labelMostrar}"><svg class="icon" aria-hidden="true"><use href="#i-voz"/></svg></button>
       `;
+      row.dataset.cat = item.cat;
+      row.dataset.sena = item.sena;
+      row.tabIndex = 0;
+      row.setAttribute('role', 'button');
+      row.setAttribute('aria-label', `Ver ${labelMostrar} en el avatar`);
+      const verEnAvatar = () => { if (window.AvatarApp) window.AvatarApp.senar(item.sena); };
+      row.addEventListener('click', (ev) => { if (!ev.target.closest('.btn-sign-play')) verEnAvatar(); });
+      row.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); verEnAvatar(); } });
       const btn = row.querySelector('.btn-sign-play');
       btn.addEventListener('pointerdown', (ev) => createRipple(ev, btn));
       btn.addEventListener('click', () => {
@@ -3056,6 +3106,8 @@
 
     function iniciarLoopProcesamiento() {
       async function step() {
+        // Con el catálogo (avatar 3D) abierto se pausa la visión para no saturar el teléfono
+        if (window.VISION_PAUSADA) { requestAnimationFrame(step); return; }
         if (!isProcessingHands && video.readyState >= 2 && hands) {
           isProcessingHands = true;
           try {
@@ -3368,6 +3420,95 @@
       startCamera();
       initMediaPipe();
     });
+  </script>
+
+  <script type="module">
+    // AVATAR LSC en el catálogo: carga al abrirlo y renderiza solo mientras está visible
+    import { AvatarLSC } from './avatar_lsc.js';
+
+    const drawer = document.getElementById('drawerDictionary');
+    const escena = document.getElementById('avatarEscena');
+    const estado = document.getElementById('avatarEstado');
+    const subtitulo = document.getElementById('avatarSubtitulo');
+    let avatar = null, cargando = null;
+
+    const NOMBRES = { NN: 'Ñ', DIAS: 'DÍAS', MILLON: 'MILLÓN' };
+    const nombre = s => NOMBRES[s] || s;
+
+    function asegurarAvatar() {
+      if (!cargando) {
+        const a = new AvatarLSC(escena);
+        cargando = a.cargar('avatar_lsc.glb', 'senas_avatar.json')
+          .then(() => { avatar = a; estado.hidden = true; return a; })
+          .catch(e => { estado.textContent = 'No se pudo cargar el avatar'; console.error(e); cargando = null; throw e; });
+      }
+      return cargando;
+    }
+
+    function marcarFila(sena) {
+      document.querySelectorAll('#signsListContainer .sign-item').forEach(r =>
+        r.classList.toggle('reproduciendo', !!sena && r.dataset.sena === sena));
+    }
+
+    async function senar(sena) {
+      const a = await asegurarAvatar();
+      a.iniciar();
+      subtitulo.textContent = nombre(sena);
+      marcarFila(sena);
+      await a.senarSecuencia([sena], s => { if (!s) marcarFila(null); });
+    }
+
+    // Texto -> señas: palabra del vocabulario si existe; si no, se deletrea letra por letra
+    function textoASenas(texto, disponibles) {
+      const limpio = texto.toUpperCase()
+        .replace(/Ñ/g, '#').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/#/g, 'Ñ');
+      const senas = [], omitidas = [];
+      for (const palabra of limpio.split(/[^A-ZÑ0-9]+/).filter(Boolean)) {
+        const clave = palabra === 'ANOS' ? 'AÑOS' : palabra;
+        if (disponibles.has(clave)) { senas.push(clave); continue; }
+        for (const ch of palabra) {
+          const s = ch === 'Ñ' ? 'NN' : ch;
+          if (disponibles.has(s)) senas.push(s); else omitidas.push(ch);
+        }
+      }
+      return { senas, omitidas };
+    }
+
+    document.getElementById('formDeletrear').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const entrada = document.getElementById('inputDeletrear');
+      const texto = entrada.value.trim();
+      if (!texto) return;
+      entrada.blur();
+      const a = await asegurarAvatar();
+      const { senas, omitidas } = textoASenas(texto, new Set(a.senasDisponibles()));
+      if (!senas.length) { subtitulo.textContent = 'No hay señas para ese texto'; return; }
+      a.iniciar();
+      await a.senarSecuencia(senas, s => {
+        marcarFila(s);
+        subtitulo.textContent = s ? `${texto.toUpperCase()} · ${nombre(s)}`
+          : (omitidas.length ? `Sin seña para: ${[...new Set(omitidas)].join(' ')}` : texto.toUpperCase());
+      });
+    });
+
+    document.getElementById('filtrosCatalogo').addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-filtro]');
+      if (!b) return;
+      document.querySelectorAll('#filtrosCatalogo .cat-pill').forEach(p => p.classList.toggle('active', p === b));
+      document.querySelectorAll('#signsListContainer .sign-item').forEach(r => {
+        r.hidden = b.dataset.filtro !== 'todas' && r.dataset.cat !== b.dataset.filtro;
+      });
+    });
+
+    // Abrir/cerrar el catálogo pausa o reanuda la cámara y el render del avatar
+    new MutationObserver(() => {
+      const abierto = drawer.classList.contains('active');
+      window.VISION_PAUSADA = abierto;
+      if (abierto) asegurarAvatar().then(a => a.iniciar()).catch(() => {});
+      else if (avatar) { avatar.cancelar(); avatar.detener(); marcarFila(null); }
+    }).observe(drawer, { attributes: true, attributeFilter: ['class'] });
+
+    window.AvatarApp = { senar, textoASenas };
   </script>
 </body>
 </html>

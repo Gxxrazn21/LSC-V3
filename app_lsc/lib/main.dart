@@ -60,7 +60,7 @@ class LSCHomePage extends StatefulWidget {
 
 class _LSCHomePageState extends State<LSCHomePage> {
   static const _nativeChannel = MethodChannel('com.lsc.app/native');
-  static const _shellVersion = '8.1.0';
+  static const _shellVersion = '8.2.0';
   HttpServer? _server;
   late final WebViewController _controller;
   bool _splashVisible = true; // controla el fade-out gradual del splash nativo
@@ -237,6 +237,9 @@ class _LSCHomePageState extends State<LSCHomePage> {
         AndroidWebViewController.enableDebugging(kDebugMode);
         (controller.platform as AndroidWebViewController)
             .setMediaPlaybackRequiresUserGesture(false);
+        // Tamaño de letra del sistema fijo al 100 %: la página ajusta sus textos sola
+        // y así ninguna palabra se desborda ni se parte con la "letra grande" de Android.
+        (controller.platform as AndroidWebViewController).setTextZoom(100);
         (controller.platform as AndroidWebViewController)
             .setOnPlatformPermissionRequest((request) {
               debugPrint('Permiso de WebRTC otorgado: ${request.types}');
@@ -297,6 +300,8 @@ class _LSCHomePageState extends State<LSCHomePage> {
         mime = 'image/png';
       } else if (path.endsWith('.woff2')) {
         mime = 'font/woff2';
+      } else if (path.endsWith('.glb')) {
+        mime = 'model/gltf-binary';
       }
 
       return Response.ok(

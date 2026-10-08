@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "version": "8.1.0",
+  "version": "8.2.0",
   "min_shell_version": "6.2.0",
-  "created_at": "2026-10-07T00:35:04.071602+00:00",
+  "created_at": "2026-10-08T00:04:18.749104+00:00",
   "files": {
     "atkinson-400.woff2": {
       "sha256": "b09653e3ba9d95e26da5c408979f40451990a4573ce5f96abe6982e2fcb09e6c",
@@ -12,9 +12,25 @@
       "sha256": "d8e8b1e0e929651439e25e23ade4b9d6cac073f2444aadb8e8b85431726c2036",
       "bytes": 17616
     },
+    "avatar_lsc.glb": {
+      "sha256": "a79502e4159a6fc32bd92d7511b0299815e809fa1e75964147ae85f78a71bea3",
+      "bytes": 4255956
+    },
+    "avatar_lsc.js": {
+      "sha256": "52a656c7fe48d906fb5c556e19f5b9a65919ac8d94a14465f0c18af15facd840",
+      "bytes": 12898
+    },
+    "BufferGeometryUtils.js": {
+      "sha256": "c25b7930e570e9ec56173cd3b866ec8d2e10016630db3937efb439daf1cedbf6",
+      "bytes": 31768
+    },
     "diseno_v8.css": {
-      "sha256": "551c4b3290c387645febd4722f935954736c918654bf857fb39ceec77f119964",
-      "bytes": 16269
+      "sha256": "f1fab9a41cbcd8baef1c91381617ce7977ad3f19329ac3586b482fab06ab6928",
+      "bytes": 18856
+    },
+    "GLTFLoader.js": {
+      "sha256": "5bc183f5f98ebcd9e98c18977dab4a675db9fd8a6bcaa5d84898586033bb9979",
+      "bytes": 110022
     },
     "icon-192.png": {
       "sha256": "466d453e926d493cc02d4872dafe2c173c6b344328e980284b3df1a1bb9cc33c",
@@ -25,8 +41,8 @@
       "bytes": 206543
     },
     "index.html": {
-      "sha256": "cf4d2603853a0cc5acbf5a1a2833cb0d9082dc7080421a10df3acb1559e8659d",
-      "bytes": 129684
+      "sha256": "a55e737a3bc3192101f345da71d514b05487b93a2ba19bcdb6887f818c7967f9",
+      "bytes": 136669
     },
     "logo.png": {
       "sha256": "57b661f8ce3c9844857a014e520075e3b500de99019a57f550916435583f7c54",
@@ -49,16 +65,24 @@
       "bytes": 621
     },
     "modelo_ia_cliente.js": {
-      "sha256": "77c6b9d0fe122d1bd4228c05dd22ccbadc166fea56a813252c0e1b115798a005",
+      "sha256": "2dd7511b11bbf18ac17d80feb6b275dadb98142c8d686158debc08c0a73b2ac7",
       "bytes": 1372101
     },
     "motor_inferencia_local.js": {
       "sha256": "02a5ac3cd4247c5af1806608232e2501546c5f3b4e9eb7a35259b56e0632d34c",
       "bytes": 68585
     },
+    "senas_avatar.json": {
+      "sha256": "19b4f65659fbab286834dc54be32a17c40f0811196818406144af581fd13451f",
+      "bytes": 170790
+    },
     "sw.js": {
       "sha256": "c0bc73718d3d3076cc1e21e06e473569509caf775c9c6fab319c16d9abd9983b",
       "bytes": 1033
+    },
+    "three.module.min.js": {
+      "sha256": "f7cee3c7533449a1505cc12cb5128b89e3d4fd3d7ea62b05f9f5464a217472ee",
+      "bytes": 687458
     }
   }
 }

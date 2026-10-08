@@ -1,5 +1,18 @@
 # CHANGELOG — Gestual Vision (Traductor LSC)
 
+## [8.2.0] — 2026-10-07
+### Avatar que seña
+- El catálogo incluye un avatar 3D (Hombreblender/avatar_lsc.glb, optimizado de 13,5 a 4,3 MB) que ejecuta cualquiera de las 47 señas al tocarla.
+- Campo "Escribe para señar": seña las palabras del vocabulario y deletrea el resto.
+- Movimientos generados desde LSC70 (`scripts/generar_senas_avatar.py`): la grabación más representativa de cada seña, pasada por MediaPipe 3D y trasladada a los 44 huesos Mixamo. HOLA usa la animación hecha a mano. La A tiene una corrección manual del puño.
+- three.js r169 incluido localmente, así que el avatar funciona sin internet. Mientras el catálogo está abierto se pausan la cámara y el reconocimiento.
+
+### Textos
+- Ninguna palabra se parte: la seña principal y la pantalla completa ajustan el tamaño de letra hasta que la palabra cabe entera (antes BUENAS se veía como "BUENA" + "S").
+- Tamaño de texto del WebView fijo al 100 %, así la "letra grande" de Android no desborda la interfaz.
+- Filtros Palabras / Letras / Números en el catálogo.
+
+
 ## [8.1.0] — 2026-10-06
 ### Modelo: validador de señas parecidas
 - Nueva segunda etapa: cuando se confirma una seña de un grupo confundible, una regresión logística decide dentro del grupo con las probabilidades medias de los últimos 1,5 s y rasgos de movimiento (muñeca, índice y meñique, normalizados por los hombros).
